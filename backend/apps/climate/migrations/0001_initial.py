@@ -7,9 +7,19 @@ def create_hypertable(apps, schema_editor):
 
     No-op on non-PostgreSQL backends (e.g. SQLite in tests/CI), where the
     TimescaleDB `create_hypertable` function is unavailable.
+
+    TimescaleDB requires every unique index on a hypertable to include the
+    partitioning column. Django's default single-column `id` primary key does
+    not, so we drop it first — the `id` identity column keeps auto-populating,
+    and the (region, date) unique constraint (which includes `date`) remains
+    for upserts. No table references ClimateDaily.id, so this is safe.
     """
     if schema_editor.connection.vendor != "postgresql":
         return
+    schema_editor.execute(
+        "ALTER TABLE climate_climatedaily "
+        "DROP CONSTRAINT IF EXISTS climate_climatedaily_pkey;"
+    )
     schema_editor.execute(
         "SELECT create_hypertable('climate_climatedaily', 'date', "
         "if_not_exists => TRUE, migrate_data => TRUE);"
