@@ -14,7 +14,7 @@ later with --skip-existing to resume where it left off.
 from datetime import date
 
 from django.core.management.base import BaseCommand
-from django.db.models import Min
+from django.db.models import Max, Min
 
 from apps.climate.models import ClimateDaily
 from apps.climate.tasks.aggregate import rebuild_region_all
@@ -47,13 +47,14 @@ class Command(BaseCommand):
         end_year = date.today().year
 
         if options["skip_existing"]:
-            # A region counts as loaded if its earliest daily row is at/before
-            # the requested start year (allow a 1-year grace for coverage gaps).
+            # A region counts as loaded only if its data covers BOTH ends of the
+            # range — earliest at/before the start year and latest within the
+            # last two years. This keeps partially-fetched cities in the queue.
             loaded = {
                 r["region_id"]
                 for r in ClimateDaily.objects.values("region_id")
-                .annotate(first=Min("date"))
-                .filter(first__year__lte=start_year + 1)
+                .annotate(first=Min("date"), last=Max("date"))
+                .filter(first__year__lte=start_year + 1, last__year__gte=end_year - 1)
             }
             qs = qs.exclude(id__in=loaded)
 
