@@ -125,7 +125,9 @@ CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 
-# Open-Meteo endpoints (no key required)
-OPENMETEO_ARCHIVE = "https://archive.open-meteo.com/v1/archive"
+# Open-Meteo endpoints (no key required).
+# NOTE: the ERA5 archive lives on `archive-api.open-meteo.com`, not
+# `archive.open-meteo.com` (the latter does not resolve).
+OPENMETEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
 OPENMETEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
 OPENMETEO_CLIMATE = "https://climate-api.open-meteo.com/v1/climate"
