@@ -33,9 +33,14 @@ docker-compose up --build
 
 ```bash
 docker-compose exec backend python manage.py migrate
-docker-compose exec backend python manage.py loaddata regions enso
-docker-compose exec backend python manage.py climate_bootstrap
+docker-compose exec backend python manage.py load_regions   # 34 province capitals
+docker-compose exec backend python manage.py load_enso      # ENSO / ONI events
+docker-compose exec backend python manage.py climate_bootstrap   # ERA5 1950–present
 ```
+
+> `climate_bootstrap` hits Open-Meteo once per region-year with a polite delay,
+> so a full 34-city bootstrap takes a while. Use `--slug balikpapan` to load a
+> single city first, or `--start-year 1990` to shorten the range.
 
 ## Data Attribution
 
