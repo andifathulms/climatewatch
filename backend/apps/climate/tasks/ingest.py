@@ -15,26 +15,75 @@ DAILY_VARIABLES = (
 )
 
 
-def fetch_historical(lat: float, lng: float, start: str, end: str) -> dict:
+class RateLimited(Exception):
+    """Open-Meteo rejected the request due to its free-tier request budget."""
+
+    def __init__(self, reason: str, retry_after: float | None = None):
+        super().__init__(reason)
+        self.reason = reason
+        self.retry_after = retry_after
+
+
+def _retry_after_seconds(resp) -> float | None:
+    val = resp.headers.get("Retry-After")
+    if not val:
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def fetch_historical(
+    lat: float, lng: float, start: str, end: str,
+    max_retries: int = 3, max_backoff: float = 900.0,
+) -> dict:
     """
     Fetch ERA5 daily data from Open-Meteo. Returns the parsed JSON dict with a
     'daily' key of same-length lists. Missing values are None (not 0) — callers
     must preserve the null/zero distinction, especially for precipitation.
+
+    Handles Open-Meteo's rate limiting: transient 429s are retried with backoff
+    (honoring Retry-After up to `max_backoff`); a persistent limit — e.g. the
+    hourly budget with no short retry window — raises `RateLimited` so callers
+    can stop cleanly instead of hammering the API.
     """
-    resp = requests.get(
-        settings.OPENMETEO_ARCHIVE,
-        params={
-            "latitude": lat,
-            "longitude": lng,
-            "start_date": start,
-            "end_date": end,
-            "daily": DAILY_VARIABLES,
-            "timezone": "Asia/Jakarta",
-        },
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()
+    params = {
+        "latitude": lat,
+        "longitude": lng,
+        "start_date": start,
+        "end_date": end,
+        "daily": DAILY_VARIABLES,
+        "timezone": "Asia/Jakarta",
+    }
+    for attempt in range(max_retries + 1):
+        resp = requests.get(settings.OPENMETEO_ARCHIVE, params=params, timeout=90)
+
+        if resp.status_code == 429:
+            wait = _retry_after_seconds(resp)
+            reason = "Open-Meteo rate limit (HTTP 429)"
+            if attempt < max_retries and wait is not None and wait <= max_backoff:
+                time.sleep(wait)
+                continue
+            # No usable retry window (e.g. hourly limit) — give up cleanly.
+            raise RateLimited(reason, wait)
+
+        # Open-Meteo can also signal errors with a 200/4xx JSON body.
+        try:
+            data = resp.json()
+        except ValueError:
+            resp.raise_for_status()
+            raise
+        if isinstance(data, dict) and data.get("error"):
+            reason = str(data.get("reason", "Open-Meteo error"))
+            if "limit" in reason.lower():
+                raise RateLimited(reason)
+            raise RuntimeError(reason)
+
+        resp.raise_for_status()
+        return data
+
+    raise RateLimited("Open-Meteo rate limit — retries exhausted")
 
 
 def _rows_from_daily(region, daily: dict, source=ClimateDaily.Source.ERA5):
@@ -91,7 +140,8 @@ def upsert_climate_daily(region, daily: dict) -> int:
     return len(rows)
 
 
-def fetch_in_yearly_chunks(region, start_year=1950, end_year=None, chunk_years=25) -> int:
+def fetch_in_yearly_chunks(region, start_year=1950, end_year=None,
+                           chunk_years=25, delay=0.5) -> int:
     """
     Fetch and upsert ERA5 data in multi-year chunks. Returns row count.
 
@@ -112,7 +162,7 @@ def fetch_in_yearly_chunks(region, start_year=1950, end_year=None, chunk_years=2
             end = today.isoformat()
         data = fetch_historical(region.latitude, region.longitude, start, end)
         total += upsert_climate_daily(region, data.get("daily", {}))
-        time.sleep(0.5)  # polite delay between requests
+        time.sleep(delay)  # polite delay between requests
         year = chunk_end_year + 1
     return total
 
