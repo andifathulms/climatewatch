@@ -91,18 +91,29 @@ def upsert_climate_daily(region, daily: dict) -> int:
     return len(rows)
 
 
-def fetch_in_yearly_chunks(region, start_year=1950, end_year=None) -> int:
-    """Fetch and upsert ERA5 data year-by-year for reliability. Returns row count."""
+def fetch_in_yearly_chunks(region, start_year=1950, end_year=None, chunk_years=25) -> int:
+    """
+    Fetch and upsert ERA5 data in multi-year chunks. Returns row count.
+
+    A single 75-year request is unreliable (times out), while one request per
+    year is needlessly chatty. Chunking by ~25 years balances both: full
+    1950–present is just three requests per region. Set chunk_years=1 to fall
+    back to strict per-year fetching.
+    """
     end_year = end_year or date.today().year
+    today = date.today()
     total = 0
-    for year in range(start_year, end_year + 1):
+    year = start_year
+    while year <= end_year:
+        chunk_end_year = min(year + chunk_years - 1, end_year)
         start = f"{year}-01-01"
-        end = f"{year}-12-31"
-        if year == date.today().year:
-            end = date.today().isoformat()
+        end = f"{chunk_end_year}-12-31"
+        if chunk_end_year >= today.year:
+            end = today.isoformat()
         data = fetch_historical(region.latitude, region.longitude, start, end)
         total += upsert_climate_daily(region, data.get("daily", {}))
         time.sleep(0.5)  # polite delay between requests
+        year = chunk_end_year + 1
     return total
 
 
