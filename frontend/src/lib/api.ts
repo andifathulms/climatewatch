@@ -1,0 +1,65 @@
+import type {
+  CompareResponse,
+  ExtremesResponse,
+  FingerprintResponse,
+  FingerprintVariable,
+  ForecastContextResponse,
+  Region,
+  RegionDetail,
+  SeasonResponse,
+} from "./types";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+async function get<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_URL}/api${path}`, {
+    // Revalidate hourly — climate data changes at most daily.
+    next: { revalidate: 3600 },
+    ...init,
+  });
+  if (!res.ok) {
+    throw new Error(`API ${res.status} for ${path}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  regions(): Promise<{ results: Region[] }> {
+    return get("/regions/");
+  },
+  region(id: number | string): Promise<RegionDetail> {
+    return get(`/regions/${id}/`);
+  },
+  searchRegions(q: string): Promise<Region[]> {
+    return get(`/regions/search/?q=${encodeURIComponent(q)}`);
+  },
+  fingerprint(
+    regionId: number,
+    variable: FingerprintVariable = "precipitation",
+    yearFrom?: number,
+    yearTo?: number,
+  ): Promise<FingerprintResponse> {
+    const params = new URLSearchParams({ variable });
+    if (yearFrom) params.set("year_from", String(yearFrom));
+    if (yearTo) params.set("year_to", String(yearTo));
+    return get(`/climate/${regionId}/fingerprint/?${params}`);
+  },
+  extremes(regionId: number): Promise<ExtremesResponse> {
+    return get(`/climate/${regionId}/extremes/`);
+  },
+  season(regionId: number): Promise<SeasonResponse> {
+    return get(`/climate/${regionId}/season/`);
+  },
+  forecastContext(regionId: number): Promise<ForecastContextResponse> {
+    return get(`/climate/${regionId}/forecast-context/`, {
+      // Forecast is live — don't cache for an hour.
+      next: { revalidate: 900 },
+    });
+  },
+  compare(a: number, b: number): Promise<CompareResponse> {
+    return get(`/compare/?a=${a}&b=${b}`);
+  },
+};
+
+export { API_URL };
