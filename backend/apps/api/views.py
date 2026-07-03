@@ -43,6 +43,14 @@ class RegionViewSet(viewsets.ReadOnlyModelViewSet):
             return RegionDetailSerializer
         return RegionSerializer
 
+    def get_object(self):
+        """Resolve the detail lookup by numeric pk or by slug."""
+        value = self.kwargs[self.lookup_field]
+        lookup = {"pk": value} if str(value).isdigit() else {"slug": value}
+        obj = get_object_or_404(IndonesiaRegion, **lookup)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     @action(detail=False, methods=["get"])
     def search(self, request):
         q = request.query_params.get("q", "").strip()
