@@ -1,0 +1,27 @@
+import { fmt } from "@/lib/format";
+
+/** ↑ / ↓ arrow with a magnitude, colored by direction. */
+export default function TrendArrow({
+  direction,
+  magnitude,
+  unit = "",
+  invertColor = false,
+}: {
+  direction: "up" | "down" | "flat";
+  magnitude: number;
+  unit?: string;
+  invertColor?: boolean;
+}) {
+  if (direction === "flat") {
+    return <span className="text-text-muted">→ no clear trend</span>;
+  }
+  const isUp = direction === "up";
+  // For "hot days" up is bad (heat-orange); for wet-season a neutral read.
+  const bad = invertColor ? !isUp : isUp;
+  const color = bad ? "var(--heat-orange)" : "var(--rain-blue)";
+  return (
+    <span className="font-numeric font-medium" style={{ color }}>
+      {isUp ? "↑" : "↓"} {fmt(magnitude, unit)}
+    </span>
+  );
+}
