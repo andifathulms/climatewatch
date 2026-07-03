@@ -29,8 +29,8 @@ class IndonesiaRegion(BaseModel):
     class Meta:
         ordering = ["name"]
         indexes = [
-            models.Index(fields=["slug"]),
-            models.Index(fields=["is_featured"]),
+            models.Index(fields=["slug"], name="regions_ind_slug_idx"),
+            models.Index(fields=["is_featured"], name="regions_ind_featured_idx"),
         ]
 
     def __str__(self) -> str:

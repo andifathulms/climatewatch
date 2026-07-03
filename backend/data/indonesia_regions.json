@@ -22,6 +22,7 @@
   {"name": "Palangka Raya", "type": "kota", "province": "Kalimantan Tengah", "latitude": -2.2080, "longitude": 113.9161, "bps_code": "62", "is_featured": true},
   {"name": "Banjarmasin", "type": "kota", "province": "Kalimantan Selatan", "latitude": -3.3186, "longitude": 114.5944, "bps_code": "63", "is_featured": true},
   {"name": "Samarinda", "type": "kota", "province": "Kalimantan Timur", "latitude": -0.5022, "longitude": 117.1536, "bps_code": "64", "is_featured": true},
+  {"name": "Balikpapan", "type": "kota", "province": "Kalimantan Timur", "latitude": -1.2379, "longitude": 116.8529, "bps_code": "6471", "is_featured": true},
   {"name": "Tanjung Selor", "type": "kota", "province": "Kalimantan Utara", "latitude": 2.8375, "longitude": 117.3661, "bps_code": "65", "is_featured": true},
   {"name": "Manado", "type": "kota", "province": "Sulawesi Utara", "latitude": 1.4748, "longitude": 124.8421, "bps_code": "71", "is_featured": true},
   {"name": "Palu", "type": "kota", "province": "Sulawesi Tengah", "latitude": -0.8917, "longitude": 119.8707, "bps_code": "72", "is_featured": true},

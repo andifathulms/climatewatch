@@ -17,7 +17,6 @@
     {"phase": "EL_NINO", "strength": "STRONG",       "start": "1972-05", "end": "1973-03", "peak_oni": 2.1},
     {"phase": "LA_NINA", "strength": "STRONG",       "start": "1973-06", "end": "1974-06", "peak_oni": -2.0},
     {"phase": "LA_NINA", "strength": "WEAK",         "start": "1974-10", "end": "1976-03", "peak_oni": -1.6},
-    {"phase": "LA_NINA", "strength": "WEAK",         "start": "1975-06", "end": "1976-03", "peak_oni": -1.6},
     {"phase": "EL_NINO", "strength": "WEAK",         "start": "1976-09", "end": "1977-02", "peak_oni": 0.8},
     {"phase": "EL_NINO", "strength": "WEAK",         "start": "1977-09", "end": "1978-01", "peak_oni": 0.8},
     {"phase": "EL_NINO", "strength": "VERY_STRONG",  "start": "1982-04", "end": "1983-06", "peak_oni": 2.2},

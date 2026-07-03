@@ -74,7 +74,10 @@ class ClimateMonthly(BaseModel):
             )
         ]
         indexes = [
-            models.Index(fields=["region", "year", "month"]),
+            models.Index(
+                fields=["region", "year", "month"],
+                name="climate_monthly_rym_idx",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -109,7 +112,10 @@ class ClimateAnnual(BaseModel):
             )
         ]
         indexes = [
-            models.Index(fields=["region", "year"]),
+            models.Index(
+                fields=["region", "year"],
+                name="climate_annual_ry_idx",
+            ),
         ]
 
     def __str__(self) -> str:

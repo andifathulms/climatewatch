@@ -2,6 +2,20 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def create_hypertable(apps, schema_editor):
+    """Convert ClimateDaily into a TimescaleDB hypertable on `date`.
+
+    No-op on non-PostgreSQL backends (e.g. SQLite in tests/CI), where the
+    TimescaleDB `create_hypertable` function is unavailable.
+    """
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute(
+        "SELECT create_hypertable('climate_climatedaily', 'date', "
+        "if_not_exists => TRUE, migrate_data => TRUE);"
+    )
+
+
 class Migration(migrations.Migration):
 
     initial = True
@@ -152,7 +166,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="climatemonthly",
-            index=models.Index(fields=["region", "year", "month"], name="climate_clim_region__monthly_idx"),
+            index=models.Index(fields=["region", "year", "month"], name="climate_monthly_rym_idx"),
         ),
         migrations.AddConstraint(
             model_name="climateannual",
@@ -160,16 +174,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="climateannual",
-            index=models.Index(fields=["region", "year"], name="climate_clim_region__annual_idx"),
+            index=models.Index(fields=["region", "year"], name="climate_annual_ry_idx"),
         ),
         migrations.AddConstraint(
             model_name="ensoevent",
             constraint=models.UniqueConstraint(fields=["year", "month"], name="uniq_enso_month"),
         ),
         # --- TimescaleDB hypertable on ClimateDaily.date ---
-        migrations.RunSQL(
-            "SELECT create_hypertable('climate_climatedaily', 'date', "
-            "if_not_exists => TRUE, migrate_data => TRUE);",
-            reverse_sql="SELECT 1;",
-        ),
+        migrations.RunPython(create_hypertable, migrations.RunPython.noop),
     ]
