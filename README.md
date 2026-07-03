@@ -42,6 +42,13 @@ docker-compose exec backend python manage.py climate_bootstrap   # ERA5 1950–p
 > so a full 34-city bootstrap takes a while. Use `--slug balikpapan` to load a
 > single city first, or `--start-year 1990` to shorten the range.
 
+If the Open-Meteo archive API is unreachable (offline / blocked network), seed
+reproducible **synthetic** data instead so the app is fully viewable:
+
+```bash
+docker-compose exec backend python manage.py seed_demo   # NOT real ERA5 data
+```
+
 ## Data Attribution
 
 Climate data: Open-Meteo.com (CC BY 4.0). Based on ERA5 reanalysis from
