@@ -1,0 +1,143 @@
+"""Open-Meteo ERA5 ingestion for ClimateDaily."""
+import time
+from datetime import date, timedelta
+
+import requests
+from celery import shared_task
+from django.conf import settings
+
+from apps.climate.models import ClimateDaily
+from apps.regions.models import IndonesiaRegion
+
+DAILY_VARIABLES = (
+    "temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
+    "precipitation_sum,windspeed_10m_max,et0_fao_evapotranspiration"
+)
+
+
+def fetch_historical(lat: float, lng: float, start: str, end: str) -> dict:
+    """
+    Fetch ERA5 daily data from Open-Meteo. Returns the parsed JSON dict with a
+    'daily' key of same-length lists. Missing values are None (not 0) — callers
+    must preserve the null/zero distinction, especially for precipitation.
+    """
+    resp = requests.get(
+        settings.OPENMETEO_ARCHIVE,
+        params={
+            "latitude": lat,
+            "longitude": lng,
+            "start_date": start,
+            "end_date": end,
+            "daily": DAILY_VARIABLES,
+            "timezone": "Asia/Jakarta",
+        },
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _rows_from_daily(region, daily: dict, source=ClimateDaily.Source.ERA5):
+    """Build ClimateDaily instances from an Open-Meteo 'daily' block."""
+    times = daily.get("time", [])
+    tmax = daily.get("temperature_2m_max", [])
+    tmin = daily.get("temperature_2m_min", [])
+    tmean = daily.get("temperature_2m_mean", [])
+    precip = daily.get("precipitation_sum", [])
+    wind = daily.get("windspeed_10m_max", [])
+    et0 = daily.get("et0_fao_evapotranspiration", [])
+
+    def get(seq, i):
+        return seq[i] if i < len(seq) else None
+
+    rows = []
+    for i, day in enumerate(times):
+        rows.append(
+            ClimateDaily(
+                region=region,
+                date=day,
+                temp_max=get(tmax, i),
+                temp_min=get(tmin, i),
+                temp_mean=get(tmean, i),
+                precipitation_mm=get(precip, i),
+                windspeed_max_kmh=get(wind, i),
+                evapotranspiration_mm=get(et0, i),
+                source=source,
+            )
+        )
+    return rows
+
+
+def upsert_climate_daily(region, daily: dict) -> int:
+    """Upsert a daily block into ClimateDaily using bulk_create with conflict update."""
+    rows = _rows_from_daily(region, daily)
+    if not rows:
+        return 0
+    ClimateDaily.objects.bulk_create(
+        rows,
+        update_conflicts=True,
+        unique_fields=["region", "date"],
+        update_fields=[
+            "temp_max",
+            "temp_min",
+            "temp_mean",
+            "precipitation_mm",
+            "windspeed_max_kmh",
+            "evapotranspiration_mm",
+            "source",
+        ],
+        batch_size=2000,
+    )
+    return len(rows)
+
+
+def fetch_in_yearly_chunks(region, start_year=1950, end_year=None) -> int:
+    """Fetch and upsert ERA5 data year-by-year for reliability. Returns row count."""
+    end_year = end_year or date.today().year
+    total = 0
+    for year in range(start_year, end_year + 1):
+        start = f"{year}-01-01"
+        end = f"{year}-12-31"
+        if year == date.today().year:
+            end = date.today().isoformat()
+        data = fetch_historical(region.latitude, region.longitude, start, end)
+        total += upsert_climate_daily(region, data.get("daily", {}))
+        time.sleep(0.5)  # polite delay between requests
+    return total
+
+
+@shared_task
+def bootstrap_region_task(region_id: int, start_year: int = 1950) -> int:
+    """Celery entrypoint to bootstrap a single region on-demand."""
+    region = IndonesiaRegion.objects.get(pk=region_id)
+    rows = fetch_in_yearly_chunks(region, start_year=start_year)
+
+    # Aggregate after ingest (imported here to avoid circular import)
+    from apps.climate.tasks.aggregate import rebuild_region_all
+
+    rebuild_region_all(region_id)
+    return rows
+
+
+@shared_task
+def update_climate_yesterday_all() -> int:
+    """Daily Celery Beat task: fetch yesterday for every loaded region."""
+    yesterday = date.today() - timedelta(days=1)
+    start = end = yesterday.isoformat()
+    region_ids = (
+        ClimateDaily.objects.values_list("region_id", flat=True).distinct()
+    )
+    total = 0
+    from apps.climate.tasks.aggregate import (
+        rebuild_climate_annual,
+        rebuild_climate_monthly,
+    )
+
+    for rid in region_ids:
+        region = IndonesiaRegion.objects.get(pk=rid)
+        data = fetch_historical(region.latitude, region.longitude, start, end)
+        total += upsert_climate_daily(region, data.get("daily", {}))
+        rebuild_climate_monthly(rid, yesterday.year, yesterday.month)
+        rebuild_climate_annual(rid, yesterday.year)
+        time.sleep(0.5)
+    return total
