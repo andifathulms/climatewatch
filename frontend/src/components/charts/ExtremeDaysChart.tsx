@@ -26,7 +26,7 @@ export default function ExtremeDaysChart({ data }: { data: ExtremesResponse }) {
 
   const rows = data.results.map((r) => ({
     year: r.year,
-    value: (r as Record<string, number>)[metric],
+    value: (r as unknown as Record<string, number>)[metric],
   }));
 
   // Trend line via simple-statistics linear regression.
