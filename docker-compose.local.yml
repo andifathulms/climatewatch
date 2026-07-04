@@ -1,0 +1,30 @@
+# Local run on OrbStack. Runs only backend + frontend as containers and points
+# them at the already-running TimescaleDB container (iklim-ts) so existing data
+# is preserved. Access via OrbStack's per-container domains — no host ports, so
+# nothing collides with other OrbStack containers:
+#
+#   Frontend: http://iklim-frontend.orb.local:3000
+#   Backend:  http://iklim-backend.orb.local:8000
+#
+#   docker compose -f docker-compose.local.yml up -d --build
+services:
+  backend:
+    build: ./backend
+    container_name: iklim-backend
+    command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      DATABASE_URL: postgresql://iklim:password@iklim-ts.orb.local:5432/iklim
+      REDIS_URL: redis://iklim-redis.orb.local:6379/0
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: iklim-frontend
+    command: npm run dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://iklim-backend.orb.local:8000
+    depends_on: [backend]
+    restart: unless-stopped
