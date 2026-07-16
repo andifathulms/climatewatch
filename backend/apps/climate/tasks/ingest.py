@@ -25,13 +25,25 @@ class RateLimited(Exception):
 
 
 def _retry_after_seconds(resp) -> float | None:
+    """
+    Seconds to wait before retrying a 429, or None if the limit isn't
+    short-lived. Open-Meteo never sends a Retry-After header — the only signal
+    is the wording in the JSON body ("Minutely ... try again in one minute"
+    vs. a longer-window message), so fall back to parsing that.
+    """
     val = resp.headers.get("Retry-After")
-    if not val:
-        return None
+    if val:
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            pass
     try:
-        return float(val)
-    except (TypeError, ValueError):
+        reason = str(resp.json().get("reason", "")).lower()
+    except ValueError:
         return None
+    if "minute" in reason:
+        return 65.0
+    return None
 
 
 def fetch_historical(
