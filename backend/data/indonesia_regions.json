@@ -33,5 +33,15 @@
   {"name": "Ambon", "type": "kota", "province": "Maluku", "latitude": -3.6954, "longitude": 128.1814, "bps_code": "81", "is_featured": true},
   {"name": "Sofifi", "type": "kota", "province": "Maluku Utara", "latitude": 0.7333, "longitude": 127.5667, "bps_code": "82", "is_featured": true},
   {"name": "Manokwari", "type": "kota", "province": "Papua Barat", "latitude": -0.8615, "longitude": 134.0620, "bps_code": "91", "is_featured": true},
-  {"name": "Jayapura", "type": "kota", "province": "Papua", "latitude": -2.5916, "longitude": 140.6690, "bps_code": "94", "is_featured": true}
+  {"name": "Jayapura", "type": "kota", "province": "Papua", "latitude": -2.5916, "longitude": 140.6690, "bps_code": "94", "is_featured": true},
+  {"name": "Bekasi", "type": "kota", "province": "Jawa Barat", "latitude": -6.2383, "longitude": 106.9756, "bps_code": "3275", "is_featured": false},
+  {"name": "Tangerang", "type": "kota", "province": "Banten", "latitude": -6.1783, "longitude": 106.6319, "bps_code": "3671", "is_featured": false},
+  {"name": "Depok", "type": "kota", "province": "Jawa Barat", "latitude": -6.4025, "longitude": 106.7942, "bps_code": "3276", "is_featured": false},
+  {"name": "Bogor", "type": "kota", "province": "Jawa Barat", "latitude": -6.5971, "longitude": 106.8060, "bps_code": "3271", "is_featured": false},
+  {"name": "Malang", "type": "kota", "province": "Jawa Timur", "latitude": -7.9666, "longitude": 112.6326, "bps_code": "3573", "is_featured": false},
+  {"name": "Batam", "type": "kota", "province": "Kepulauan Riau", "latitude": 1.0456, "longitude": 104.0305, "bps_code": "2171", "is_featured": false},
+  {"name": "Cirebon", "type": "kota", "province": "Jawa Barat", "latitude": -6.7063, "longitude": 108.5571, "bps_code": "3274", "is_featured": false},
+  {"name": "Surakarta", "type": "kota", "province": "Jawa Tengah", "latitude": -7.5755, "longitude": 110.8243, "bps_code": "3372", "is_featured": false},
+  {"name": "Sukabumi", "type": "kota", "province": "Jawa Barat", "latitude": -6.9277, "longitude": 106.9300, "bps_code": "3272", "is_featured": false},
+  {"name": "Tasikmalaya", "type": "kota", "province": "Jawa Barat", "latitude": -7.3506, "longitude": 108.2172, "bps_code": "3278", "is_featured": false}
 ]
