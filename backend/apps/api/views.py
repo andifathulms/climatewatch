@@ -148,11 +148,13 @@ class ExtremesView(ClimateEndpoint):
         rows = list(qs.values(
             "year", "hot_days", "cool_days", "heavy_rain_days",
             "extreme_rain_days", "max_consecutive_dry_days",
+            "max_consecutive_hot_days",
         ))
 
         trends = {}
         for metric in ("hot_days", "cool_days", "heavy_rain_days",
-                       "extreme_rain_days", "max_consecutive_dry_days"):
+                       "extreme_rain_days", "max_consecutive_dry_days",
+                       "max_consecutive_hot_days"):
             pts = [(r["year"], r[metric]) for r in rows if r[metric] is not None]
             trends[metric] = _linreg(pts)
 

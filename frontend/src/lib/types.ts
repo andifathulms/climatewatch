@@ -64,6 +64,7 @@ export interface AnnualRow {
   heavy_rain_days: number;
   extreme_rain_days: number;
   max_consecutive_dry_days: number;
+  max_consecutive_hot_days: number;
 }
 
 export interface Trend {

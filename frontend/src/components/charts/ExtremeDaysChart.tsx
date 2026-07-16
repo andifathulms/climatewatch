@@ -31,6 +31,7 @@ const METRICS: {
   { key: "heavy_rain_days", label: "Heavy rain (>50mm)", short: "Heavy rain days" },
   { key: "extreme_rain_days", label: "Extreme rain (>100mm)", short: "Extreme rain days" },
   { key: "max_consecutive_dry_days", label: "Longest dry spell", short: "Dry spell (days)" },
+  { key: "max_consecutive_hot_days", label: "Longest heatwave", short: "Heatwave (days)" },
   { key: "cool_days", label: "Cool days (<20°C)", short: "Cool days" },
 ];
 

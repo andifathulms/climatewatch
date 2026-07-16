@@ -101,6 +101,9 @@ class ClimateAnnual(BaseModel):
     heavy_rain_days = models.IntegerField(default=0)
     extreme_rain_days = models.IntegerField(default=0)
     max_consecutive_dry_days = models.IntegerField(default=0)
+    max_consecutive_hot_days = models.IntegerField(
+        default=0, help_text="Longest streak of consecutive days with temp_max > 35C"
+    )
     wet_season_onset_doy = models.IntegerField(null=True, blank=True)
     wet_season_end_doy = models.IntegerField(null=True, blank=True)
 

@@ -54,6 +54,22 @@ def compute_max_consecutive_dry_days(region_id: int, year: int) -> int:
     return best
 
 
+def compute_max_consecutive_hot_days(region_id: int, year: int) -> int:
+    days = (
+        ClimateDaily.objects.filter(region_id=region_id, date__year=year)
+        .order_by("date")
+        .values_list("temp_max", flat=True)
+    )
+    best = run = 0
+    for t in days:
+        if t is not None and t > 35:
+            run += 1
+            best = max(best, run)
+        else:
+            run = 0
+    return best
+
+
 def compute_wet_season_onset(region_id: int, year: int) -> int | None:
     """
     Day-of-year of wet season onset, or None. Definition: first occurrence
@@ -114,6 +130,9 @@ def rebuild_climate_annual(region_id: int, year: int):
         extreme_rain_days=Count("id", filter=Q(precipitation_mm__gt=100)),
     )
     result["max_consecutive_dry_days"] = compute_max_consecutive_dry_days(
+        region_id, year
+    )
+    result["max_consecutive_hot_days"] = compute_max_consecutive_hot_days(
         region_id, year
     )
     result["wet_season_onset_doy"] = compute_wet_season_onset(region_id, year)
