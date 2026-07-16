@@ -13,12 +13,27 @@ import {
 } from "recharts";
 import type { SeasonResponse } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
+import {
+  AXIS,
+  CHART_MARGIN,
+  CURSOR,
+  ChartHeader,
+  ChartTooltip,
+  LegendKey,
+  GRID,
+} from "./chart-ui";
 
 /** Day-of-year (1–366) -> month label for the Y axis. */
 function doyTick(doy: number): string {
   const d = new Date(2001, 0, 1);
   d.setDate(doy);
   return MONTHS[d.getMonth()];
+}
+
+function doyFull(doy: number): string {
+  const d = new Date(2001, 0, 1);
+  d.setDate(doy);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 export default function SeasonShiftScatter({ data }: { data: SeasonResponse }) {
@@ -38,39 +53,81 @@ export default function SeasonShiftScatter({ data }: { data: SeasonResponse }) {
     trend: reg ? reg.m * p.year + reg.b : null,
   }));
 
+  const shiftPerDecade = reg ? reg.m * 10 : null;
+
   return (
-    <section className="rounded-xl border border-border bg-surface p-6">
-      <h2 className="text-xl font-semibold">Season Shift</h2>
-      <p className="mb-3 text-sm text-text-secondary">
-        Wet season onset by year (first 5-day ≥40mm spell after Aug 1).
-        {data.null_onset_years > 0 &&
-          ` ${data.null_onset_years} year(s) had no detectable onset.`}
+    <section className="card p-6">
+      <ChartHeader eyebrow="Seasonality" title="Season Shift" />
+
+      <p className="mb-5 max-w-prose text-sm leading-relaxed text-text-secondary">
+        Wet season onset by year — the first 5-day spell of ≥40mm after Aug 1.
+        {shiftPerDecade !== null && Math.abs(shiftPerDecade) >= 0.1 && (
+          <>
+            {" "}
+            Onset is drifting{" "}
+            <span className="font-numeric font-medium text-text-primary">
+              {Math.abs(shiftPerDecade).toFixed(1)} days{" "}
+              {shiftPerDecade > 0 ? "later" : "earlier"}
+            </span>{" "}
+            each decade.
+          </>
+        )}
+        {data.null_onset_years > 0 && (
+          <span className="text-text-muted">
+            {" "}
+            {data.null_onset_years} year
+            {data.null_onset_years === 1 ? "" : "s"} had no detectable onset and{" "}
+            {data.null_onset_years === 1 ? "is" : "are"} not plotted.
+          </span>
+        )}
       </p>
 
       <ResponsiveContainer width="100%" height={260}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
-          <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" />
+        <ComposedChart data={chartData} margin={CHART_MARGIN}>
+          <CartesianGrid {...GRID} />
           <XAxis
             dataKey="year"
             type="number"
             domain={["dataMin", "dataMax"]}
-            tick={{ fontSize: 11 }}
-            stroke="var(--text-muted)"
+            minTickGap={28}
+            {...AXIS}
           />
           <YAxis
             dataKey="doy"
             domain={[210, 366]}
             tickFormatter={doyTick}
-            tick={{ fontSize: 11 }}
-            stroke="var(--text-muted)"
+            width={44}
+            {...AXIS}
           />
           <Tooltip
-            formatter={(v: number, name) =>
-              name === "doy" ? [`${doyTick(v)} (day ${v})`, "Onset"] : [Math.round(v), "Trend"]
+            cursor={CURSOR}
+            content={
+              <ChartTooltip
+                format={(e) => {
+                  if (typeof e.value !== "number") return null;
+                  return e.dataKey === "trend"
+                    ? { name: "Trend", value: doyFull(Math.round(e.value)) }
+                    : { name: "Onset", value: doyFull(e.value) };
+                }}
+              />
             }
-            contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 }}
           />
-          <Scatter dataKey="doy" fill="var(--rain-blue)" />
+          <Scatter
+            dataKey="doy"
+            fill="var(--rain-blue)"
+            // >=8px marker with a 2px surface ring so overlapping years read.
+            shape={(props: { cx?: number; cy?: number }) => (
+              <circle
+                cx={props.cx}
+                cy={props.cy}
+                r={4}
+                fill="var(--rain-blue)"
+                stroke="var(--surface)"
+                strokeWidth={1.5}
+              />
+            )}
+            name="Onset"
+          />
           {reg && (
             <Line
               type="linear"
@@ -79,10 +136,19 @@ export default function SeasonShiftScatter({ data }: { data: SeasonResponse }) {
               strokeWidth={1.5}
               strokeDasharray="5 4"
               dot={false}
+              activeDot={false}
+              name="Trend"
             />
           )}
         </ComposedChart>
       </ResponsiveContainer>
+
+      <LegendKey
+        items={[
+          { label: "Wet season onset", color: "var(--rain-blue)" },
+          { label: "Linear trend", color: "var(--drought-amber)", dashed: true },
+        ]}
+      />
     </section>
   );
 }

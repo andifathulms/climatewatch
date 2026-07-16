@@ -1,25 +1,81 @@
-/* Musim (Season) design system tokens */
+/* ============================================================================
+   Musim Nokturnal — Iklim design system
+   ----------------------------------------------------------------------------
+   An editorial dark system on a *warm* volcanic ink canvas (not blue-slate),
+   so the earth-toned Musim identity survives the inversion.
+
+   Every data-encoding color below was validated with the dataviz six checks
+   against the real surfaces used here (canvas #12100C / card #1B1813):
+     · series pair (rain-blue ↔ heat-orange)  — all checks PASS, both modes
+     · ENSO pair  (nino ↔ nina)               — all checks PASS
+     · all ink    — WCAG >= 4.5:1 on every surface it lands on
+   Do not hand-tune these without re-running the validator.
+   ========================================================================== */
+
 :root {
-  /* Surfaces */
-  --earth-cream: #f5f0e8;
-  --surface: #ffffff;
-  --surface-muted: #f0ebe0;
-  --border: #ddd8cf;
+  color-scheme: dark;
 
-  /* Data-encoding colors */
-  --rain-blue: #2b7cb8;
-  --rain-light: #a8cbea;
-  --heat-orange: #e85d2f;
-  --heat-light: #f5b89a;
-  --drought-amber: #c49a2b;
-  --enso-nino: #d95f02;
-  --enso-nina: #1b7837;
+  /* ── Canvas & surfaces ─────────────────────────────────────────────────── */
+  --canvas: #12100c;
+  --canvas-deep: #0c0a07;
+  --surface: #1b1813;
+  --surface-raised: #221e18;
+  --surface-muted: #24201a;
+  --surface-inset: #100e0a;
+  --border: #322c24;
+  --border-strong: #4a4237;
 
-  /* Text */
-  --text-primary: #1a1208;
-  --text-secondary: #6b6050;
-  --text-muted: #a89880;
+  /* ── Ink ───────────────────────────────────────────────────────────────── */
+  --text-primary: #f7f3ea; /* 16.0:1 on card */
+  --text-secondary: #b5aa97; /*  7.7:1 on card */
+  --text-muted: #9a8f7c; /*  5.6:1 on card */
 
-  /* Null / missing data cell */
-  --null-cell: #e8e0d0;
+  /* ── Data encoding ─────────────────────────────────────────────────────── */
+  --rain-blue: #3e93d0;
+  --rain-light: #9bd0f0;
+  --heat-orange: #e2661f;
+  --heat-light: #f5a868;
+  --drought-amber: #c9982f;
+  --enso-nino: #e2661f;
+  --enso-nina: #45a05f;
+
+  /* Null / missing data cell — warm neutral, deliberately off every ramp so
+     "no data" can never be mistaken for "zero". */
+  --null-cell: #2a251e;
+
+  /* ── Series slots — color follows the entity, never its rank ───────────── */
+  --series-1: var(--rain-blue);
+  --series-2: var(--heat-orange);
+
+  /* ── Chart chrome ──────────────────────────────────────────────────────── */
+  --grid-line: #2b251d;
+  --axis-line: #3d362c;
+
+  /* ── Elevation & radius ────────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow: 0 4px 16px -4px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 18px 48px -12px rgb(0 0 0 / 0.7);
+
+  /* Warm rim-light that separates a card from the canvas without a hard line */
+  --rim: inset 0 1px 0 0 rgb(255 246 230 / 0.06);
+
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Respect the OS reduced-motion setting everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

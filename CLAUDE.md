@@ -278,7 +278,32 @@ Client needs nulls to render empty cells correctly.
 - All climate numbers formatted to 1 decimal place
 - Temperature always shown in Celsius
 - Rainfall always shown in mm
-- Data attribution footer component required on every page (CC BY 4.0)
+- Data attribution: `DataAttribution` is rendered once by `SiteFooter` in the root
+  layout, so the CC BY 4.0 credit is on every page structurally. Do not re-add it
+  per page, and do not remove it from the footer.
+
+### Design system — "Musim Nokturnal"
+
+Dark editorial system on a *warm* volcanic-ink canvas (not blue-slate), so the
+earth-toned Musim identity survives the inversion. Tokens live in
+`styles/tokens.css`; there is one theme, not a light/dark toggle.
+
+- Type: **Fraunces** (display, `--font-display`), **Inter** (UI), **JetBrains
+  Mono** (every number, tabular). Loaded via `next/font` — do not reintroduce a
+  Google Fonts `<link>`.
+- Every data-encoding color was validated against the real surfaces
+  (canvas `#12100C` / card `#1B1813`): series pair and ENSO pair pass the
+  categorical checks; all ink clears WCAG 4.5:1. **Re-run the validator rather
+  than hand-tuning these.**
+- Color follows the **entity, never the metric**: on compare, city A is always
+  `--series-1` and city B `--series-2`, identically across every chart.
+- Form follows the data's job: rainfall is additive → zero-baselined bars;
+  temperature is a cycle on a narrow range → a line on its own domain. Never
+  truncate a bar axis to manufacture contrast.
+- Status and direction never rest on hue alone — pair with an icon, arrow, dash
+  pattern, or direct label.
+- Shared chart chrome (axes, grid, tooltip, legend) lives in
+  `components/charts/chart-ui.tsx`. Style there, not per chart.
 
 ### ClimateFingerprint Component (core D3 component)
 ```tsx
@@ -292,21 +317,36 @@ Client needs nulls to render empty cells correctly.
 //   - Click cell → nothing in v1 (future: drill-down to daily view)
 // ENSO overlay: when enabled, add colored left border per year row
 //   (orange border = El Niño, green border = La Niña)
-// null cells: render as light gray (#E8E0D0) — distinct from "zero" value
+// null cells: render as --null-cell (#2A251E) — a warm neutral kept off every
+//   ramp, so "no data" can never be mistaken for "zero"
+// Cell width is responsive (fills the panel, 26–64px); height is fixed at 22px.
+//   Cells are deliberately non-square — a month is wider than it is tall.
 
+The **domains** below are the spec. The **interpolators** are NOT `d3.interpolateBlues`
+et al. — those ramp light→dark, which on the dark Musim Nokturnal canvas makes
+"zero rain" the brightest cell on the grid. Each variable instead uses a
+single-hue ramp anchored dark→light (`RAMPS` in `ClimateFingerprint.tsx`), which
+is the documented dark-mode flip for a sequential scale.
+
+```tsx
 const buildColorScale = (variable: string, stats: FingerprintStats) => {
+  const interp = d3.interpolateRgbBasis(RAMPS[variable])
   switch(variable) {
     case 'precipitation':
-      return d3.scaleSequential(d3.interpolateBlues).domain([0, stats.p90])
+      return d3.scaleSequential(interp).domain([0, stats.p90])
     case 'temp_max':
-      return d3.scaleSequential(d3.interpolateOranges).domain([stats.p10, stats.p90])
+      return d3.scaleSequential(interp).domain([stats.p10, stats.p90])
     case 'hot_days':
-      return d3.scaleSequential(d3.interpolateReds).domain([0, stats.max])
+      return d3.scaleSequential(interp).domain([0, stats.max])
     case 'dry_days':
-      return d3.scaleSequential(d3.interpolateYlOrBr).domain([0, stats.max])
+      return d3.scaleSequential(interp).domain([0, stats.max])
   }
 }
 ```
+
+Each ramp is verified monotonic in L* and keeps its zero end chromatic, so a true
+zero stays distinct from a null cell. Re-verify both properties before editing a
+ramp.
 
 ### Trend Line (all line charts)
 Add a simple linear regression trend line to every annual time-series chart.
@@ -444,8 +484,8 @@ volumes:
   0mm rain and missing data are different things
 - **On-demand region load for non-seeded cities** — trigger bootstrap task,
   show loading state, don't block
-- **CC BY 4.0 attribution is legally required** — `DataAttribution` component
-  appears on every page, this is non-optional
+- **CC BY 4.0 attribution is legally required** — `DataAttribution` renders in the
+  root layout's footer so it is on every page by construction, this is non-optional
 - **D3 for fingerprint only** — all other charts use Recharts
 
 ---

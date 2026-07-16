@@ -4,24 +4,236 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-serif: "Lora", Georgia, serif;
-  --font-mono: "DM Mono", "SFMono-Regular", monospace;
+/* ============================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background: var(--canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv05" 1, "ss01" 1;
+  }
+
+  /* Display face. Fraunces carries the editorial voice — optical sizing and a
+     touch of WONK give the headlines warmth the geometric sans can't. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 30, "WONK" 1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* A visible, on-brand focus ring — never remove it, only restyle it. */
+  :focus-visible {
+    outline: 2px solid var(--rain-blue);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  ::selection {
+    background: var(--rain-blue);
+    color: #fff;
+  }
+
+  /* Warm, thin scrollbars so the fingerprint's horizontal scroll doesn't
+     punch a bright rectangle into the dark canvas. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 3px solid var(--canvas);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
 }
 
-body {
-  background: var(--earth-cream);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+/* ============================================================================
+   Components
+   ========================================================================== */
+
+@layer components {
+  /* The panel every chart and data block sits on. */
+  .card {
+    background: linear-gradient(
+      180deg,
+      var(--surface-raised) 0%,
+      var(--surface) 100%
+    );
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow), var(--rim);
+  }
+
+  /* Small monospaced label above a section title. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    background: var(--text-primary);
+    color: var(--canvas);
+    font-weight: 600;
+    transition:
+      transform 0.15s var(--ease),
+      opacity 0.15s var(--ease);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    opacity: 0.92;
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    transition:
+      border-color 0.15s var(--ease),
+      color 0.15s var(--ease),
+      background 0.15s var(--ease);
+  }
+  .btn-ghost:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+    background: var(--surface-muted);
+  }
+
+  /* Native selects need explicit dark styling or they render as light chrome. */
+  .field {
+    background: var(--surface-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    transition:
+      border-color 0.15s var(--ease),
+      box-shadow 0.15s var(--ease);
+  }
+  .field:hover {
+    border-color: var(--border-strong);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--rain-blue);
+    box-shadow: 0 0 0 3px rgb(62 147 208 / 0.22);
+  }
 }
 
-h1, h2, h3 {
-  font-family: var(--font-serif);
-}
+/* ============================================================================
+   Utilities
+   ========================================================================== */
 
-.font-numeric {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+@layer utilities {
+  /* Every number in the product wears this: tabular so columns of climate
+     values line up and don't jitter as they animate. */
+  .font-numeric {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Editorial hero treatment — a warm gradient wash across the headline. */
+  .text-gradient {
+    background: linear-gradient(
+      92deg,
+      var(--text-primary) 0%,
+      var(--text-primary) 45%,
+      var(--heat-light) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Fine grid + warm aurora behind the hero. Pure CSS, no image request. */
+  .canvas-aurora {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        60% 55% at 15% 0%,
+        rgb(226 102 31 / 0.16) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        50% 50% at 85% 10%,
+        rgb(62 147 208 / 0.14) 0%,
+        transparent 70%
+      );
+  }
+
+  .canvas-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgb(247 243 234 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(247 243 234 / 0.035) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(70% 60% at 50% 0%, #000 0%, transparent 100%);
+    -webkit-mask-image: radial-gradient(
+      70% 60% at 50% 0%,
+      #000 0%,
+      transparent 100%
+    );
+  }
+
+  .animate-rise {
+    animation: rise 0.6s var(--ease) both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
