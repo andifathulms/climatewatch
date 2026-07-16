@@ -192,6 +192,118 @@ class SeasonView(ClimateEndpoint):
         )
 
 
+class ENSOImpactView(ClimateEndpoint):
+    """
+    Compares this region's rainfall/temperature across ENSO phases.
+
+    ENSOEvent only stores rows for active El Niño / La Niña episodes — months
+    absent from the table are Neutral (per data/enso_events.json convention).
+    """
+
+    def get(self, request, region_id):
+        region = self.get_region(region_id)
+        phase_by_ym = {
+            (y, m): phase for y, m, phase in
+            ENSOEvent.objects.values_list("year", "month", "phase")
+        }
+
+        monthly = ClimateMonthly.objects.filter(region=region).values(
+            "year", "month", "avg_temp_mean", "total_precipitation"
+        )
+
+        buckets = {"EL_NINO": [], "LA_NINA": [], "NEUTRAL": []}
+        for row in monthly:
+            phase = phase_by_ym.get((row["year"], row["month"]), "NEUTRAL")
+            buckets.setdefault(phase, []).append(row)
+
+        def summarize(rows):
+            temps = [r["avg_temp_mean"] for r in rows if r["avg_temp_mean"] is not None]
+            precs = [r["total_precipitation"] for r in rows if r["total_precipitation"] is not None]
+            return {
+                "months": len(rows),
+                "avg_temp_mean": round(sum(temps) / len(temps), 2) if temps else None,
+                "avg_precipitation": round(sum(precs) / len(precs), 1) if precs else None,
+            }
+
+        phases = {phase: summarize(rows) for phase, rows in buckets.items()}
+        baseline = phases.get("NEUTRAL", {})
+
+        def delta(phase):
+            p = phases[phase]
+            out = {"temp_delta_c": None, "precipitation_delta_pct": None}
+            if p["avg_temp_mean"] is not None and baseline.get("avg_temp_mean") is not None:
+                out["temp_delta_c"] = round(p["avg_temp_mean"] - baseline["avg_temp_mean"], 2)
+            if (p["avg_precipitation"] is not None and baseline.get("avg_precipitation")):
+                out["precipitation_delta_pct"] = round(
+                    (p["avg_precipitation"] - baseline["avg_precipitation"])
+                    / baseline["avg_precipitation"] * 100, 1
+                )
+            return out
+
+        return Response(
+            {
+                "region": RegionSerializer(region).data,
+                "phases": phases,
+                "deltas": {
+                    "EL_NINO": delta("EL_NINO"),
+                    "LA_NINA": delta("LA_NINA"),
+                },
+            }
+        )
+
+
+class RankingsView(APIView):
+    """
+    Cross-city leaderboard: hottest, wettest, driest, fastest-warming,
+    longest heatwave streak — computed from every region's ClimateAnnual rows.
+    """
+
+    def get(self, request):
+        rows = ClimateAnnual.objects.select_related("region").values(
+            "region_id", "region__name", "region__slug", "region__province",
+            "year", "avg_temp_max", "total_precipitation",
+            "extreme_rain_days", "max_consecutive_hot_days",
+        )
+
+        by_region = {}
+        for r in rows:
+            by_region.setdefault(r["region_id"], {
+                "region": {
+                    "id": r["region_id"],
+                    "name": r["region__name"],
+                    "slug": r["region__slug"],
+                    "province": r["region__province"],
+                },
+                "years": [],
+            })["years"].append(r)
+
+        results = []
+        for region_id, data in by_region.items():
+            years = data["years"]
+            temp_pts = [(y["year"], y["avg_temp_max"]) for y in years if y["avg_temp_max"] is not None]
+            temps = [y["avg_temp_max"] for y in years if y["avg_temp_max"] is not None]
+            precs = [y["total_precipitation"] for y in years if y["total_precipitation"] is not None]
+            extreme_rain = [y["extreme_rain_days"] for y in years if y["extreme_rain_days"] is not None]
+            heat_streaks = [y["max_consecutive_hot_days"] for y in years if y["max_consecutive_hot_days"] is not None]
+
+            trend = _linreg(temp_pts)
+            warming_c_per_decade = (
+                round(trend["slope"] * 10, 3) if trend["slope"] is not None else None
+            )
+
+            results.append({
+                "region": data["region"],
+                "years_loaded": len(years),
+                "avg_temp_max": round(sum(temps) / len(temps), 2) if temps else None,
+                "avg_annual_precipitation": round(sum(precs) / len(precs), 1) if precs else None,
+                "avg_extreme_rain_days_per_year": round(sum(extreme_rain) / len(extreme_rain), 2) if extreme_rain else None,
+                "max_consecutive_hot_days": max(heat_streaks) if heat_streaks else None,
+                "warming_c_per_decade": warming_c_per_decade,
+            })
+
+        return Response({"results": results})
+
+
 class ForecastContextView(ClimateEndpoint):
     """7-day live forecast vs historical range for this week of the year."""
 

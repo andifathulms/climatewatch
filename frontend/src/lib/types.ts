@@ -130,3 +130,41 @@ export interface CompareResponse {
   a: CompareProfile;
   b: CompareProfile;
 }
+
+export interface EnsoImpactPhase {
+  months: number;
+  avg_temp_mean: number | null;
+  avg_precipitation: number | null;
+}
+
+export interface EnsoImpactDelta {
+  temp_delta_c: number | null;
+  precipitation_delta_pct: number | null;
+}
+
+export interface EnsoImpactResponse {
+  region: Region;
+  phases: {
+    EL_NINO: EnsoImpactPhase;
+    LA_NINA: EnsoImpactPhase;
+    NEUTRAL: EnsoImpactPhase;
+  };
+  deltas: {
+    EL_NINO: EnsoImpactDelta;
+    LA_NINA: EnsoImpactDelta;
+  };
+}
+
+export interface RankingEntry {
+  region: { id: number; name: string; slug: string; province: string };
+  years_loaded: number;
+  avg_temp_max: number | null;
+  avg_annual_precipitation: number | null;
+  avg_extreme_rain_days_per_year: number | null;
+  max_consecutive_hot_days: number | null;
+  warming_c_per_decade: number | null;
+}
+
+export interface RankingsResponse {
+  results: RankingEntry[];
+}

@@ -1,9 +1,11 @@
 import type {
   CompareResponse,
+  EnsoImpactResponse,
   ExtremesResponse,
   FingerprintResponse,
   FingerprintVariable,
   ForecastContextResponse,
+  RankingsResponse,
   Region,
   RegionDetail,
   SeasonResponse,
@@ -59,6 +61,12 @@ export const api = {
   },
   compare(a: number, b: number): Promise<CompareResponse> {
     return get(`/compare/?a=${a}&b=${b}`);
+  },
+  ensoImpact(regionId: number): Promise<EnsoImpactResponse> {
+    return get(`/climate/${regionId}/enso-impact/`);
+  },
+  rankings(): Promise<RankingsResponse> {
+    return get("/climate/rankings/");
   },
 };
 

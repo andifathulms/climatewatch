@@ -6,6 +6,7 @@ import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import SeasonShiftScatter from "@/components/charts/SeasonShiftScatter";
 import ForecastContext from "@/components/charts/ForecastContext";
+import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
 
 export async function generateMetadata({
   params,
@@ -50,11 +51,12 @@ export default async function CityPage({
     );
   }
 
-  const [fingerprint, extremes, season, forecast] = await Promise.all([
+  const [fingerprint, extremes, season, forecast, ensoImpact] = await Promise.all([
     api.fingerprint(region.id, "precipitation"),
     api.extremes(region.id).catch(() => null),
     api.season(region.id).catch(() => null),
     api.forecastContext(region.id).catch(() => null),
+    api.ensoImpact(region.id).catch(() => null),
   ]);
 
   const { year_from, year_to, years_loaded } = region.data_availability;
@@ -115,6 +117,8 @@ export default async function CityPage({
         {extremes && <ExtremeDaysChart data={extremes} />}
         {season && <SeasonShiftScatter data={season} />}
       </div>
+
+      {ensoImpact && <ENSOImpactCard data={ensoImpact} />}
 
       {/* Compare CTA — the natural next step from a single city. */}
       <section className="card flex flex-wrap items-center justify-between gap-4 p-6">
