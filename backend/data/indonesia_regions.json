@@ -43,5 +43,15 @@
   {"name": "Cirebon", "type": "kota", "province": "Jawa Barat", "latitude": -6.7063, "longitude": 108.5571, "bps_code": "3274", "is_featured": false},
   {"name": "Surakarta", "type": "kota", "province": "Jawa Tengah", "latitude": -7.5755, "longitude": 110.8243, "bps_code": "3372", "is_featured": false},
   {"name": "Sukabumi", "type": "kota", "province": "Jawa Barat", "latitude": -6.9277, "longitude": 106.9300, "bps_code": "3272", "is_featured": false},
-  {"name": "Tasikmalaya", "type": "kota", "province": "Jawa Barat", "latitude": -7.3506, "longitude": 108.2172, "bps_code": "3278", "is_featured": false}
+  {"name": "Tasikmalaya", "type": "kota", "province": "Jawa Barat", "latitude": -7.3506, "longitude": 108.2172, "bps_code": "3278", "is_featured": false},
+  {"name": "Ternate", "type": "kota", "province": "Maluku Utara", "latitude": 0.7833, "longitude": 127.3667, "bps_code": "8271", "is_featured": false},
+  {"name": "Kediri", "type": "kota", "province": "Jawa Timur", "latitude": -7.8480, "longitude": 112.0178, "bps_code": "3571", "is_featured": false},
+  {"name": "Madiun", "type": "kota", "province": "Jawa Timur", "latitude": -7.6298, "longitude": 111.5239, "bps_code": "3577", "is_featured": false},
+  {"name": "Magelang", "type": "kota", "province": "Jawa Tengah", "latitude": -7.4797, "longitude": 110.2177, "bps_code": "3371", "is_featured": false},
+  {"name": "Salatiga", "type": "kota", "province": "Jawa Tengah", "latitude": -7.3305, "longitude": 110.5084, "bps_code": "3373", "is_featured": false},
+  {"name": "Tegal", "type": "kota", "province": "Jawa Tengah", "latitude": -6.8694, "longitude": 109.1402, "bps_code": "3376", "is_featured": false},
+  {"name": "Pekalongan", "type": "kota", "province": "Jawa Tengah", "latitude": -6.8898, "longitude": 109.6753, "bps_code": "3375", "is_featured": false},
+  {"name": "Cimahi", "type": "kota", "province": "Jawa Barat", "latitude": -6.8721, "longitude": 107.5425, "bps_code": "3277", "is_featured": false},
+  {"name": "Banjarbaru", "type": "kota", "province": "Kalimantan Selatan", "latitude": -3.4531, "longitude": 114.8327, "bps_code": "6372", "is_featured": false},
+  {"name": "Bitung", "type": "kota", "province": "Sulawesi Utara", "latitude": 1.4451, "longitude": 125.1809, "bps_code": "7172", "is_featured": false}
 ]
