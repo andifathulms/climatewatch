@@ -26,5 +26,14 @@ services:
     command: npm run dev
     environment:
       NEXT_PUBLIC_API_URL: http://iklim-backend.orb.local:8000
+    # Without these, `npm run dev` serves whatever was COPY'd into the image at
+    # build time — edits on the host never reach the container and only a
+    # rebuild would show them. The two anonymous volumes are load-bearing: they
+    # stop the host's macOS/arm64 node_modules and .next from shadowing the
+    # container's linux ones (next-swc ships a native binary per platform).
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     depends_on: [backend]
     restart: unless-stopped
