@@ -159,7 +159,7 @@ def fetch_in_yearly_chunks(region, start_year=1950, end_year=None,
         start = f"{year}-01-01"
         end = f"{chunk_end_year}-12-31"
         if chunk_end_year >= today.year:
-            end = today.isoformat()
+            end = (today - timedelta(days=1)).isoformat()
         data = fetch_historical(region.latitude, region.longitude, start, end)
         total += upsert_climate_daily(region, data.get("daily", {}))
         time.sleep(delay)  # polite delay between requests
