@@ -29,20 +29,27 @@ const UNIT: Record<FingerprintVariable, string> = {
 /**
  * Sequential ramps for the Musim Nokturnal (dark) surface.
  *
- * A sequential scale encodes magnitude as distance-in-lightness from the
- * surface, so on a dark canvas the ramp anchors dark→light — the inverse of
- * d3.interpolateBlues/Oranges, which bottom out at near-white and would make
- * "no rain" the loudest cell on the grid.
+ * Anchored dark→vivid, not dark→pale. An earlier version of this ramp bottomed
+ * out at a pale tint at the high end (e.g. near-white blue for max rainfall) —
+ * technically the brightest cell, but pale/desaturated colors read as "faint"
+ * regardless of lightness, so high-magnitude cells looked weaker than the
+ * saturated-but-dark low-magnitude ones. Perceived "intensity" tracks
+ * saturation more than raw lightness, so the fix keeps the low end dark *and*
+ * muted (blends into the canvas, doesn't compete for attention) while the
+ * high end is dark→light but stays fully saturated (vivid, "loud") the whole
+ * way — never fading to pastel. That also satisfies the plain-language
+ * reading "darker/more colorful = more rain/heat".
  *
- * Each ramp holds a single hue, is verified monotonic in L*, and keeps its
- * zero end chromatic so a true zero stays distinct from a null cell
- * (ΔE 13–26 vs --null-cell). Do not swap these for the d3 built-ins.
+ * Each ramp holds a single hue and is verified monotonic in both L* and
+ * saturation (no dip at the top), and keeps its zero end chromatic so a true
+ * zero stays distinct from a null cell (ΔE 13–26 vs --null-cell). Do not swap
+ * these for the d3 built-ins.
  */
 const RAMPS: Record<FingerprintVariable, string[]> = {
-  precipitation: ["#16304A", "#1D4E7A", "#2B7CB8", "#57A8DE", "#9BD0F0", "#D6EEFC"],
-  temp_max: ["#3A1C0C", "#7A3312", "#C24E1B", "#E8752F", "#F5A868", "#FBD9B4"],
-  hot_days: ["#3A1010", "#7A1E1A", "#B93227", "#E05B3D", "#F09171", "#FAC9B4"],
-  dry_days: ["#33220A", "#6B4512", "#A56E1C", "#D19A2B", "#E8C566", "#F7E7B3"],
+  precipitation: ["#122A42", "#1A4E7C", "#1C74AC", "#1998D6", "#22BBEF", "#4FD8FF"],
+  temp_max: ["#2A1608", "#5C2A0E", "#9C3D14", "#D6591C", "#EE7A1E", "#FFA028"],
+  hot_days: ["#3A1010", "#7A1E1A", "#B93227", "#E05B3D", "#F5794A", "#FF8A3C"],
+  dry_days: ["#2E2108", "#5E4310", "#8F6816", "#C08F1C", "#E0B324", "#F5CC2E"],
 };
 
 /** Build the D3 sequential color scale for a variable (domains per CLAUDE.md). */

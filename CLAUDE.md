@@ -325,8 +325,14 @@ earth-toned Musim identity survives the inversion. Tokens live in
 The **domains** below are the spec. The **interpolators** are NOT `d3.interpolateBlues`
 et al. — those ramp light→dark, which on the dark Musim Nokturnal canvas makes
 "zero rain" the brightest cell on the grid. Each variable instead uses a
-single-hue ramp anchored dark→light (`RAMPS` in `ClimateFingerprint.tsx`), which
-is the documented dark-mode flip for a sequential scale.
+single-hue ramp anchored dark→vivid (`RAMPS` in `ClimateFingerprint.tsx`): the
+low end is dark *and* desaturated so it blends into the canvas instead of
+popping, and the high end stays fully saturated the whole way up — it does
+**not** fade to a pale tint. A pale high end is technically the brightest cell
+but reads as "faint" regardless of lightness, since perceived intensity
+tracks saturation more than raw L*; a saturated high end reads as "a lot" and
+also matches the plain-language expectation that darker/more-colorful means
+more rain or heat.
 
 ```tsx
 const buildColorScale = (variable: string, stats: FingerprintStats) => {
@@ -344,9 +350,9 @@ const buildColorScale = (variable: string, stats: FingerprintStats) => {
 }
 ```
 
-Each ramp is verified monotonic in L* and keeps its zero end chromatic, so a true
-zero stays distinct from a null cell. Re-verify both properties before editing a
-ramp.
+Each ramp is verified monotonic in both L* and saturation (no dip back to pale
+at the top) and keeps its zero end chromatic, so a true zero stays distinct
+from a null cell. Re-verify all three properties before editing a ramp.
 
 ### Trend Line (all line charts)
 Add a simple linear regression trend line to every annual time-series chart.
