@@ -53,5 +53,15 @@
   {"name": "Pekalongan", "type": "kota", "province": "Jawa Tengah", "latitude": -6.8898, "longitude": 109.6753, "bps_code": "3375", "is_featured": false},
   {"name": "Cimahi", "type": "kota", "province": "Jawa Barat", "latitude": -6.8721, "longitude": 107.5425, "bps_code": "3277", "is_featured": false},
   {"name": "Banjarbaru", "type": "kota", "province": "Kalimantan Selatan", "latitude": -3.4531, "longitude": 114.8327, "bps_code": "6372", "is_featured": false},
-  {"name": "Bitung", "type": "kota", "province": "Sulawesi Utara", "latitude": 1.4451, "longitude": 125.1809, "bps_code": "7172", "is_featured": false}
+  {"name": "Bitung", "type": "kota", "province": "Sulawesi Utara", "latitude": 1.4451, "longitude": 125.1809, "bps_code": "7172", "is_featured": false},
+  {"name": "Bukittinggi", "type": "kota", "province": "Sumatera Barat", "latitude": -0.3056, "longitude": 100.3692, "bps_code": "1375", "is_featured": false},
+  {"name": "Binjai", "type": "kota", "province": "Sumatera Utara", "latitude": 3.6001, "longitude": 98.4854, "bps_code": "1274", "is_featured": false},
+  {"name": "Bau-Bau", "type": "kota", "province": "Sulawesi Tenggara", "latitude": -5.4700, "longitude": 122.6200, "bps_code": "7472", "is_featured": false},
+  {"name": "Palopo", "type": "kota", "province": "Sulawesi Selatan", "latitude": -2.9925, "longitude": 120.1957, "bps_code": "7373", "is_featured": false},
+  {"name": "Bontang", "type": "kota", "province": "Kalimantan Timur", "latitude": 0.1324, "longitude": 117.4855, "bps_code": "6474", "is_featured": false},
+  {"name": "Singkawang", "type": "kota", "province": "Kalimantan Barat", "latitude": 0.9068, "longitude": 108.9856, "bps_code": "6172", "is_featured": false},
+  {"name": "Sorong", "type": "kota", "province": "Papua Barat Daya", "latitude": -0.8762, "longitude": 131.2558, "bps_code": "9271", "is_featured": false},
+  {"name": "Tangerang Selatan", "type": "kota", "province": "Banten", "latitude": -6.2884, "longitude": 106.7180, "bps_code": "3674", "is_featured": false},
+  {"name": "Probolinggo", "type": "kota", "province": "Jawa Timur", "latitude": -7.7543, "longitude": 113.2159, "bps_code": "3574", "is_featured": false},
+  {"name": "Metro", "type": "kota", "province": "Lampung", "latitude": -5.1131, "longitude": 105.3067, "bps_code": "1872", "is_featured": false}
 ]
