@@ -63,5 +63,15 @@
   {"name": "Sorong", "type": "kota", "province": "Papua Barat Daya", "latitude": -0.8762, "longitude": 131.2558, "bps_code": "9271", "is_featured": false},
   {"name": "Tangerang Selatan", "type": "kota", "province": "Banten", "latitude": -6.2884, "longitude": 106.7180, "bps_code": "3674", "is_featured": false},
   {"name": "Probolinggo", "type": "kota", "province": "Jawa Timur", "latitude": -7.7543, "longitude": 113.2159, "bps_code": "3574", "is_featured": false},
-  {"name": "Metro", "type": "kota", "province": "Lampung", "latitude": -5.1131, "longitude": 105.3067, "bps_code": "1872", "is_featured": false}
+  {"name": "Metro", "type": "kota", "province": "Lampung", "latitude": -5.1131, "longitude": 105.3067, "bps_code": "1872", "is_featured": false},
+  {"name": "Barru", "type": "kabupaten", "province": "Sulawesi Selatan", "latitude": -4.4231, "longitude": 119.6197, "bps_code": "7305", "is_featured": false},
+  {"name": "Parepare", "type": "kota", "province": "Sulawesi Selatan", "latitude": -4.0135, "longitude": 119.6255, "bps_code": "7372", "is_featured": false},
+  {"name": "Watampone", "type": "kabupaten", "province": "Sulawesi Selatan", "latitude": -4.5386, "longitude": 120.3279, "bps_code": "7302", "is_featured": false},
+  {"name": "Sengkang", "type": "kabupaten", "province": "Sulawesi Selatan", "latitude": -4.1319, "longitude": 120.0458, "bps_code": "7314", "is_featured": false},
+  {"name": "Rantepao", "type": "kabupaten", "province": "Sulawesi Selatan", "latitude": -2.9700, "longitude": 119.9010, "bps_code": "7326", "is_featured": false},
+  {"name": "Watansoppeng", "type": "kabupaten", "province": "Sulawesi Selatan", "latitude": -4.3583, "longitude": 119.9083, "bps_code": "7306", "is_featured": false},
+  {"name": "Sumbawa Besar", "type": "kabupaten", "province": "Nusa Tenggara Barat", "latitude": -8.4879, "longitude": 117.4262, "bps_code": "5202", "is_featured": false},
+  {"name": "Bima", "type": "kota", "province": "Nusa Tenggara Barat", "latitude": -8.4594, "longitude": 118.7267, "bps_code": "5272", "is_featured": false},
+  {"name": "Labuan Bajo", "type": "kabupaten", "province": "Nusa Tenggara Timur", "latitude": -8.4907, "longitude": 119.8895, "bps_code": "5310", "is_featured": false},
+  {"name": "Waingapu", "type": "kabupaten", "province": "Nusa Tenggara Timur", "latitude": -9.6567, "longitude": 120.2610, "bps_code": "5306", "is_featured": false}
 ]
