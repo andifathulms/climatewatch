@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 import CitySearch from "@/components/ui/CitySearch";
+import IndonesiaMap from "@/components/map/IndonesiaMap";
 
 export default async function HomePage() {
-  const { results: regions } = await api.regions().catch(() => ({ results: [] }));
+  const regions = await api.allRegions().catch(() => []);
 
   // Every seeded region currently ships with is_featured=true, so this section
   // would otherwise render as a 45-card wall. Cap it at two rows and send the
@@ -137,6 +138,12 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {regions.length > 0 && (
+        <section className="mt-4">
+          <IndonesiaMap regions={regions} />
+        </section>
+      )}
     </>
   );
 }

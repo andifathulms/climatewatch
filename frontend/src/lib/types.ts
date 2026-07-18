@@ -14,6 +14,7 @@ export interface Region {
   province: string;
   bps_code: string;
   is_featured: boolean;
+  has_data: boolean;
 }
 
 export interface RegionDetail extends Region {

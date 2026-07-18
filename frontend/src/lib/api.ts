@@ -30,6 +30,17 @@ export const api = {
   regions(): Promise<{ results: Region[] }> {
     return get("/regions/");
   },
+  /** All regions across every page — /regions/ is paginated at 50/page. */
+  async allRegions(): Promise<Region[]> {
+    const all: Region[] = [];
+    let path: string | null = "/regions/";
+    while (path) {
+      const page: { results: Region[]; next: string | null } = await get(path);
+      all.push(...page.results);
+      path = page.next ? page.next.slice(page.next.indexOf("/api") + 4) : null;
+    }
+    return all;
+  },
   region(id: number | string): Promise<RegionDetail> {
     return get(`/regions/${id}/`);
   },

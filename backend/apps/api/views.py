@@ -2,7 +2,7 @@ from datetime import date
 
 import requests
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -38,6 +38,13 @@ class RegionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = RegionSerializer
     filterset_fields = ["type", "is_featured", "province"]
 
+    def get_queryset(self):
+        # Annotated once here rather than per-serializer-instance so listing
+        # every region (map, search) stays a single query instead of N+1.
+        return self.queryset.annotate(
+            has_data=Exists(ClimateAnnual.objects.filter(region=OuterRef("pk")))
+        )
+
     def get_serializer_class(self):
         if self.action == "retrieve":
             return RegionDetailSerializer
@@ -47,14 +54,14 @@ class RegionViewSet(viewsets.ReadOnlyModelViewSet):
         """Resolve the detail lookup by numeric pk or by slug."""
         value = self.kwargs[self.lookup_field]
         lookup = {"pk": value} if str(value).isdigit() else {"slug": value}
-        obj = get_object_or_404(IndonesiaRegion, **lookup)
+        obj = get_object_or_404(self.get_queryset(), **lookup)
         self.check_object_permissions(self.request, obj)
         return obj
 
     @action(detail=False, methods=["get"])
     def search(self, request):
         q = request.query_params.get("q", "").strip()
-        qs = self.queryset
+        qs = self.get_queryset()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(province__icontains=q))
         qs = qs[:50]

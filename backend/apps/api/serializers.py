@@ -5,12 +5,21 @@ from apps.regions.models import IndonesiaRegion
 
 
 class RegionSerializer(serializers.ModelSerializer):
+    has_data = serializers.SerializerMethodField()
+
     class Meta:
         model = IndonesiaRegion
         fields = (
             "id", "name", "slug", "type", "latitude", "longitude",
-            "province", "bps_code", "is_featured",
+            "province", "bps_code", "is_featured", "has_data",
         )
+
+    def get_has_data(self, obj):
+        # Present when RegionViewSet.get_queryset() annotated it (the normal
+        # path); falls back to a query for callers that skip the annotation.
+        if hasattr(obj, "has_data"):
+            return obj.has_data
+        return obj.annual.exists()
 
 
 class RegionDetailSerializer(RegionSerializer):
