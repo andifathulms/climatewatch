@@ -1,7 +1,9 @@
 "use client";
 
+import * as d3 from "d3";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { MultiPolygon } from "geojson";
 import type { Region } from "@/lib/types";
 import { ChartHeader } from "@/components/charts/chart-ui";
 
@@ -11,46 +13,63 @@ interface Tip {
   region: Region;
 }
 
+const WIDTH = 1000;
+const PAD = 16;
+
 /**
- * Every seeded region plotted at its real lat/lng — no coastline data, just
- * an equirectangular projection fit to the regions' own bounding box. Near
- * the equator that's accurate enough that the archipelago's shape emerges
- * from the dots themselves, with zero extra geo dependency.
+ * Every seeded region plotted on Indonesia's real coastline (Natural Earth
+ * 50m, via world-atlas — extracted server-side in lib/indonesia-geo.ts so the
+ * client only receives this one country's geometry, not the whole world's).
+ *
+ * d3-geo is a projection/geometry library, distinct from the general d3
+ * selection-DOM API the fingerprint uses — Recharts has no map support, so a
+ * geo projection is the only way to place dots on an actual coastline. d3 is
+ * already a dependency; this doesn't add a new one.
  */
-export default function IndonesiaMap({ regions }: { regions: Region[] }) {
+export default function IndonesiaMap({
+  regions,
+  geometry,
+}: {
+  regions: Region[];
+  geometry: MultiPolygon;
+}) {
   const router = useRouter();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip | null>(null);
 
   const loaded = regions.filter((r) => r.has_data).length;
 
-  const { project, width, height } = useMemo(() => {
-    const lats = regions.map((r) => r.latitude);
-    const lons = regions.map((r) => r.longitude);
-    const latMin = Math.min(...lats);
-    const latMax = Math.max(...lats);
-    const lonMin = Math.min(...lons);
-    const lonMax = Math.max(...lons);
+  const { pathData, project, height } = useMemo(() => {
+    const feature: GeoJSON.Feature<MultiPolygon> = {
+      type: "Feature",
+      properties: {},
+      geometry,
+    };
 
-    const padLat = (latMax - latMin) * 0.1 || 1;
-    const padLon = (lonMax - lonMin) * 0.04 || 1;
-    const lat0 = latMin - padLat;
-    const lat1 = latMax + padLat;
-    const lon0 = lonMin - padLon;
-    const lon1 = lonMax + padLon;
+    // Fit the coastline to a square-ish box first to measure its true aspect
+    // ratio, then re-fit to that exact height so the SVG has no dead margin.
+    const probe = d3.geoMercator().fitExtent(
+      [[PAD, PAD], [WIDTH - PAD, WIDTH - PAD]],
+      feature,
+    );
+    const [[x0, y0], [x1, y1]] = d3.geoPath(probe).bounds(feature);
+    const height = (y1 - y0) + PAD * 2;
 
-    const width = 1000;
-    const height = width * ((lat1 - lat0) / (lon1 - lon0));
+    const projection = d3.geoMercator().fitExtent(
+      [[PAD, PAD], [WIDTH - PAD, height - PAD]],
+      feature,
+    );
+    const path = d3.geoPath(projection);
 
     return {
-      width,
       height,
-      project: (lat: number, lon: number) => ({
-        x: ((lon - lon0) / (lon1 - lon0)) * width,
-        y: ((lat1 - lat) / (lat1 - lat0)) * height,
-      }),
+      pathData: path(feature) ?? "",
+      project: (lon: number, lat: number) => {
+        const p = projection([lon, lat]);
+        return p ? { x: p[0], y: p[1] } : { x: -100, y: -100 };
+      },
     };
-  }, [regions]);
+  }, [geometry]);
 
   return (
     <section className="card overflow-hidden p-6">
@@ -62,13 +81,20 @@ export default function IndonesiaMap({ regions }: { regions: Region[] }) {
 
       <div ref={wrapRef} className="relative">
         <svg
-          viewBox={`0 0 ${width} ${height}`}
+          viewBox={`0 0 ${WIDTH} ${height}`}
           className="h-auto w-full"
           role="img"
           aria-label="Map of Indonesia with a dot for every seeded city, colored by whether real climate data has been loaded"
         >
+          <path
+            d={pathData}
+            fill="var(--surface-inset)"
+            stroke="var(--border-strong)"
+            strokeWidth={1}
+          />
+
           {regions.map((r) => {
-            const { x, y } = project(r.latitude, r.longitude);
+            const { x, y } = project(r.longitude, r.latitude);
             const active = r.has_data;
             const focused = tip?.region.id === r.id;
             return (
@@ -77,8 +103,8 @@ export default function IndonesiaMap({ regions }: { regions: Region[] }) {
                 cx={x}
                 cy={y}
                 r={focused ? 8 : active ? 6 : 4.5}
-                fill={active ? "var(--rain-blue)" : "var(--border-strong)"}
-                fillOpacity={active ? 0.85 : 0.5}
+                fill={active ? "var(--rain-blue)" : "var(--drought-amber)"}
+                fillOpacity={active ? 0.9 : 0.55}
                 stroke={focused ? "var(--text-primary)" : "none"}
                 strokeWidth={focused ? 1.5 : 0}
                 className="cursor-pointer transition-[r] duration-100"
@@ -103,7 +129,7 @@ export default function IndonesiaMap({ regions }: { regions: Region[] }) {
             role="status"
             className="pointer-events-none absolute z-10 rounded-lg border border-border-strong bg-canvas-deep px-3 py-2 shadow-float"
             style={{
-              left: tip.x > width * 0.7 ? tip.x - 150 : tip.x + 14,
+              left: tip.x > WIDTH * 0.7 ? tip.x - 150 : tip.x + 14,
               top: tip.y + 14,
             }}
           >
@@ -118,7 +144,7 @@ export default function IndonesiaMap({ regions }: { regions: Region[] }) {
               style={{
                 color: tip.region.has_data
                   ? "var(--rain-blue)"
-                  : "var(--text-muted)",
+                  : "var(--drought-amber)",
               }}
             >
               {tip.region.has_data ? "Data loaded" : "Not loaded yet"}

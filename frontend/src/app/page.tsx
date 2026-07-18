@@ -2,9 +2,11 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import CitySearch from "@/components/ui/CitySearch";
 import IndonesiaMap from "@/components/map/IndonesiaMap";
+import { getIndonesiaGeometry } from "@/lib/indonesia-geo";
 
 export default async function HomePage() {
   const regions = await api.allRegions().catch(() => []);
+  const indonesiaGeometry = getIndonesiaGeometry();
 
   // Every seeded region currently ships with is_featured=true, so this section
   // would otherwise render as a 45-card wall. Cap it at two rows and send the
@@ -141,7 +143,7 @@ export default async function HomePage() {
 
       {regions.length > 0 && (
         <section className="mt-4">
-          <IndonesiaMap regions={regions} />
+          <IndonesiaMap regions={regions} geometry={indonesiaGeometry} />
         </section>
       )}
     </>
