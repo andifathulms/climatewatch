@@ -2,15 +2,26 @@ name: Deploy static build to GitHub Pages
 
 # Iklim's live REST API (Django + Celery + TimescaleDB) still runs unchanged
 # wherever it's deployed — this workflow is a separate, additive path that
-# bakes the same data to static JSON and publishes a static Next.js export,
-# so the app can also be viewed for free on GitHub Pages. Nothing here
-# replaces the backend or its docker-compose stack.
+# publishes a static Next.js export of the same data, so the app can also be
+# viewed for free on GitHub Pages. Nothing here replaces the backend or its
+# docker-compose stack.
 #
-# Runs daily (matching the app's existing once-a-day data cadence — see
-# CLAUDE.md's Celery Beat schedule), on every push to main, and on demand.
+# The climate JSON itself lives in `data/static_export/` and is committed to
+# the repo, refreshed by periodically running (from a machine that isn't a
+# cloud CI IP — see below) from `backend/`:
+#
+#   python manage.py export_static --out ../data/static_export
+#
+# This workflow does NOT run climate_bootstrap in CI. It did originally, but
+# Open-Meteo's archive API reliably times out / rate-limits requests coming
+# from GitHub Actions runners (a common pattern for free APIs throttling
+# well-known cloud/CI IP ranges) — every attempt either returned nothing or
+# stalled for 25+ minutes before giving up. Running the real ingestion from a
+# normal residential/office IP and committing the resulting JSON sidesteps
+# that entirely. The tradeoff: data here is a point-in-time snapshot, not
+# auto-refreshed daily — re-run the export above and push when you want
+# fresher numbers.
 on:
-  schedule:
-    - cron: "0 23 * * *" # 06:00 WIB — same time Celery Beat refreshes data
   push:
     branches: [main]
   workflow_dispatch: {}
@@ -27,73 +38,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: timescale/timescaledb:latest-pg16
-        env:
-          POSTGRES_DB: iklim
-          POSTGRES_USER: iklim
-          POSTGRES_PASSWORD: password
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd="pg_isready -U iklim"
-          --health-interval=5s --health-timeout=5s --health-retries=10
-    env:
-      DATABASE_URL: postgresql://iklim:password@localhost:5432/iklim
-      SECRET_KEY: ci-build-only
-      DEBUG: "False"
-      ALLOWED_HOSTS: "*"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: pip install -r requirements.txt
-
-      - name: Migrate + seed regions/ENSO
-        working-directory: backend
-        run: |
-          python manage.py migrate
-          python manage.py load_regions
-          python manage.py load_enso
-
-      - name: Bootstrap ERA5 data for every seeded region
-        working-directory: backend
-        # The CI database is ephemeral (fresh each run), so --skip-existing
-        # is a no-op today — kept so this workflow starts saving real time
-        # for free the moment DB persistence between runs is added later.
-        # 75 regions x 3 chunked requests (25-year windows, see
-        # apps/climate/tasks/ingest.py) with a polite delay is a bounded job,
-        # not a per-request-per-year crawl.
-        #
-        # Fallback: Open-Meteo's archive API has been observed to time out
-        # consistently from GitHub Actions runners (many free APIs throttle
-        # well-known cloud/CI IP ranges). If bootstrap comes back empty, seed
-        # the same reproducible SYNTHETIC dataset the README already
-        # documents as the offline fallback for `climate_bootstrap`, across
-        # every region, so the Pages build always has something to show
-        # rather than failing outright. This is clearly labeled everywhere
-        # (seed_demo's own log output, and worth calling out to anyone
-        # reading this) as NOT real ERA5 data.
-        run: |
-          python manage.py climate_bootstrap --skip-existing || true
-          if ! python manage.py shell -c "from apps.climate.models import ClimateAnnual; import sys; sys.exit(0 if ClimateAnnual.objects.exists() else 1)"; then
-            echo "::warning::climate_bootstrap loaded no real ERA5 data (likely Open-Meteo throttling GitHub Actions' IPs) — falling back to seed_demo synthetic data so the Pages build isn't empty."
-            python manage.py seed_demo --all
-          fi
-
-      - name: Export static JSON
-        working-directory: backend
-        run: python manage.py export_static --out data/static_export
-
-      - name: Copy export into the frontend's public/ dir
+      - name: Copy the committed climate export into the frontend's public/ dir
         run: |
           mkdir -p frontend/public/data
-          cp -r backend/data/static_export/. frontend/public/data/
+          cp -r data/static_export/. frontend/public/data/
 
       - uses: actions/setup-node@v4
         with:
