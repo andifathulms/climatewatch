@@ -36,3 +36,5 @@ yarn-error.log*
 
 # Exports
 /exports/
+/backend/data/static_export/
+/frontend/public/data/

@@ -366,6 +366,41 @@ class ForecastContextView(ClimateEndpoint):
         )
 
 
+def build_compare_profile(region):
+    """
+    Single-region climate profile: 12-month climatology + annual series +
+    warming trend. Shared by the live CompareView (which picks two of these
+    at request time) and the static export command (which bakes one file per
+    region so the frontend can pick any two client-side without a combinatorial
+    pre-bake of every city pair).
+    """
+    monthly = ClimateMonthly.objects.filter(region=region)
+    annual = list(
+        ClimateAnnual.objects.filter(region=region)
+        .order_by("year")
+        .values("year", "avg_temp_max", "total_precipitation",
+                "hot_days", "extreme_rain_days")
+    )
+    climatology = []
+    for m in range(1, 13):
+        mrows = [r for r in monthly if r.month == m]
+        t = [r.avg_temp_mean for r in mrows if r.avg_temp_mean is not None]
+        p = [r.total_precipitation for r in mrows if r.total_precipitation is not None]
+        climatology.append({
+            "month": m,
+            "avg_temp_mean": round(sum(t) / len(t), 1) if t else None,
+            "avg_precipitation": round(sum(p) / len(p), 1) if p else None,
+        })
+    temp_pts = [(r["year"], r["avg_temp_max"]) for r in annual
+                if r["avg_temp_max"] is not None]
+    return {
+        "region": RegionSerializer(region).data,
+        "climatology": climatology,
+        "annual": annual,
+        "warming_trend": _linreg(temp_pts),
+    }
+
+
 class CompareView(APIView):
     """Side-by-side climate profile for two regions."""
 
@@ -377,32 +412,7 @@ class CompareView(APIView):
 
         def profile(region_id):
             region = get_object_or_404(IndonesiaRegion, pk=region_id)
-            monthly = ClimateMonthly.objects.filter(region=region)
-            annual = list(
-                ClimateAnnual.objects.filter(region=region)
-                .order_by("year")
-                .values("year", "avg_temp_max", "total_precipitation",
-                        "hot_days", "extreme_rain_days")
-            )
-            # 12-month climatology (avg across all years)
-            climatology = []
-            for m in range(1, 13):
-                mrows = [r for r in monthly if r.month == m]
-                t = [r.avg_temp_mean for r in mrows if r.avg_temp_mean is not None]
-                p = [r.total_precipitation for r in mrows if r.total_precipitation is not None]
-                climatology.append({
-                    "month": m,
-                    "avg_temp_mean": round(sum(t) / len(t), 1) if t else None,
-                    "avg_precipitation": round(sum(p) / len(p), 1) if p else None,
-                })
-            temp_pts = [(r["year"], r["avg_temp_max"]) for r in annual
-                        if r["avg_temp_max"] is not None]
-            return {
-                "region": RegionSerializer(region).data,
-                "climatology": climatology,
-                "annual": annual,
-                "warming_trend": _linreg(temp_pts),
-            }
+            return build_compare_profile(region)
 
         return Response({"a": profile(a_id), "b": profile(b_id)})
 
