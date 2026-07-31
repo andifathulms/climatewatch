@@ -1,0 +1,115 @@
+name: Deploy static build to GitHub Pages
+
+# Iklim's live REST API (Django + Celery + TimescaleDB) still runs unchanged
+# wherever it's deployed — this workflow is a separate, additive path that
+# bakes the same data to static JSON and publishes a static Next.js export,
+# so the app can also be viewed for free on GitHub Pages. Nothing here
+# replaces the backend or its docker-compose stack.
+#
+# Runs daily (matching the app's existing once-a-day data cadence — see
+# CLAUDE.md's Celery Beat schedule), on every push to main, and on demand.
+on:
+  schedule:
+    - cron: "0 23 * * *" # 06:00 WIB — same time Celery Beat refreshes data
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: iklim
+          POSTGRES_USER: iklim
+          POSTGRES_PASSWORD: password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U iklim"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+    env:
+      DATABASE_URL: postgresql://iklim:password@localhost:5432/iklim
+      SECRET_KEY: ci-build-only
+      DEBUG: "False"
+      ALLOWED_HOSTS: "*"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Migrate + seed regions/ENSO
+        working-directory: backend
+        run: |
+          python manage.py migrate
+          python manage.py load_regions
+          python manage.py load_enso
+
+      - name: Bootstrap ERA5 data for every seeded region
+        working-directory: backend
+        # The CI database is ephemeral (fresh each run), so --skip-existing
+        # is a no-op today — kept so this workflow starts saving real time
+        # for free the moment DB persistence between runs is added later.
+        # 75 regions x 3 chunked requests (25-year windows, see
+        # apps/climate/tasks/ingest.py) with a polite delay is a bounded,
+        # ~10-minute job, not a per-request-per-year crawl.
+        run: python manage.py climate_bootstrap --skip-existing
+
+      - name: Export static JSON
+        working-directory: backend
+        run: python manage.py export_static --out data/static_export
+
+      - name: Copy export into the frontend's public/ dir
+        run: |
+          mkdir -p frontend/public/data
+          cp -r backend/data/static_export/. frontend/public/data/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build static export
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_DATA_MODE: static
+          # Must match the repo name — this is a GitHub Pages *project* site
+          # (github.com/<user>/climatewatch -> <user>.github.io/climatewatch/).
+          NEXT_PUBLIC_BASE_PATH: /climatewatch
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
