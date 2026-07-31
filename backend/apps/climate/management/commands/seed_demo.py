@@ -30,6 +30,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--slugs", nargs="+", default=DEFAULT_SLUGS)
+        parser.add_argument(
+            "--all", action="store_true",
+            help="Seed every region already loaded via load_regions, not just DEFAULT_SLUGS.",
+        )
         parser.add_argument("--start-year", type=int, default=1990)
         parser.add_argument("--end-year", type=int, default=dt.date.today().year - 1)
         parser.add_argument("--seed", type=int, default=42)
@@ -38,6 +42,11 @@ class Command(BaseCommand):
         start_year = options["start_year"]
         end_year = options["end_year"]
         rng = random.Random(options["seed"])
+        slugs = (
+            list(IndonesiaRegion.objects.values_list("slug", flat=True))
+            if options["all"]
+            else options["slugs"]
+        )
 
         # ENSO phase per (year, month) modulates rainfall.
         enso = {(e.year, e.month): e.phase for e in ENSOEvent.objects.all()}
@@ -49,7 +58,7 @@ class Command(BaseCommand):
             )
         )
 
-        for slug in options["slugs"]:
+        for slug in slugs:
             region = IndonesiaRegion.objects.filter(slug=slug).first()
             if not region:
                 self.stderr.write(self.style.ERROR(f"  skip {slug} (not seeded)"))

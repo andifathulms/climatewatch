@@ -67,9 +67,24 @@ jobs:
         # is a no-op today — kept so this workflow starts saving real time
         # for free the moment DB persistence between runs is added later.
         # 75 regions x 3 chunked requests (25-year windows, see
-        # apps/climate/tasks/ingest.py) with a polite delay is a bounded,
-        # ~10-minute job, not a per-request-per-year crawl.
-        run: python manage.py climate_bootstrap --skip-existing
+        # apps/climate/tasks/ingest.py) with a polite delay is a bounded job,
+        # not a per-request-per-year crawl.
+        #
+        # Fallback: Open-Meteo's archive API has been observed to time out
+        # consistently from GitHub Actions runners (many free APIs throttle
+        # well-known cloud/CI IP ranges). If bootstrap comes back empty, seed
+        # the same reproducible SYNTHETIC dataset the README already
+        # documents as the offline fallback for `climate_bootstrap`, across
+        # every region, so the Pages build always has something to show
+        # rather than failing outright. This is clearly labeled everywhere
+        # (seed_demo's own log output, and worth calling out to anyone
+        # reading this) as NOT real ERA5 data.
+        run: |
+          python manage.py climate_bootstrap --skip-existing || true
+          if ! python manage.py shell -c "from apps.climate.models import ClimateAnnual; import sys; sys.exit(0 if ClimateAnnual.objects.exists() else 1)"; then
+            echo "::warning::climate_bootstrap loaded no real ERA5 data (likely Open-Meteo throttling GitHub Actions' IPs) — falling back to seed_demo synthetic data so the Pages build isn't empty."
+            python manage.py seed_demo --all
+          fi
 
       - name: Export static JSON
         working-directory: backend
