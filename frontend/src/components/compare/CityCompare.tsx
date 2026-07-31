@@ -22,7 +22,7 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
 
   function go(slugA: string, slugB: string) {
     if (slugA && slugB && slugA !== slugB) {
-      router.push(`/compare/${slugA}-vs-${slugB}`);
+      router.push(`/compare?a=${slugA}&b=${slugB}`);
     }
   }
 

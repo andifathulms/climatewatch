@@ -1,4 +1,5 @@
 import type {
+  CompareProfile,
   CompareResponse,
   EnsoImpactResponse,
   ExtremesResponse,
@@ -172,8 +173,8 @@ export const api = {
   async compare(regionA: RegionRef, regionB: RegionRef): Promise<CompareResponse> {
     if (DATA_MODE === "static") {
       const [a, b] = await Promise.all([
-        getStatic(`compare-profile/${regionA.slug}.json`),
-        getStatic(`compare-profile/${regionB.slug}.json`),
+        getStatic<CompareProfile>(`compare-profile/${regionA.slug}.json`),
+        getStatic<CompareProfile>(`compare-profile/${regionB.slug}.json`),
       ]);
       return { a, b };
     }

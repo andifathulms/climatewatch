@@ -1,10 +1,12 @@
+import { Suspense } from "react";
 import { api } from "@/lib/api";
 import CityCompare from "@/components/compare/CityCompare";
+import CompareResult from "@/components/compare/CompareResult";
 
 export const metadata = { title: "Compare cities" };
 
 export default async function ComparePage() {
-  const { results: regions } = await api.regions().catch(() => ({ results: [] }));
+  const regions = await api.allRegions().catch(() => []);
 
   return (
     <div className="space-y-8">
@@ -21,6 +23,10 @@ export default async function ComparePage() {
       </header>
 
       <CityCompare regions={regions} />
+
+      <Suspense>
+        <CompareResult regions={regions} />
+      </Suspense>
     </div>
   );
 }

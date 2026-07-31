@@ -5,8 +5,16 @@ import { api } from "@/lib/api";
 import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import SeasonShiftScatter from "@/components/charts/SeasonShiftScatter";
-import ForecastContext from "@/components/charts/ForecastContext";
+import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
 import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
+
+// Required for `output: 'export'` (static mode) — every dynamic segment must
+// be enumerated at build time since there's no server to resolve one on
+// request. Harmless in live mode too: Next just uses it to prerender/cache.
+export async function generateStaticParams() {
+  const regions = await api.allRegions().catch(() => []);
+  return regions.filter((r) => r.has_data).map((r) => ({ slug: r.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -51,12 +59,11 @@ export default async function CityPage({
     );
   }
 
-  const [fingerprint, extremes, season, forecast, ensoImpact] = await Promise.all([
-    api.fingerprint(region.id, "precipitation"),
-    api.extremes(region.id).catch(() => null),
-    api.season(region.id).catch(() => null),
-    api.forecastContext(region.id).catch(() => null),
-    api.ensoImpact(region.id).catch(() => null),
+  const [fingerprint, extremes, season, ensoImpact] = await Promise.all([
+    api.fingerprint(region, "precipitation"),
+    api.extremes(region).catch(() => null),
+    api.season(region).catch(() => null),
+    api.ensoImpact(region).catch(() => null),
   ]);
 
   const { year_from, year_to, years_loaded } = region.data_availability;
@@ -109,9 +116,9 @@ export default async function CityPage({
         </div>
       </header>
 
-      {forecast && <ForecastContext data={forecast} />}
+      <ForecastContextLoader region={region} />
 
-      <FingerprintPanel regionId={region.id} initial={fingerprint} />
+      <FingerprintPanel region={region} initial={fingerprint} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {extremes && <ExtremeDaysChart data={extremes} />}

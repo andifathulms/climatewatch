@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { FingerprintResponse, FingerprintVariable } from "@/lib/types";
+import type { FingerprintResponse, FingerprintVariable, Region } from "@/lib/types";
 import ClimateFingerprint, { FingerprintLegend } from "./ClimateFingerprint";
 
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
@@ -35,10 +35,10 @@ const ROLLUP: Record<
 };
 
 export default function FingerprintPanel({
-  regionId,
+  region,
   initial,
 }: {
-  regionId: number;
+  region: Pick<Region, "id" | "slug">;
   initial: FingerprintResponse;
 }) {
   const [variable, setVariable] = useState<FingerprintVariable>("precipitation");
@@ -52,14 +52,14 @@ export default function FingerprintPanel({
     let cancelled = false;
     setLoading(true);
     api
-      .fingerprint(regionId, variable)
+      .fingerprint(region, variable)
       .then((d) => !cancelled && setData(d))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variable, regionId]);
+  }, [variable, region.id, region.slug]);
 
   const rollup = ROLLUP[data.variable];
   const yearCells =
