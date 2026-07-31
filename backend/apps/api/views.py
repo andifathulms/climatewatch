@@ -311,6 +311,56 @@ class RankingsView(APIView):
         return Response({"results": results})
 
 
+def _doy_window_stats(temps_by_doy, doy, radius=3):
+    """
+    Percentile/mean stats for temp_max within `radius` days of `doy`, wrapping
+    across the year boundary. `temps_by_doy` is a dict of day-of-year (1-366)
+    -> list of temp_max values across every year on record.
+
+    Shared by the live ForecastContextView (today's doy only) and the static
+    export's build_doy_climatology (every doy, computed once from the same
+    bucketed data) so the "what's normal for this week" definition can't drift
+    between the two.
+    """
+    window = []
+    for offset in range(-radius, radius + 1):
+        key = ((doy - 1 + offset) % 366) + 1
+        window.extend(temps_by_doy.get(key, []))
+    window.sort()
+
+    def pct(p):
+        if not window:
+            return None
+        return window[min(int(len(window) * p), len(window) - 1)]
+
+    return {
+        "temp_max_p10": pct(0.10),
+        "temp_max_p90": pct(0.90),
+        "temp_max_mean": round(sum(window) / len(window), 1) if window else None,
+        "sample_days": len(window),
+    }
+
+
+def _bucket_temps_by_doy(region):
+    by_doy = {}
+    daily = ClimateDaily.objects.filter(
+        region=region, temp_max__isnull=False
+    ).values_list("date", "temp_max")
+    for d, temp in daily:
+        by_doy.setdefault(d.timetuple().tm_yday, []).append(temp)
+    return by_doy
+
+
+def build_doy_climatology(region, radius=3):
+    """Day-of-year climatology (1-366) for the static export — the same
+    windowed-percentile definition ForecastContextView uses for "today"."""
+    by_doy = _bucket_temps_by_doy(region)
+    return [
+        {"doy": doy, **_doy_window_stats(by_doy, doy, radius)}
+        for doy in range(1, 367)
+    ]
+
+
 class ForecastContextView(ClimateEndpoint):
     """7-day live forecast vs historical range for this week of the year."""
 
@@ -333,35 +383,15 @@ class ForecastContextView(ClimateEndpoint):
         except requests.RequestException as exc:
             return Response({"error": f"Forecast unavailable: {exc}"}, status=502)
 
-        # Historical context for the current week-of-year from ClimateDaily.
-        today = date.today()
-        doy = today.timetuple().tm_yday
-        window = (doy - 3, doy + 3)
-        hist = ClimateDaily.objects.filter(
-            region=region, temp_max__isnull=False
-        )
-        temps = [
-            d.temp_max for d in hist
-            if window[0] <= d.date.timetuple().tm_yday <= window[1]
-        ]
-        temps.sort()
-
-        def pct(p):
-            if not temps:
-                return None
-            return temps[min(int(len(temps) * p), len(temps) - 1)]
+        doy = date.today().timetuple().tm_yday
+        by_doy = _bucket_temps_by_doy(region)
+        stats = _doy_window_stats(by_doy, doy)
 
         return Response(
             {
                 "region": RegionSerializer(region).data,
                 "forecast": forecast,
-                "historical": {
-                    "week_of_year": doy,
-                    "temp_max_p10": pct(0.10),
-                    "temp_max_p90": pct(0.90),
-                    "temp_max_mean": round(sum(temps) / len(temps), 1) if temps else None,
-                    "sample_days": len(temps),
-                },
+                "historical": {"week_of_year": doy, **stats},
             }
         )
 
