@@ -23,7 +23,7 @@ export default function SiteHeader() {
         <Link
           href="/"
           className="group flex items-center gap-2.5"
-          aria-label="Iklim — home"
+          aria-label="ClimateWatch — home"
         >
           {/* Mark: a four-cell fingerprint swatch, the product in miniature. */}
           <span
@@ -36,7 +36,7 @@ export default function SiteHeader() {
             <span className="h-[7px] w-[7px] rounded-[1.5px] bg-heat-orange" />
           </span>
           <span className="font-display text-xl font-semibold tracking-tight">
-            Iklim
+            ClimateWatch
           </span>
         </Link>
 

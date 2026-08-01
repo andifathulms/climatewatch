@@ -29,15 +29,15 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://iklim.id"),
   title: {
-    default: "Iklim — Climate Intelligence for Indonesia",
-    template: "%s — Iklim",
+    default: "ClimateWatch — Climate Intelligence for Indonesia",
+    template: "%s — ClimateWatch",
   },
   description:
     "75+ years of ERA5 climate data for any Indonesian city. See how rainfall, temperature, and extreme weather have actually changed.",
   openGraph: {
     type: "website",
-    siteName: "Iklim",
-    title: "Iklim — Climate Intelligence for Indonesia",
+    siteName: "ClimateWatch",
+    title: "ClimateWatch — Climate Intelligence for Indonesia",
     description:
       "75+ years of ERA5 climate data for any Indonesian city, rendered as a Climate Fingerprint.",
   },

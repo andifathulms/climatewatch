@@ -13,7 +13,7 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-shell px-5 py-12 sm:px-8">
         <div className="flex flex-col justify-between gap-8 sm:flex-row">
           <div className="max-w-xs">
-            <div className="font-display text-lg font-semibold">Iklim</div>
+            <div className="font-display text-lg font-semibold">ClimateWatch</div>
             <p className="mt-2 text-sm leading-relaxed text-text-secondary">
               Seventy-five years of Indonesian climate, made legible.
             </p>
