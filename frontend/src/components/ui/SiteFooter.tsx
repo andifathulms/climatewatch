@@ -71,8 +71,12 @@ export default function SiteFooter() {
           </nav>
         </div>
 
-        <DataAttribution />
-        <MakerSignature />
+        {/* One divider, one bottom bar: legal data credit on the left, author
+            credit on the right (they stack on mobile). */}
+        <div className="mt-10 flex flex-col gap-6 border-t border-border pt-6 md:flex-row md:items-start md:justify-between">
+          <DataAttribution />
+          <MakerSignature />
+        </div>
       </div>
     </footer>
   );

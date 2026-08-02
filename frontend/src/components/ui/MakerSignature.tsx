@@ -57,8 +57,11 @@ const LINKS: { label: string; href: string; icon: JSX.Element }[] = [
 export default function MakerSignature() {
   const year = new Date().getFullYear();
 
+  // No divider of its own: SiteFooter provides the single bottom-bar divider and
+  // sits this next to the data attribution. On desktop it right-aligns opposite
+  // the attribution; on mobile it stacks below it.
   return (
-    <div className="mt-8 flex flex-col gap-4 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex shrink-0 flex-col gap-3 sm:items-end">
       <p className="text-xs text-text-muted">
         Designed &amp; built by{" "}
         <a
@@ -73,7 +76,7 @@ export default function MakerSignature() {
         <span className="font-numeric">© {year}</span>
       </p>
 
-      <nav aria-label="Author links" className="flex items-center gap-0.5">
+      <nav aria-label="Author links" className="-mx-2 flex items-center gap-0.5">
         {LINKS.map((l) => (
           <a
             key={l.label}
