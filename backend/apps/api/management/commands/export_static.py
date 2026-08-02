@@ -19,6 +19,8 @@ static-mode fetcher needs no response reshaping):
     <out>/compare-profile/<slug>.json
     <out>/doy-climatology/<slug>.json
     <out>/rankings.json
+    <out>/monthly-records.json
+    <out>/leaders-over-time.json
 """
 import json
 from datetime import date
@@ -34,7 +36,9 @@ from ...serializers import ENSOEventSerializer, RegionDetailSerializer, RegionSe
 from ...views import (
     ENSOImpactView,
     ExtremesView,
+    OverTimeView,
     RankingsView,
+    RecordsView,
     SeasonView,
     build_compare_profile,
     build_doy_climatology,
@@ -106,6 +110,14 @@ class Command(BaseCommand):
         self._write(
             out / "rankings.json",
             self._response_data(rankings_view.get(req)),
+        )
+        self._write(
+            out / "monthly-records.json",
+            self._response_data(RecordsView().get(req)),
+        )
+        self._write(
+            out / "leaders-over-time.json",
+            self._response_data(OverTimeView().get(req)),
         )
 
         self.stdout.write(

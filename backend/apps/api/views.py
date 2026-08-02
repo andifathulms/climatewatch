@@ -311,6 +311,174 @@ class RankingsView(APIView):
         return Response({"results": results})
 
 
+# --- Monthly records ("hall of fame") -------------------------------------
+
+def _month_records(field, order, limit=15, min_coverage=0.9):
+    """
+    Top-`limit` single months across every city and year, by `field`.
+
+    Reads the precomputed ClimateMonthly rows (never ClimateDaily) and skips
+    months whose `coverage` is below `min_coverage`, so a half-observed month
+    can't fake a record. Values are monthly means of the daily figure — a
+    "hottest month on record" is a hot *month*, not a single scorching day
+    (daily data isn't carried in the static export).
+    """
+    qs = (
+        ClimateMonthly.objects.filter(
+            coverage__gte=min_coverage, **{f"{field}__isnull": False}
+        )
+        .select_related("region")
+        .order_by(f"{'-' if order == 'desc' else ''}{field}", "year", "month")[:limit]
+    )
+    return [
+        {
+            "region": {
+                "name": m.region.name,
+                "slug": m.region.slug,
+                "province": m.region.province,
+            },
+            "year": m.year,
+            "month": m.month,
+            "value": round(getattr(m, field), 1),
+        }
+        for m in qs
+    ]
+
+
+class RecordsView(APIView):
+    """
+    Cross-city month records: the hottest / coolest / wettest / driest single
+    months in the whole 1950–present record.
+    """
+
+    def get(self, request):
+        return Response({
+            "hottest": _month_records("avg_temp_max", "desc"),
+            "coolest": _month_records("avg_temp_max", "asc"),
+            "wettest": _month_records("total_precipitation", "desc"),
+            "driest": _month_records("total_precipitation", "asc"),
+        })
+
+
+# --- Leaders over time ------------------------------------------------------
+
+def _smooth(values, window=9):
+    """
+    Centered rolling mean over a dict {year: value}, returned as {year: mean}.
+
+    A 9-year window turns the year-to-year "who's #1" — which flips on a 0.1°C
+    wiggle among cities packed into a ~2° band — into stable multi-decade eras.
+    The window shrinks at the ends rather than dropping years, so the series
+    spans the full record.
+    """
+    years = sorted(values)
+    half = window // 2
+    out = {}
+    for y in years:
+        w = [values[yy] for yy in range(y - half, y + half + 1) if yy in values]
+        if w:
+            out[y] = sum(w) / len(w)
+    return out
+
+
+def _leaders_over_time(field, max_series=4, window=9):
+    """
+    For one metric, return the decade-smoothed annual series of the cities that
+    ever held #1, plus the leading city each year.
+
+    Only cities that lead at some point are returned (the rest are context a
+    reader can't act on), capped at `max_series` by how many years they led so
+    the chart stays legible.
+    """
+    rows = (
+        ClimateAnnual.objects.filter(**{f"{field}__isnull": False})
+        .select_related("region")
+        .values("region__name", "region__slug", "year", field)
+    )
+    if not rows:
+        return {"years": [], "series": [], "leader_by_year": []}
+
+    # city slug -> {name, raw {year: value}}
+    by_city = {}
+    for r in rows:
+        slug = r["region__slug"]
+        c = by_city.setdefault(
+            slug, {"name": r["region__name"], "slug": slug, "raw": {}}
+        )
+        c["raw"][r["year"]] = r[field]
+
+    for c in by_city.values():
+        c["smooth"] = _smooth(c["raw"], window)
+
+    all_years = sorted({y for c in by_city.values() for y in c["smooth"]})
+
+    # Leader (max smoothed value) each year, and how often each city leads.
+    leader_by_year = []
+    lead_count = {}
+    for y in all_years:
+        best_slug, best_val = None, None
+        for slug, c in by_city.items():
+            v = c["smooth"].get(y)
+            if v is not None and (best_val is None or v > best_val):
+                best_slug, best_val = slug, v
+        leader_by_year.append(best_slug)
+        if best_slug:
+            lead_count[best_slug] = lead_count.get(best_slug, 0) + 1
+
+    keep = sorted(lead_count, key=lambda s: -lead_count[s])[:max_series]
+
+    # Re-derive the shown leader among only the kept cities, so leader_by_year
+    # never names a city that has no line (e.g. a one-year edge-smoothing blip
+    # that isn't a real contender). Identical to the true leader every year
+    # except those transient blips.
+    keep_set = set(keep)
+    leader_by_year = []
+    for y in all_years:
+        best_slug, best_val = None, None
+        for slug in keep:
+            v = by_city[slug]["smooth"].get(y)
+            if v is not None and (best_val is None or v > best_val):
+                best_slug, best_val = slug, v
+        leader_by_year.append(best_slug)
+
+    series = [
+        {
+            "region": {"name": by_city[s]["name"], "slug": s},
+            "values": [
+                round(by_city[s]["smooth"][y], 2) if y in by_city[s]["smooth"] else None
+                for y in all_years
+            ],
+        }
+        for s in keep
+    ]
+    return {"years": all_years, "series": series, "leader_by_year": leader_by_year}
+
+
+class OverTimeView(APIView):
+    """
+    "Who led each year" — decade-smoothed annual leaders for temperature and
+    rainfall, so the reader can watch one city overtake another across decades.
+    """
+
+    def get(self, request):
+        return Response({
+            "temp": {
+                "label": "Hottest",
+                "unit": "°C",
+                "decimals": 1,
+                "smoothing_years": 9,
+                **_leaders_over_time("avg_temp_max"),
+            },
+            "rain": {
+                "label": "Wettest",
+                "unit": "mm",
+                "decimals": 0,
+                "smoothing_years": 9,
+                **_leaders_over_time("total_precipitation"),
+            },
+        })
+
+
 def _doy_window_stats(temps_by_doy, doy, radius=3):
     """
     Percentile/mean stats for temp_max within `radius` days of `doy`, wrapping

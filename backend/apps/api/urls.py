@@ -9,6 +9,8 @@ router.register(r"enso", views.ENSOViewSet, basename="enso")
 
 climate_patterns = [
     path("rankings/", views.RankingsView.as_view()),
+    path("records/", views.RecordsView.as_view()),
+    path("over-time/", views.OverTimeView.as_view()),
     path("<int:region_id>/daily/", views.DailyView.as_view()),
     path("<int:region_id>/monthly/", views.MonthlyView.as_view()),
     path("<int:region_id>/annual/", views.AnnualView.as_view()),
