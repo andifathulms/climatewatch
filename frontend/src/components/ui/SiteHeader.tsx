@@ -19,10 +19,10 @@ export default function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-canvas/80 backdrop-blur-xl supports-[backdrop-filter]:bg-canvas/60">
-      <div className="mx-auto flex max-w-shell items-center justify-between gap-6 px-5 py-3.5 sm:px-8">
+      <div className="mx-auto flex max-w-shell items-center justify-between gap-3 px-4 py-3.5 sm:gap-6 sm:px-8">
         <Link
           href="/"
-          className="group flex items-center gap-2.5"
+          className="group flex shrink-0 items-center gap-2.5"
           aria-label="ClimateWatch — home"
         >
           {/* Mark: a four-cell fingerprint swatch, the product in miniature. */}
@@ -35,12 +35,18 @@ export default function SiteHeader() {
             <span className="h-[7px] w-[7px] rounded-[1.5px] bg-heat-light/50" />
             <span className="h-[7px] w-[7px] rounded-[1.5px] bg-heat-orange" />
           </span>
-          <span className="font-display text-xl font-semibold tracking-tight">
+          {/* Wordmark is hidden on the narrowest screens — "ClimateWatch" plus
+              four nav items can't share one row at 360px, so the mark carries
+              the brand there. */}
+          <span className="hidden font-display text-xl font-semibold tracking-tight min-[420px]:inline">
             ClimateWatch
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm">
+        {/* overflow-x-auto is the safety net: if the labels ever exceed the row
+            (long future item, 320px device), the nav scrolls inside the header
+            instead of widening the page. */}
+        <nav className="-mr-1 flex items-center gap-0.5 overflow-x-auto text-[13px] [scrollbar-width:none] sm:mr-0 sm:gap-1 sm:text-sm [&::-webkit-scrollbar]:hidden">
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (
@@ -48,7 +54,7 @@ export default function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative rounded-full px-3.5 py-1.5 transition-colors duration-150 ${
+                className={`relative whitespace-nowrap rounded-full px-2.5 py-1.5 transition-colors duration-150 sm:px-3.5 ${
                   active
                     ? "text-text-primary"
                     : "text-text-secondary hover:text-text-primary"
