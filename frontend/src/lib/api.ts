@@ -6,7 +6,9 @@ import type {
   FingerprintResponse,
   FingerprintVariable,
   ForecastContextResponse,
+  OverTimeResponse,
   RankingsResponse,
+  RecordsResponse,
   Region,
   RegionDetail,
   SeasonResponse,
@@ -191,6 +193,18 @@ export const api = {
       return getStatic("rankings.json");
     }
     return get("/climate/rankings/");
+  },
+  records(): Promise<RecordsResponse> {
+    if (DATA_MODE === "static") {
+      return getStatic("monthly-records.json");
+    }
+    return get("/climate/records/");
+  },
+  overTime(): Promise<OverTimeResponse> {
+    if (DATA_MODE === "static") {
+      return getStatic("leaders-over-time.json");
+    }
+    return get("/climate/over-time/");
   },
 };
 

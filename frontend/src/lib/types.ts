@@ -169,3 +169,37 @@ export interface RankingEntry {
 export interface RankingsResponse {
   results: RankingEntry[];
 }
+
+export interface MonthRecord {
+  region: { name: string; slug: string; province: string };
+  year: number;
+  month: number;
+  value: number;
+}
+
+export interface RecordsResponse {
+  hottest: MonthRecord[];
+  coolest: MonthRecord[];
+  wettest: MonthRecord[];
+  driest: MonthRecord[];
+}
+
+export interface OverTimeSeries {
+  region: { name: string; slug: string };
+  values: (number | null)[];
+}
+
+export interface OverTimeMetric {
+  label: string;
+  unit: string;
+  decimals: number;
+  smoothing_years: number;
+  years: number[];
+  series: OverTimeSeries[];
+  leader_by_year: (string | null)[];
+}
+
+export interface OverTimeResponse {
+  temp: OverTimeMetric;
+  rain: OverTimeMetric;
+}

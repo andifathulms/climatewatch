@@ -1,10 +1,16 @@
 import { api } from "@/lib/api";
 import RankingsTable from "@/components/rankings/RankingsTable";
+import RecordsBoard from "@/components/rankings/RecordsBoard";
+import LeadersOverTime from "@/components/rankings/LeadersOverTime";
 
 export const metadata = { title: "Rankings" };
 
 export default async function RankingsPage() {
-  const rankings = await api.rankings().catch(() => ({ results: [] }));
+  const [rankings, records, overTime] = await Promise.all([
+    api.rankings().catch(() => ({ results: [] })),
+    api.records().catch(() => null),
+    api.overTime().catch(() => null),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -22,6 +28,10 @@ export default async function RankingsPage() {
       </header>
 
       <RankingsTable data={rankings} />
+
+      {overTime && <LeadersOverTime data={overTime} />}
+
+      {records && <RecordsBoard data={records} />}
     </div>
   );
 }
