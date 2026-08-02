@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { RankingEntry, RankingsResponse } from "@/lib/types";
-import { fmt } from "@/lib/format";
 
 type MetricKey =
   | "hottest"
@@ -21,6 +20,12 @@ const METRICS: {
   format: (v: number) => string;
   sort: "desc" | "asc";
   color: string;
+  // Where the bar starts. "zero" for additive/count/rate metrics that have a
+  // real zero (rainfall, days, warming rate); "min" for temperature, whose
+  // meaningful range sits far from 0°C — a zero-based bar there is ~99% full
+  // for every city and shows nothing. The min-based scale is disclosed to the
+  // reader via the scale caption so it never reads as proportional-from-zero.
+  baseline: "zero" | "min";
 }[] = [
   {
     key: "hottest",
@@ -30,69 +35,92 @@ const METRICS: {
     format: (v) => `${v.toFixed(1)}°C`,
     sort: "desc",
     color: "var(--heat-orange)",
+    baseline: "min",
   },
   {
     key: "wettest",
     label: "Wettest",
     eyebrow: "By average annual rainfall",
     get: (r) => r.avg_annual_precipitation,
-    format: (v) => `${v.toFixed(0)}mm/yr`,
+    format: (v) => `${v.toFixed(0)} mm/yr`,
     sort: "desc",
     color: "var(--rain-blue)",
+    baseline: "zero",
   },
   {
     key: "driest",
     label: "Driest",
-    eyebrow: "By average annual rainfall",
+    eyebrow: "By average annual rainfall (least first)",
     get: (r) => r.avg_annual_precipitation,
-    format: (v) => `${v.toFixed(0)}mm/yr`,
+    format: (v) => `${v.toFixed(0)} mm/yr`,
     sort: "asc",
     color: "var(--drought-amber)",
+    baseline: "zero",
   },
   {
     key: "warming",
     label: "Fastest warming",
-    eyebrow: "Linear trend, avg daily high",
+    eyebrow: "Linear trend in average daily high",
     get: (r) => r.warming_c_per_decade,
     format: (v) => `${v > 0 ? "+" : ""}${v.toFixed(2)}°C/decade`,
     sort: "desc",
     color: "var(--heat-orange)",
+    baseline: "zero",
   },
   {
     key: "extreme_rain",
     label: "Most extreme rain",
-    eyebrow: "Avg days/year with >100mm rain",
+    eyebrow: "Average days per year above 100mm",
     get: (r) => r.avg_extreme_rain_days_per_year,
     format: (v) => `${v.toFixed(1)} days/yr`,
     sort: "desc",
     color: "var(--rain-blue)",
+    baseline: "zero",
   },
   {
     key: "heatwave",
     label: "Longest heatwave",
-    eyebrow: "Longest streak of days >35°C, any year on record",
+    eyebrow: "Longest streak above 35°C, any year on record",
     get: (r) => r.max_consecutive_hot_days,
     format: (v) => `${v.toFixed(0)} days`,
     sort: "desc",
     color: "var(--heat-orange)",
+    baseline: "zero",
   },
 ];
+
+const TOP_N = 15;
 
 export default function RankingsTable({ data }: { data: RankingsResponse }) {
   const [metric, setMetric] = useState<MetricKey>("hottest");
   const active = METRICS.find((m) => m.key === metric)!;
 
-  const ranked = useMemo(() => {
-    const rows = data.results
+  const { ranked, domainMin, domainMax } = useMemo(() => {
+    const all = data.results
       .map((r) => ({ entry: r, value: active.get(r) }))
       .filter((r): r is { entry: RankingEntry; value: number } => r.value !== null);
-    rows.sort((a, b) => (active.sort === "desc" ? b.value - a.value : a.value - b.value));
-    return rows.slice(0, 15);
+
+    // Domain is computed over the FULL population, not the visible top-N — the
+    // bar must encode each city's real magnitude, never its rank position in a
+    // 15-row window (which exaggerated a 0.8°C spread into a 100%→4% sweep).
+    const values = all.map((r) => r.value);
+    const trueMin = values.length ? Math.min(...values) : 0;
+    const trueMax = values.length ? Math.max(...values) : 1;
+
+    all.sort((a, b) =>
+      active.sort === "desc" ? b.value - a.value : a.value - b.value,
+    );
+
+    return {
+      ranked: all.slice(0, TOP_N),
+      // "zero" baseline clamps to <=0 so a stray negative (e.g. a cooling
+      // trend) can't push the floor above 0 and invert the scale.
+      domainMin: active.baseline === "min" ? trueMin : Math.min(0, trueMin),
+      domainMax: trueMax,
+    };
   }, [data, active]);
 
-  const max = ranked[0]?.value ?? 1;
-  const min = ranked[ranked.length - 1]?.value ?? 0;
-  const span = Math.max(Math.abs(max - min), 1e-6);
+  const span = Math.max(domainMax - domainMin, 1e-6);
 
   return (
     <section className="card p-6">
@@ -112,19 +140,24 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
         ))}
       </div>
 
-      <p className="eyebrow">{active.eyebrow}</p>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="eyebrow">{active.eyebrow}</p>
+        {/* Disclose the axis. This is what makes the temperature scale honest:
+            the reader can see the bars run 25.6–30.8°C, not 0–30.8°C. */}
+        <p className="font-numeric text-[11px] text-text-muted">
+          scale {active.format(domainMin)} – {active.format(domainMax)}
+        </p>
+      </div>
       <p className="mt-1 text-xs text-text-muted">
-        Ranked across {data.results.length} bootstrapped cities, 1950–present.
+        Across all {data.results.length} cities with a complete 1950–present
+        ERA5 record.
       </p>
 
       <ol className="mt-5 space-y-1">
         {ranked.map((row, i) => {
-          // Bar width scaled within this metric's own min–max span, not zero-based —
-          // the point is relative standing among cities, not an absolute-zero axis.
-          const pct =
-            active.sort === "desc"
-              ? ((row.value - min) / span) * 100
-              : ((max - row.value) / span) * 100;
+          // Honest, disclosed: fraction of the metric's real domain.
+          const pct = ((row.value - domainMin) / span) * 100;
+          const width = Math.min(100, Math.max(pct, 2));
 
           return (
             <li key={row.entry.region.id}>
@@ -138,7 +171,7 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="truncate text-sm font-medium text-text-primary group-hover:text-text-primary">
+                    <span className="truncate text-sm font-medium text-text-primary">
                       {row.entry.region.name}
                     </span>
                     <span className="font-numeric shrink-0 text-sm font-medium text-text-primary">
@@ -147,11 +180,8 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
                   </div>
                   <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-inset">
                     <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${Math.max(pct, 4)}%`,
-                        background: active.color,
-                      }}
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${width}%`, background: active.color }}
                     />
                   </div>
                 </div>
@@ -166,6 +196,15 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
           Not enough data yet for this metric.
         </p>
       )}
+
+      {/* Why a city you know is hot might rank mid-pack, and why the list isn't
+          exhaustive — the two things a reader will reasonably doubt. */}
+      <p className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-text-muted">
+        Values come from ERA5 reanalysis, which smooths very local effects like
+        urban heat islands — so a dense city can rank cooler here than it feels
+        on the ground. Rankings cover the {data.results.length} cities loaded so
+        far, not every city in Indonesia.
+      </p>
     </section>
   );
 }
