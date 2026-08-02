@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Region } from "@/lib/types";
+import CityPicker from "@/components/ui/CityPicker";
 
 const PRESETS: [string, string][] = [
   ["balikpapan", "jakarta"],
@@ -26,52 +27,19 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
     }
   }
 
-  // The swatch previews the color the city will wear in the charts, so the
-  // mapping is established before the reader ever gets there.
-  function Picker({
-    label,
-    value,
-    onChange,
-    color,
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    color: string;
-  }) {
-    return (
-      <label className="flex min-w-0 flex-1 flex-col gap-2">
-        <span className="flex items-center gap-2 text-xs font-medium text-text-secondary">
-          <span
-            aria-hidden
-            className="h-2.5 w-2.5 rounded-[2px]"
-            style={{ background: color }}
-          />
-          {label}
-        </span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="field w-full px-3 py-2.5 text-sm"
-        >
-          {regions.map((r) => (
-            <option key={r.slug} value={r.slug}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  }
-
   return (
     <div className="card p-6">
+      {/* items-end keeps the swap/compare buttons aligned with the picker
+          triggers; the pickers own their popovers, so this row can't clip them
+          (the card doesn't set overflow). */}
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-        <Picker
+        <CityPicker
           label="City A"
           value={a}
           onChange={setA}
           color="var(--series-1)"
+          regions={regions}
+          disabledSlug={b}
         />
 
         <button
@@ -87,11 +55,13 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
           <span aria-hidden>⇄</span>
         </button>
 
-        <Picker
+        <CityPicker
           label="City B"
           value={b}
           onChange={setB}
           color="var(--series-2)"
+          regions={regions}
+          disabledSlug={a}
         />
 
         <button
