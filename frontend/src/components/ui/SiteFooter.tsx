@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DataAttribution from "./DataAttribution";
+import MakerSignature from "./MakerSignature";
 
 /**
  * Global footer. It hosts DataAttribution so the CC BY 4.0 credit is present on
@@ -71,6 +72,7 @@ export default function SiteFooter() {
         </div>
 
         <DataAttribution />
+        <MakerSignature />
       </div>
     </footer>
   );
