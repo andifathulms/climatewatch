@@ -14,9 +14,11 @@ import type { OverTimeMetric, OverTimeResponse } from "@/lib/types";
 import { AXIS, CHART_MARGIN, CURSOR, GRID } from "@/components/charts/chart-ui";
 
 // Validated all-pairs on the dark surface (#1B1813): worst CVD ΔE 8.2, worst
-// normal-vision ΔE 18.2 — see the dataviz validator. Colour follows the entity:
-// each city holds its slot across the chart, legend, and reigns ribbon.
+// normal-vision ΔE 18.2 — see the dataviz validator. Only the cities that led
+// #1 get a colour (≤4, the CVD-safe cap); the #2/#3 contenders are drawn in the
+// muted tone so the champions stay legible.
 const LINE_COLORS = ["#3E93D0", "#E2661F", "#45A05F", "#CB4F9E"];
+const MUTED = "var(--text-muted)";
 
 type MetricKey = "temp" | "rain";
 
@@ -58,12 +60,18 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
   const [metricKey, setMetricKey] = useState<MetricKey>("temp");
   const metric = data[metricKey];
 
-  const colorOf = useMemo(() => {
-    const m = new Map<string, string>();
-    metric.series.forEach((s, i) =>
-      m.set(s.region.slug, LINE_COLORS[i % LINE_COLORS.length]),
-    );
-    return m;
+  // Colour the first ≤4 cities that ever led; everyone else (extra leaders past
+  // 4, and pure #2/#3 contenders) takes the muted tone.
+  const { colorOf, colored } = useMemo(() => {
+    const colorOf = new Map<string, string>();
+    const colored = new Map<string, boolean>();
+    let ci = 0;
+    for (const s of metric.series) {
+      const isColored = s.led && ci < LINE_COLORS.length;
+      colorOf.set(s.region.slug, isColored ? LINE_COLORS[ci++] : MUTED);
+      colored.set(s.region.slug, isColored);
+    }
+    return { colorOf, colored };
   }, [metric]);
 
   const nameOf = useMemo(() => {
@@ -137,12 +145,13 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
       </div>
 
       <p className="mb-4 max-w-prose text-sm leading-relaxed text-text-secondary">
-        Only the cities that ever held #1 are drawn, as a{" "}
+        Every city that ever reached the top 3, as a{" "}
         <span className="text-text-primary">
           {metric.smoothing_years}-year average
         </span>{" "}
-        so eras reflect real shifts, not single-year noise. Values in{" "}
-        {metric.unit}.
+        so eras reflect real shifts, not single-year noise.{" "}
+        <span className="text-text-primary">Coloured</span> lines led #1 at some
+        point; grey lines are the #2/#3 pack. Values in {metric.unit}.
       </p>
 
       <ResponsiveContainer width="100%" height={280}>
@@ -201,37 +210,63 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
               );
             }}
           />
-          {metric.series.map((s) => (
-            <Line
-              key={s.region.slug}
-              type="monotone"
-              dataKey={s.region.slug}
-              stroke={colorOf.get(s.region.slug)}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, stroke: "var(--surface)", strokeWidth: 2 }}
-              connectNulls
-              name={s.region.name}
-            />
-          ))}
+          {/* Muted contenders first so the coloured champions render on top. */}
+          {[...metric.series]
+            .sort(
+              (a, b) =>
+                Number(colored.get(a.region.slug)) -
+                Number(colored.get(b.region.slug)),
+            )
+            .map((s) => {
+              const isColored = colored.get(s.region.slug);
+              return (
+                <Line
+                  key={s.region.slug}
+                  type="monotone"
+                  dataKey={s.region.slug}
+                  stroke={colorOf.get(s.region.slug)}
+                  strokeWidth={isColored ? 2 : 1.5}
+                  strokeOpacity={isColored ? 1 : 0.4}
+                  dot={false}
+                  activeDot={{ r: 4, stroke: "var(--surface)", strokeWidth: 2 }}
+                  connectNulls
+                  name={s.region.name}
+                />
+              );
+            })}
         </LineChart>
       </ResponsiveContainer>
 
-      {/* Legend — identity is carried here, not by colour alone. */}
+      {/* Legend — identity is carried here, not by colour alone. Champions
+          first, then the greyed contenders. */}
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
-        {metric.series.map((s) => (
-          <span
-            key={s.region.slug}
-            className="flex items-center gap-2 text-xs text-text-secondary"
-          >
-            <span
-              aria-hidden
-              className="h-2.5 w-2.5 rounded-[2px]"
-              style={{ background: colorOf.get(s.region.slug) }}
-            />
-            {s.region.name}
-          </span>
-        ))}
+        {[...metric.series]
+          .sort(
+            (a, b) =>
+              Number(colored.get(b.region.slug)) -
+              Number(colored.get(a.region.slug)),
+          )
+          .map((s) => {
+            const isColored = colored.get(s.region.slug);
+            return (
+              <span
+                key={s.region.slug}
+                className={`flex items-center gap-2 text-xs ${
+                  isColored ? "text-text-secondary" : "text-text-muted"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 rounded-[2px]"
+                  style={{
+                    background: colorOf.get(s.region.slug),
+                    opacity: isColored ? 1 : 0.5,
+                  }}
+                />
+                {s.region.name}
+              </span>
+            );
+          })}
       </div>
 
       {/* Reigns ribbon — the plain-language "who led when", to scale. */}
