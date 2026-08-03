@@ -1,7 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+// The ClimateWatch mark (same art as app/icon.png, the browser-tab favicon).
+// A local copy — not app/icon.png — so importing it can't collide with Next's
+// icon file-convention, and next/image resolves the basePath in static export.
+import icon from "./brand-icon.png";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -25,16 +30,16 @@ export default function SiteHeader() {
           className="group flex shrink-0 items-center gap-2.5"
           aria-label="ClimateWatch — home"
         >
-          {/* Mark: a four-cell fingerprint swatch, the product in miniature. */}
-          <span
+          {/* The ClimateWatch app icon — same mark as the browser-tab favicon. */}
+          <Image
+            src={icon}
+            alt=""
             aria-hidden
-            className="grid grid-cols-2 gap-[2px] rounded-[5px] p-[3px] ring-1 ring-border-strong transition group-hover:ring-rain-blue"
-          >
-            <span className="h-[7px] w-[7px] rounded-[1.5px] bg-rain-blue" />
-            <span className="h-[7px] w-[7px] rounded-[1.5px] bg-rain-light/60" />
-            <span className="h-[7px] w-[7px] rounded-[1.5px] bg-heat-light/50" />
-            <span className="h-[7px] w-[7px] rounded-[1.5px] bg-heat-orange" />
-          </span>
+            width={28}
+            height={28}
+            className="rounded-[7px] ring-1 ring-border-strong transition group-hover:ring-rain-blue"
+            priority
+          />
           {/* Wordmark is hidden on the narrowest screens — "ClimateWatch" plus
               four nav items can't share one row at 360px, so the mark carries
               the brand there. */}
