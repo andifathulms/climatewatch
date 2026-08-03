@@ -30,15 +30,16 @@ interface Reign {
   to: number;
 }
 
+/** Collapse a per-year slug array into contiguous reign segments. */
 function buildReigns(
-  metric: OverTimeMetric,
+  years: number[],
+  slugs: (string | null)[],
   colorOf: Map<string, string>,
   nameOf: Map<string, string>,
 ): Reign[] {
   const out: Reign[] = [];
-  const { years, leader_by_year } = metric;
   for (let i = 0; i < years.length; i++) {
-    const slug = leader_by_year[i];
+    const slug = slugs[i];
     if (!slug) continue;
     const last = out[out.length - 1];
     if (last && last.slug === slug) {
@@ -90,10 +91,24 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
     [metric],
   );
 
-  const reigns = useMemo(
-    () => buildReigns(metric, colorOf, nameOf),
-    [metric, colorOf, nameOf],
-  );
+  // Podium over time: rank the drawn cities each year and collapse positions
+  // 1/2/3 into their own reign strips. Derived from the same series values the
+  // lines use — no extra data needed. (Row 0 equals the #1 leader_by_year.)
+  const reignRows = useMemo(() => {
+    const rank: (string | null)[][] = [[], [], []];
+    metric.years.forEach((_year, i) => {
+      const ordered = metric.series
+        .map((s) => ({ slug: s.region.slug, v: s.values[i] }))
+        .filter((x): x is { slug: string; v: number } => x.v !== null)
+        .sort((a, b) => b.v - a.v);
+      for (let r = 0; r < 3; r++) rank[r].push(ordered[r]?.slug ?? null);
+    });
+    return [
+      { place: "1st", reigns: buildReigns(metric.years, rank[0], colorOf, nameOf) },
+      { place: "2nd", reigns: buildReigns(metric.years, rank[1], colorOf, nameOf) },
+      { place: "3rd", reigns: buildReigns(metric.years, rank[2], colorOf, nameOf) },
+    ];
+  }, [metric, colorOf, nameOf]);
 
   // Tight, honest domain: these cluster in a narrow band (esp. temperature),
   // and a line makes no zero-baseline claim, so pad around the real values.
@@ -269,33 +284,43 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
           })}
       </div>
 
-      {/* Reigns ribbon — the plain-language "who led when", to scale. */}
+      {/* Podium over time — who sat 1st / 2nd / 3rd each year, to scale. The
+          #1 row is the leader ribbon; #2 and #3 stack beneath it. */}
       <div className="mt-6">
-        <p className="eyebrow mb-2">Reigns</p>
-        <div className="flex h-9 overflow-hidden rounded-md border border-border">
-          {reigns.map((r, i) => {
-            const width = ((r.to - r.from + 1) / (totalSpan + 1)) * 100;
-            return (
-              <div
-                key={`${r.slug}-${r.from}`}
-                title={`${r.name}: ${r.from}–${r.to}`}
-                className={`flex items-center justify-center overflow-hidden px-1 ${
-                  i > 0 ? "border-l border-canvas-deep" : ""
-                }`}
-                style={{
-                  width: `${width}%`,
-                  background: `color-mix(in srgb, ${r.color} 22%, transparent)`,
-                  borderTop: `2px solid ${r.color}`,
-                }}
-              >
-                <span className="truncate text-[10px] font-medium text-text-primary">
-                  {width > 8 ? r.name : ""}
-                </span>
+        <p className="eyebrow mb-2">Podium over time</p>
+        <div className="space-y-1">
+          {reignRows.map((row) => (
+            <div key={row.place} className="flex items-center gap-2">
+              <span className="font-numeric w-6 shrink-0 text-[10px] text-text-muted">
+                {row.place}
+              </span>
+              <div className="flex h-7 flex-1 overflow-hidden rounded border border-border">
+                {row.reigns.map((r, i) => {
+                  const width = ((r.to - r.from + 1) / (totalSpan + 1)) * 100;
+                  return (
+                    <div
+                      key={`${r.slug}-${r.from}`}
+                      title={`${row.place} · ${r.name}: ${r.from}–${r.to}`}
+                      className={`flex items-center justify-center overflow-hidden px-1 ${
+                        i > 0 ? "border-l border-canvas-deep" : ""
+                      }`}
+                      style={{
+                        width: `${width}%`,
+                        background: `color-mix(in srgb, ${r.color} 22%, transparent)`,
+                        borderTop: `2px solid ${r.color}`,
+                      }}
+                    >
+                      <span className="truncate text-[10px] font-medium text-text-primary">
+                        {width > 10 ? r.name : ""}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
-        <div className="font-numeric mt-1 flex justify-between text-[10px] text-text-muted">
+        <div className="font-numeric ml-8 mt-1 flex justify-between text-[10px] text-text-muted">
           <span>{metric.years[0]}</span>
           <span>{metric.years[metric.years.length - 1]}</span>
         </div>
