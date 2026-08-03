@@ -4,9 +4,78 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { CompareResponse, Region } from "@/lib/types";
+import type { CompareProfile, CompareResponse, Region } from "@/lib/types";
+import { diurnalSwing } from "@/lib/format";
 import ComparePanel from "./ComparePanel";
 import MonthlyBarChart from "@/components/charts/MonthlyBarChart";
+
+/** Mean of the 12-month daily-mean climatology. */
+function climMean(p: CompareProfile): number | null {
+  const t = p.climatology.filter((c) => c.avg_temp_mean !== null);
+  if (!t.length) return null;
+  return t.reduce((s, c) => s + (c.avg_temp_mean ?? 0), 0) / t.length;
+}
+
+/** Plain-language read of the two cities' day–night rhythm and 24h average. */
+function DayNightInsight({ a, b }: { a: CompareProfile; b: CompareProfile }) {
+  const sA = diurnalSwing(a.climatology);
+  const sB = diurnalSwing(b.climatology);
+  const mA = climMean(a);
+  const mB = climMean(b);
+  if (sA === null || sB === null || mA === null || mB === null) return null;
+
+  const tight = Math.abs(sA - sB) < 0.3;
+  const smaller = sA <= sB ? a : b; // smaller swing = warmer nights
+  const smallerColor = smaller === a ? "var(--series-1)" : "var(--series-2)";
+  const warmer = mA >= mB ? a : b; // higher 24h average
+  const warmerColor = warmer === a ? "var(--series-1)" : "var(--series-2)";
+
+  return (
+    <section className="card p-6">
+      <p className="eyebrow mb-2">Day &amp; night</p>
+      <p className="max-w-prose text-sm leading-relaxed text-text-secondary">
+        {tight ? (
+          <>
+            Both cities have a similar day–night swing (
+            <span className="font-numeric text-text-primary">
+              {sA.toFixed(1)}°
+            </span>{" "}
+            vs{" "}
+            <span className="font-numeric text-text-primary">
+              {sB.toFixed(1)}°
+            </span>
+            ).
+          </>
+        ) : (
+          <>
+            <span style={{ color: smallerColor }}>{smaller.region.name}</span> has
+            the smaller day–night swing —{" "}
+            <span className="font-numeric text-text-primary">
+              {Math.min(sA, sB).toFixed(1)}°
+            </span>{" "}
+            vs{" "}
+            <span className="font-numeric text-text-primary">
+              {Math.max(sA, sB).toFixed(1)}°
+            </span>{" "}
+            — so its nights stay warmer.
+          </>
+        )}{" "}
+        <span style={{ color: warmerColor }}>{warmer.region.name}</span> runs
+        warmer over the full 24 hours (
+        <span className="font-numeric text-text-primary">
+          {Math.max(mA, mB).toFixed(1)}°
+        </span>{" "}
+        vs{" "}
+        <span className="font-numeric text-text-primary">
+          {Math.min(mA, mB).toFixed(1)}°
+        </span>{" "}
+        mean). That&apos;s the gap to keep in mind above: “avg daily high” is the
+        afternoon peak, while the temperature chart below plots the 24-hour mean
+        — so the same city can top one and not the other.
+      </p>
+    </section>
+  );
+}
 
 /**
  * Reads ?a=slug&b=slug and renders the comparison client-side.
@@ -79,13 +148,15 @@ export default function CompareResult({ regions }: { regions: Region[] }) {
         <ComparePanel profile={compare.b} slot={2} />
       </div>
 
+      <DayNightInsight a={compare.a} b={compare.b} />
+
       <div className="grid gap-6 lg:grid-cols-2">
         <MonthlyBarChart
           a={compare.a}
           b={compare.b}
           metric="avg_temp_mean"
           title="Average monthly temperature"
-          unit="°C"
+          unit="°C (daily mean)"
         />
         <MonthlyBarChart
           a={compare.a}

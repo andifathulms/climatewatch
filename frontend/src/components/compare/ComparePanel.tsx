@@ -1,5 +1,5 @@
 import type { CompareProfile } from "@/lib/types";
-import { fmt } from "@/lib/format";
+import { diurnalSwing, fmt } from "@/lib/format";
 import TrendArrow from "@/components/ui/TrendArrow";
 
 /**
@@ -20,6 +20,7 @@ export default function ComparePanel({
   const slope = profile.warming_trend.slope;
   const warming = slope !== null ? slope * years : null;
   const color = slot === 1 ? "var(--series-1)" : "var(--series-2)";
+  const swing = diurnalSwing(profile.climatology);
 
   const rows: { label: string; value: React.ReactNode }[] = [
     {
@@ -38,9 +39,19 @@ export default function ComparePanel({
     ...(latest
       ? [
           {
-            label: `Latest avg max (${latest.year})`,
+            // "high", not "max", and paired with the day-night swing below, so
+            // it can't be misread against the daily-mean chart underneath.
+            label: `Avg daily high (${latest.year})`,
             value: (
               <span className="font-numeric">{fmt(latest.avg_temp_max, "°C")}</span>
+            ),
+          },
+          {
+            label: "Day–night swing",
+            value: (
+              <span className="font-numeric">
+                {swing !== null ? fmt(swing, "°C") : "—"}
+              </span>
             ),
           },
           {

@@ -115,6 +115,8 @@ export interface CompareProfile {
   climatology: {
     month: number;
     avg_temp_mean: number | null;
+    avg_temp_max: number | null;
+    avg_temp_min: number | null;
     avg_precipitation: number | null;
   }[];
   annual: {
