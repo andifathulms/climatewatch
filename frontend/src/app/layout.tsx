@@ -41,6 +41,18 @@ export const metadata: Metadata = {
     description:
       "75+ years of ERA5 climate data for any Indonesian city, rendered as a Climate Fingerprint.",
   },
+  // Android install manifest is a static file in public/. The app/manifest.ts
+  // file-convention was avoided on purpose: its auto-injected <link> drops the
+  // basePath (a Next quirk) and can't be overridden, which 404s on the
+  // /climatewatch project path. A static file + explicit link sidesteps that.
+  // apple-icon.png (app/) becomes the iOS home-screen icon; appleWebApp makes
+  // "Add to Home Screen" open standalone with dark chrome.
+  manifest: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/manifest.webmanifest`,
+  appleWebApp: {
+    capable: true,
+    title: "ClimateWatch",
+    statusBarStyle: "black",
+  },
 };
 
 export const viewport: Viewport = {
