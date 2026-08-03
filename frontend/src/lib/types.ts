@@ -170,23 +170,26 @@ export interface RankingsResponse {
   results: RankingEntry[];
 }
 
-export interface MonthRecord {
+export interface ClimateRecord {
   region: { name: string; slug: string; province: string };
   year: number;
-  month: number;
+  month?: number; // present for monthly records, absent for yearly
   value: number;
 }
 
+export type RecordMetric = "hottest" | "coolest" | "wettest" | "driest";
+
+export type RecordSet = Record<RecordMetric, ClimateRecord[]>;
+
 export interface RecordsResponse {
-  hottest: MonthRecord[];
-  coolest: MonthRecord[];
-  wettest: MonthRecord[];
-  driest: MonthRecord[];
+  month: RecordSet;
+  year: RecordSet;
 }
 
 export interface OverTimeSeries {
   region: { name: string; slug: string };
   values: (number | null)[];
+  led: boolean; // did this city ever hold #1
 }
 
 export interface OverTimeMetric {
