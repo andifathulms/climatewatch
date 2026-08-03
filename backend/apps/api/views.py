@@ -345,18 +345,51 @@ def _month_records(field, order, limit=15, min_coverage=0.9):
     ]
 
 
+def _year_records(field, order, limit=15):
+    """
+    Top-`limit` single years across every city, by an annual `field` from
+    ClimateAnnual (the yearly counterpart to _month_records). A "hottest year on
+    record" is the whole-year average of the daily figure.
+    """
+    qs = (
+        ClimateAnnual.objects.filter(**{f"{field}__isnull": False})
+        .select_related("region")
+        .order_by(f"{'-' if order == 'desc' else ''}{field}", "year")[:limit]
+    )
+    return [
+        {
+            "region": {
+                "name": a.region.name,
+                "slug": a.region.slug,
+                "province": a.region.province,
+            },
+            "year": a.year,
+            "value": round(getattr(a, field), 1),
+        }
+        for a in qs
+    ]
+
+
 class RecordsView(APIView):
     """
-    Cross-city month records: the hottest / coolest / wettest / driest single
-    months in the whole 1950–present record.
+    Cross-city records: the hottest / coolest / wettest / driest single months
+    *and* single years across the whole 1950–present record.
     """
 
     def get(self, request):
         return Response({
-            "hottest": _month_records("avg_temp_max", "desc"),
-            "coolest": _month_records("avg_temp_max", "asc"),
-            "wettest": _month_records("total_precipitation", "desc"),
-            "driest": _month_records("total_precipitation", "asc"),
+            "month": {
+                "hottest": _month_records("avg_temp_max", "desc"),
+                "coolest": _month_records("avg_temp_max", "asc"),
+                "wettest": _month_records("total_precipitation", "desc"),
+                "driest": _month_records("total_precipitation", "asc"),
+            },
+            "year": {
+                "hottest": _year_records("avg_temp_max", "desc"),
+                "coolest": _year_records("avg_temp_max", "asc"),
+                "wettest": _year_records("total_precipitation", "desc"),
+                "driest": _year_records("total_precipitation", "asc"),
+            },
         })
 
 
@@ -381,14 +414,16 @@ def _smooth(values, window=9):
     return out
 
 
-def _leaders_over_time(field, max_series=4, window=9):
+def _leaders_over_time(field, max_series=5, top_n=3, window=9):
     """
     For one metric, return the decade-smoothed annual series of the cities that
-    ever held #1, plus the leading city each year.
+    ever reached the top `top_n`, plus the leading city each year.
 
-    Only cities that lead at some point are returned (the rest are context a
-    reader can't act on), capped at `max_series` by how many years they led so
-    the chart stays legible.
+    Each series carries a `led` flag — True if the city ever held #1. The
+    frontend colours the ≤4 cities that led (the CVD-safe cap) and draws the
+    pure #2/#3 contenders as muted context lines. Cities are kept by best rank
+    achieved, then how often they sat in the top `top_n`, capped at `max_series`
+    so the chart stays legible.
     """
     rows = (
         ClimateAnnual.objects.filter(**{f"{field}__isnull": False})
@@ -412,26 +447,30 @@ def _leaders_over_time(field, max_series=4, window=9):
 
     all_years = sorted({y for c in by_city.values() for y in c["smooth"]})
 
-    # Leader (max smoothed value) each year, and how often each city leads.
-    leader_by_year = []
-    lead_count = {}
+    # Per year, rank cities by smoothed value; track each city's best rank ever
+    # and how many years it sat in the top `top_n`.
+    best_rank = {}
+    topn_count = {}
     for y in all_years:
-        best_slug, best_val = None, None
-        for slug, c in by_city.items():
-            v = c["smooth"].get(y)
-            if v is not None and (best_val is None or v > best_val):
-                best_slug, best_val = slug, v
-        leader_by_year.append(best_slug)
-        if best_slug:
-            lead_count[best_slug] = lead_count.get(best_slug, 0) + 1
+        ranked = sorted(
+            (
+                (slug, c["smooth"][y])
+                for slug, c in by_city.items()
+                if y in c["smooth"]
+            ),
+            key=lambda kv: -kv[1],
+        )
+        for rank, (slug, _v) in enumerate(ranked[:top_n], start=1):
+            best_rank[slug] = min(best_rank.get(slug, 99), rank)
+            topn_count[slug] = topn_count.get(slug, 0) + 1
 
-    keep = sorted(lead_count, key=lambda s: -lead_count[s])[:max_series]
+    # Keep cities that ever reached the top_n; leaders (best_rank == 1) sort
+    # first, so they're never cut in favour of a mere contender.
+    keep = sorted(
+        best_rank, key=lambda s: (best_rank[s], -topn_count[s])
+    )[:max_series]
 
-    # Re-derive the shown leader among only the kept cities, so leader_by_year
-    # never names a city that has no line (e.g. a one-year edge-smoothing blip
-    # that isn't a real contender). Identical to the true leader every year
-    # except those transient blips.
-    keep_set = set(keep)
+    # Shown leader each year, among kept cities only (never a line-less blip).
     leader_by_year = []
     for y in all_years:
         best_slug, best_val = None, None
@@ -448,6 +487,7 @@ def _leaders_over_time(field, max_series=4, window=9):
                 round(by_city[s]["smooth"][y], 2) if y in by_city[s]["smooth"] else None
                 for y in all_years
             ],
+            "led": best_rank[s] == 1,
         }
         for s in keep
     ]
