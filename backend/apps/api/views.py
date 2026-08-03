@@ -623,10 +623,17 @@ def build_compare_profile(region):
     for m in range(1, 13):
         mrows = [r for r in monthly if r.month == m]
         t = [r.avg_temp_mean for r in mrows if r.avg_temp_mean is not None]
+        hi = [r.avg_temp_max for r in mrows if r.avg_temp_max is not None]
+        lo = [r.avg_temp_min for r in mrows if r.avg_temp_min is not None]
         p = [r.total_precipitation for r in mrows if r.total_precipitation is not None]
         climatology.append({
             "month": m,
             "avg_temp_mean": round(sum(t) / len(t), 1) if t else None,
+            # max/min carried so the frontend can show the day–night swing
+            # (avg daily high − avg daily low) — what makes a city read warm on
+            # average yet cooler at peak (warm nights, small diurnal range).
+            "avg_temp_max": round(sum(hi) / len(hi), 1) if hi else None,
+            "avg_temp_min": round(sum(lo) / len(lo), 1) if lo else None,
             "avg_precipitation": round(sum(p) / len(p), 1) if p else None,
         })
     temp_pts = [(r["year"], r["avg_temp_max"]) for r in annual
