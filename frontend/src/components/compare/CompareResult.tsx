@@ -9,20 +9,82 @@ import { diurnalSwing } from "@/lib/format";
 import ComparePanel from "./ComparePanel";
 import MonthlyBarChart from "@/components/charts/MonthlyBarChart";
 
-/** Mean of the 12-month daily-mean climatology. */
-function climMean(p: CompareProfile): number | null {
-  const t = p.climatology.filter((c) => c.avg_temp_mean !== null);
-  if (!t.length) return null;
-  return t.reduce((s, c) => s + (c.avg_temp_mean ?? 0), 0) / t.length;
+type ClimField = "avg_temp_max" | "avg_temp_min" | "avg_temp_mean";
+
+/** Mean of a 12-month climatology field. */
+function avgField(p: CompareProfile, f: ClimField): number | null {
+  const v = p.climatology
+    .map((c) => c[f])
+    .filter((x): x is number => x !== null);
+  return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null;
+}
+
+/** One city's day→night range drawn on a shared temperature axis. */
+function RangeBar({
+  name,
+  color,
+  lo,
+  hi,
+  mean,
+  domLo,
+  domHi,
+}: {
+  name: string;
+  color: string;
+  lo: number;
+  hi: number;
+  mean: number;
+  domLo: number;
+  domHi: number;
+}) {
+  const pct = (v: number) => ((v - domLo) / (domHi - domLo)) * 100;
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between gap-2 text-xs">
+        <span className="font-medium" style={{ color }}>
+          {name}
+        </span>
+        <span className="font-numeric text-text-muted">
+          {lo.toFixed(1)}°–{hi.toFixed(1)}°{" "}
+          <span className="text-text-secondary">· {(hi - lo).toFixed(1)}° swing</span>
+        </span>
+      </div>
+      <div className="relative h-2.5 rounded-full bg-surface-inset">
+        {/* night → day span */}
+        <div
+          className="absolute inset-y-0 rounded-full"
+          style={{
+            left: `${pct(lo)}%`,
+            width: `${pct(hi) - pct(lo)}%`,
+            background: `color-mix(in srgb, ${color} 55%, transparent)`,
+          }}
+        />
+        {/* 24-hour mean marker */}
+        <span
+          className="absolute top-1/2 h-3.5 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ left: `${pct(mean)}%`, background: color }}
+          title={`24h mean ${mean.toFixed(1)}°`}
+        />
+      </div>
+    </div>
+  );
 }
 
 /** Plain-language read of the two cities' day–night rhythm and 24h average. */
 function DayNightInsight({ a, b }: { a: CompareProfile; b: CompareProfile }) {
   const sA = diurnalSwing(a.climatology);
   const sB = diurnalSwing(b.climatology);
-  const mA = climMean(a);
-  const mB = climMean(b);
-  if (sA === null || sB === null || mA === null || mB === null) return null;
+  const mA = avgField(a, "avg_temp_mean");
+  const mB = avgField(b, "avg_temp_mean");
+  const hiA = avgField(a, "avg_temp_max");
+  const loA = avgField(a, "avg_temp_min");
+  const hiB = avgField(b, "avg_temp_max");
+  const loB = avgField(b, "avg_temp_min");
+  if (
+    sA === null || sB === null || mA === null || mB === null ||
+    hiA === null || loA === null || hiB === null || loB === null
+  )
+    return null;
 
   const tight = Math.abs(sA - sB) < 0.3;
   const smaller = sA <= sB ? a : b; // smaller swing = warmer nights
@@ -30,49 +92,78 @@ function DayNightInsight({ a, b }: { a: CompareProfile; b: CompareProfile }) {
   const warmer = mA >= mB ? a : b; // higher 24h average
   const warmerColor = warmer === a ? "var(--series-1)" : "var(--series-2)";
 
+  const domLo = Math.floor(Math.min(loA, loB) - 0.5);
+  const domHi = Math.ceil(Math.max(hiA, hiB) + 0.5);
+
   return (
-    <section className="card p-6">
-      <p className="eyebrow mb-2">Day &amp; night</p>
-      <p className="max-w-prose text-sm leading-relaxed text-text-secondary">
-        {tight ? (
-          <>
-            Both cities have a similar day–night swing (
-            <span className="font-numeric text-text-primary">
-              {sA.toFixed(1)}°
-            </span>{" "}
-            vs{" "}
-            <span className="font-numeric text-text-primary">
-              {sB.toFixed(1)}°
-            </span>
-            ).
-          </>
-        ) : (
-          <>
-            <span style={{ color: smallerColor }}>{smaller.region.name}</span> has
-            the smaller day–night swing —{" "}
-            <span className="font-numeric text-text-primary">
-              {Math.min(sA, sB).toFixed(1)}°
-            </span>{" "}
-            vs{" "}
-            <span className="font-numeric text-text-primary">
-              {Math.max(sA, sB).toFixed(1)}°
-            </span>{" "}
-            — so its nights stay warmer.
-          </>
-        )}{" "}
-        <span style={{ color: warmerColor }}>{warmer.region.name}</span> runs
-        warmer over the full 24 hours (
-        <span className="font-numeric text-text-primary">
-          {Math.max(mA, mB).toFixed(1)}°
-        </span>{" "}
-        vs{" "}
-        <span className="font-numeric text-text-primary">
-          {Math.min(mA, mB).toFixed(1)}°
-        </span>{" "}
-        mean). That&apos;s the gap to keep in mind above: “avg daily high” is the
-        afternoon peak, while the temperature chart below plots the 24-hour mean
-        — so the same city can top one and not the other.
-      </p>
+    <section className="card grid gap-x-10 gap-y-6 p-6 md:grid-cols-2 md:items-center">
+      <div>
+        <p className="eyebrow mb-2">Day &amp; night</p>
+        <p className="text-sm leading-relaxed text-text-secondary">
+          {tight ? (
+            <>
+              Both cities have a similar day–night swing (
+              <span className="font-numeric text-text-primary">{sA.toFixed(1)}°</span>{" "}
+              vs{" "}
+              <span className="font-numeric text-text-primary">{sB.toFixed(1)}°</span>
+              ).
+            </>
+          ) : (
+            <>
+              <span style={{ color: smallerColor }}>{smaller.region.name}</span> has
+              the smaller day–night swing —{" "}
+              <span className="font-numeric text-text-primary">
+                {Math.min(sA, sB).toFixed(1)}°
+              </span>{" "}
+              vs{" "}
+              <span className="font-numeric text-text-primary">
+                {Math.max(sA, sB).toFixed(1)}°
+              </span>{" "}
+              — so its nights stay warmer.
+            </>
+          )}{" "}
+          <span style={{ color: warmerColor }}>{warmer.region.name}</span> runs
+          warmer over the full 24 hours (
+          <span className="font-numeric text-text-primary">
+            {Math.max(mA, mB).toFixed(1)}°
+          </span>{" "}
+          vs{" "}
+          <span className="font-numeric text-text-primary">
+            {Math.min(mA, mB).toFixed(1)}°
+          </span>{" "}
+          mean). That&apos;s the gap to keep in mind above: “avg daily high” is the
+          afternoon peak, while the temperature chart below plots the 24-hour mean.
+        </p>
+      </div>
+
+      {/* Both ranges on one axis: bar = night→day span, tick = 24h mean. */}
+      <div>
+        <div className="space-y-4">
+          <RangeBar
+            name={a.region.name}
+            color="var(--series-1)"
+            lo={loA}
+            hi={hiA}
+            mean={mA}
+            domLo={domLo}
+            domHi={domHi}
+          />
+          <RangeBar
+            name={b.region.name}
+            color="var(--series-2)"
+            lo={loB}
+            hi={hiB}
+            mean={mB}
+            domLo={domLo}
+            domHi={domHi}
+          />
+        </div>
+        <div className="font-numeric mt-2 flex justify-between text-[10px] text-text-muted">
+          <span>{domLo}°</span>
+          <span className="text-text-secondary">bar = night→day · tick = 24h mean</span>
+          <span>{domHi}°</span>
+        </div>
+      </div>
     </section>
   );
 }
