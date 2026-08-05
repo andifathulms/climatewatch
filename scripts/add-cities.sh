@@ -50,6 +50,9 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 
+echo "▸ syncing the region seed (load_regions — inserts any new cities)…"
+docker run --rm "${COMMON[@]}" "$IMG" python manage.py load_regions
+
 echo "▸ bootstrapping from Open-Meteo (this is the step that needs internet)…"
 if [ "$#" -gt 0 ]; then
   for slug in "$@"; do
