@@ -100,21 +100,28 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
 
       <div className="mt-4 overflow-x-auto">
         <table className="w-full border-collapse text-sm">
+          {/* The visible section heading names the board; it does not say which
+              of the ten metric x granularity combinations is on screen. Without
+              that, a screen-reader user landing on the table by table-navigation
+              has no idea what they are reading. */}
+          <caption className="sr-only">
+            {active.label} records, by {grain === "month" ? "month" : "year"}
+          </caption>
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="w-8 py-2 pr-2 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
+              <th scope="col" className="w-8 py-2 pr-2 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
                 #
               </th>
-              <th className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
+              <th scope="col" className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
                 City
               </th>
-              <th className="hidden py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted sm:table-cell">
+              <th scope="col" className="hidden py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted sm:table-cell">
                 Province
               </th>
-              <th className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
+              <th scope="col" className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
                 {grain === "month" ? "Month" : "Year"}
               </th>
-              <th className="py-2 pl-4 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
+              <th scope="col" className="py-2 pl-4 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
                 {metric === "wettest" || metric === "driest" ? "Rainfall" : "Avg high"}
               </th>
             </tr>
