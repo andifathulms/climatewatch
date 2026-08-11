@@ -13,6 +13,7 @@ import type {
   Region,
   RegionDetail,
   SeasonResponse,
+  WorkedExampleResponse,
 } from "./types";
 import { DATA_MODE, getStatic } from "./data-mode";
 
@@ -139,6 +140,12 @@ export const api = {
       return getStatic(`season/${region.slug}.json`);
     }
     return get(`/climate/${region.id}/season/`);
+  },
+  workedExample(region: RegionRef): Promise<WorkedExampleResponse> {
+    if (DATA_MODE === "static") {
+      return getStatic(`worked-example/${region.slug}.json`);
+    }
+    return get(`/climate/${region.id}/worked-example/`);
   },
   movers(region: RegionRef): Promise<MoversResponse> {
     if (DATA_MODE === "static") {

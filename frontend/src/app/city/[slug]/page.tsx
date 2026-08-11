@@ -10,6 +10,7 @@ import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
 import SeasonLengthChart from "@/components/charts/SeasonLengthChart";
 import WhatMovedMost from "@/components/charts/WhatMovedMost";
 import PersonalBaseline from "@/components/charts/PersonalBaseline";
+import WorkedExample from "@/components/fingerprint/WorkedExample";
 
 // Required for `output: 'export'` (static mode) — every dynamic segment must
 // be enumerated at build time since there's no server to resolve one on
@@ -93,7 +94,15 @@ export default async function CityPage({
     );
   }
 
-  const [fingerprint, tempMax, extremes, season, ensoImpact, movers] =
+  const [
+    fingerprint,
+    tempMax,
+    extremes,
+    season,
+    ensoImpact,
+    movers,
+    workedExample,
+  ] =
     await Promise.all([
       api.fingerprint(region, "precipitation"),
       // Fetched here rather than inside PersonalBaseline: that panel is a
@@ -104,6 +113,7 @@ export default async function CityPage({
       api.season(region).catch(() => null),
       api.ensoImpact(region).catch(() => null),
       api.movers(region).catch(() => null),
+      api.workedExample(region).catch(() => null),
     ]);
 
   const { year_from, year_to, years_loaded } = region.data_availability;
@@ -172,6 +182,10 @@ export default async function CityPage({
           between — with no new chrome and no new colour. */}
       <PageGroup id="g-record" label="What the record shows">
         {movers && <WhatMovedMost data={movers} />}
+        {/* Before the grid, not after: learn to read one square before
+            meeting 924 of them. */}
+        {workedExample && <WorkedExample data={workedExample} />}
+
         <FingerprintPanel region={region} initial={fingerprint} />
         {tempMax && year_from !== null && year_to !== null && (
           <PersonalBaseline

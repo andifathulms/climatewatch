@@ -124,6 +124,34 @@ export interface MoverSignal {
   recent_mean: number;
 }
 
+export interface WorkedExampleDay {
+  day: number;
+  temp_max: number | null;
+  precipitation_mm: number | null;
+}
+
+export interface WorkedExampleResponse {
+  region: { id: number; name: string; slug: string };
+  year: number;
+  month: number;
+  days: WorkedExampleDay[];
+  /** The stored monthly row the fingerprint actually renders — read, never
+   *  recomputed, so the example cannot agree with itself while disagreeing
+   *  with the grid. */
+  stored: {
+    total_precipitation: number | null;
+    avg_temp_max: number | null;
+    hot_days_local: number;
+    dry_days: number;
+    heavy_rain_days: number;
+  } | null;
+  rules: {
+    hot_day_threshold_c: number | null;
+    dry_day_mm: number;
+    heavy_rain_mm: number;
+  };
+}
+
 export interface MoversResponse {
   region: Region;
   signals: MoverSignal[];
