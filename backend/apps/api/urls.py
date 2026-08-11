@@ -17,6 +17,7 @@ climate_patterns = [
     path("<int:region_id>/fingerprint/", views.FingerprintView.as_view()),
     path("<int:region_id>/extremes/", views.ExtremesView.as_view()),
     path("<int:region_id>/season/", views.SeasonView.as_view()),
+    path("<int:region_id>/movers/", views.MoversView.as_view()),
     path("<int:region_id>/enso-impact/", views.ENSOImpactView.as_view()),
     path("<int:region_id>/forecast-context/", views.ForecastContextView.as_view()),
 ]

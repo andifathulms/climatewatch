@@ -175,19 +175,73 @@ class ExtremesView(ClimateEndpoint):
         )
 
 
+# The onset rule scans forward from August 1 (day 213). A city whose rains
+# never stop triggers it within the first few days almost every year — the
+# resulting "onset" is an artifact of where the scan starts, not a season.
+# 12 of 90 loaded cities behave this way (Palu, Medan, Sorong, Jayapura …),
+# and for them onset drift and season length are both meaningless.
+ONSET_SCAN_START_DOY = 213
+SATURATION_WINDOW_DAYS = 10
+SATURATION_SHARE = 0.5
+
+
+def _is_leap(year: int) -> bool:
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
+
+def build_season_lengths(rows: list[dict]) -> list[dict]:
+    """
+    Wet season length in days, per season.
+
+    A season that begins in year Y ends in year Y+1, so onset and end must be
+    paired across the calendar boundary — pairing them within one year (the
+    obvious mistake) measures the gap between two *different* seasons.
+
+    Seasons missing either endpoint are omitted rather than interpolated.
+    """
+    by_year = {r["year"]: r for r in rows}
+    lengths = []
+    for year in sorted(by_year):
+        onset = by_year[year]["wet_season_onset_doy"]
+        following = by_year.get(year + 1)
+        if onset is None or following is None:
+            continue
+        end = following["wet_season_end_doy"]
+        if end is None:
+            continue
+        days_in_year = 366 if _is_leap(year) else 365
+        lengths.append(
+            {"year": year, "length_days": days_in_year - onset + end}
+        )
+    return lengths
+
+
 class SeasonView(ClimateEndpoint):
-    """Wet season onset/end scatter data by year."""
+    """Wet season onset/end/length data by year."""
 
     def get(self, request, region_id):
         region = self.get_region(region_id)
         qs = ClimateAnnual.objects.filter(region=region).order_by("year")
         rows = list(qs.values("year", "wet_season_onset_doy", "wet_season_end_doy"))
 
+        onsets = [
+            r["wet_season_onset_doy"]
+            for r in rows if r["wet_season_onset_doy"] is not None
+        ]
         onset_pts = [
             (r["year"], r["wet_season_onset_doy"])
             for r in rows if r["wet_season_onset_doy"] is not None
         ]
         null_years = sum(1 for r in rows if r["wet_season_onset_doy"] is None)
+
+        saturated_share = (
+            sum(
+                1 for o in onsets
+                if o <= ONSET_SCAN_START_DOY + SATURATION_WINDOW_DAYS
+            ) / len(onsets)
+            if onsets else 0.0
+        )
+        lengths = build_season_lengths(rows)
 
         return Response(
             {
@@ -195,6 +249,15 @@ class SeasonView(ClimateEndpoint):
                 "results": rows,
                 "onset_trend": _linreg(onset_pts),
                 "null_onset_years": null_years,
+                "lengths": lengths,
+                "length_trend": _linreg(
+                    [(x["year"], x["length_days"]) for x in lengths]
+                ),
+                # True => this city has no detectable dry season by our rule,
+                # so onset and length are artifacts. The client must say so
+                # rather than draw a trend line through them.
+                "onset_saturated": saturated_share > SATURATION_SHARE,
+                "onset_saturated_share": round(saturated_share, 3),
             }
         )
 
@@ -677,3 +740,116 @@ def _linreg(points):
     slope = (n * sxy - sx * sy) / denom
     intercept = (sy - slope * sx) / n
     return {"slope": round(slope, 5), "intercept": round(intercept, 3), "n": n}
+
+
+# ── "What moved most here" ──────────────────────────────────────────────────
+#
+# Every city page shows the same four charts at the same size, which quietly
+# asserts that the four signals matter equally everywhere. They do not: Jambi's
+# story is a lengthening wet season, Madiun's is heat, Makassar's is a season
+# closing from both ends. This ranks a city's signals so the page can lead with
+# the one that actually moved.
+#
+# The rule, in full, because a headline number the reader cannot re-derive is
+# exactly what this project refuses to ship:
+#
+#   1. Fit an ordinary least-squares line to the annual series (same _linreg
+#      as every trend line drawn on the site).
+#   2. Express the slope as change per decade.
+#   3. Divide by the series' own standard deviation.
+#
+# Step 3 is what makes signals in different units comparable: the result is
+# "standard deviations of movement per decade", so +0.4 means the same amount
+# of change whether the unit is millimetres or days. It is a normalisation,
+# not a weighting — no signal is declared more important than another, which
+# is the judgement call this deliberately avoids making.
+#
+# A signal needs >= MIN_YEARS observations and a non-zero standard deviation
+# to rank at all; flat or sparse series are dropped rather than ranked noisily.
+
+MOVERS_MIN_YEARS = 30
+MOVERS_MIN_ABS_Z = 0.15  # below this, call it "no clear movement" and say so
+
+# field -> (label, unit, direction phrasing when rising / falling)
+MOVER_SIGNALS = {
+    "avg_temp_max": ("Average daily high", "°C", "hotter", "cooler"),
+    "hot_days_local": ("Unusually hot days", "days/yr", "more", "fewer"),
+    "total_precipitation": ("Annual rainfall", "mm", "wetter", "drier"),
+    "heavy_rain_days": ("Heavy rain days", "days/yr", "more", "fewer"),
+    "max_consecutive_dry_days": ("Longest dry spell", "days", "longer", "shorter"),
+}
+
+
+def _stdev(values) -> float:
+    n = len(values)
+    if n < 2:
+        return 0.0
+    mean = sum(values) / n
+    return (sum((v - mean) ** 2 for v in values) / (n - 1)) ** 0.5
+
+
+def build_movers(region) -> dict:
+    """Rank a region's climate signals by normalised trend. See rule above."""
+    rows = list(
+        ClimateAnnual.objects.filter(region=region)
+        .order_by("year")
+        .values("year", *MOVER_SIGNALS.keys())
+    )
+    # The current year is still accumulating; including it drags every slope.
+    current_year = date.today().year
+    rows = [r for r in rows if r["year"] < current_year]
+
+    ranked = []
+    for field, (label, unit, up, down) in MOVER_SIGNALS.items():
+        pts = [(r["year"], r[field]) for r in rows if r[field] is not None]
+        if len(pts) < MOVERS_MIN_YEARS:
+            continue
+        values = [y for _, y in pts]
+        sd = _stdev(values)
+        if sd == 0:
+            continue
+        fit = _linreg(pts)
+        if fit["slope"] is None:
+            continue
+
+        per_decade = fit["slope"] * 10
+        ranked.append(
+            {
+                "field": field,
+                "label": label,
+                "unit": unit,
+                "per_decade": round(per_decade, 3),
+                "z_per_decade": round(per_decade / sd, 3),
+                "direction": up if per_decade > 0 else down,
+                "first_year": pts[0][0],
+                "last_year": pts[-1][0],
+                "n": fit["n"],
+                # Endpoint means over the first/last decade of the fitted
+                # range — quotable, and traceable to the data rather than to
+                # the fitted line (a fitted endpoint is not an observation).
+                "early_mean": round(sum(values[:10]) / len(values[:10]), 2),
+                "recent_mean": round(sum(values[-10:]) / len(values[-10:]), 2),
+            }
+        )
+
+    ranked.sort(key=lambda s: abs(s["z_per_decade"]), reverse=True)
+    leader = ranked[0] if ranked else None
+
+    return {
+        "region": RegionSerializer(region).data,
+        "signals": ranked,
+        "leader": leader if leader and abs(leader["z_per_decade"]) >= MOVERS_MIN_ABS_Z else None,
+        "rule": {
+            "method": "OLS slope per decade, divided by the series' standard deviation",
+            "min_years": MOVERS_MIN_YEARS,
+            "min_abs_z": MOVERS_MIN_ABS_Z,
+            "excludes_current_year": True,
+        },
+    }
+
+
+class MoversView(ClimateEndpoint):
+    """Which of this region's tracked signals moved most, by a published rule."""
+
+    def get(self, request, region_id):
+        return Response(build_movers(self.get_region(region_id)))

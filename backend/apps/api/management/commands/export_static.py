@@ -18,6 +18,7 @@ static-mode fetcher needs no response reshaping):
     <out>/enso-impact/<slug>.json
     <out>/compare-profile/<slug>.json
     <out>/doy-climatology/<slug>.json
+    <out>/movers/<slug>.json
     <out>/rankings.json
     <out>/monthly-records.json
     <out>/leaders-over-time.json
@@ -41,6 +42,7 @@ from ...views import (
     RecordsView,
     SeasonView,
     build_compare_profile,
+    build_movers,
     build_doy_climatology,
 )
 
@@ -104,6 +106,10 @@ class Command(BaseCommand):
             self._write(
                 out / "doy-climatology" / f"{region.slug}.json",
                 build_doy_climatology(region),
+            )
+            self._write(
+                out / "movers" / f"{region.slug}.json",
+                build_movers(region),
             )
             self.stdout.write(f"  exported {region.slug}")
 
