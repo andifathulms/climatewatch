@@ -126,6 +126,7 @@ export default async function CityPage({
     ensoImpact,
     movers,
     workedExample,
+    ensoEvents,
   ] =
     await Promise.all([
       api.fingerprint(region, "precipitation"),
@@ -138,6 +139,7 @@ export default async function CityPage({
       api.ensoImpact(region).catch(() => null),
       api.movers(region).catch(() => null),
       api.workedExample(region).catch(() => null),
+      api.ensoEvents().catch(() => []),
     ]);
 
   // Collapse 924 monthly cells to 77 {year, sum, n} rows before they cross
@@ -229,7 +231,11 @@ export default async function CityPage({
             meeting 924 of them. */}
         {workedExample && <WorkedExample data={workedExample} />}
 
-        <FingerprintPanel region={region} initial={fingerprint} />
+        <FingerprintPanel
+          region={region}
+          initial={fingerprint}
+          ensoEvents={ensoEvents}
+        />
         {tempMaxByYear && year_from !== null && year_to !== null && (
           <PersonalBaseline
             series={tempMaxByYear}

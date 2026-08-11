@@ -144,10 +144,15 @@ export function FingerprintLegend({
 
 export default function ClimateFingerprint({
   data,
+  ensoEvents,
   showEnso,
   onHoverYear,
 }: {
   data: FingerprintResponse;
+  /** Passed in rather than read off `data`: it is one global array, so it is
+   *  fetched once per page instead of being embedded in all five fingerprint
+   *  variants of all 90 cities. */
+  ensoEvents: ENSOEvent[];
   showEnso: boolean;
   onHoverYear?: (year: number | null) => void;
 }) {
@@ -186,7 +191,7 @@ export default function ClimateFingerprint({
     () => buildColorScale(data.variable, data.stats),
     [data],
   );
-  const enso = useMemo(() => ensoByYear(data.enso_events), [data]);
+  const enso = useMemo(() => ensoByYear(ensoEvents), [ensoEvents]);
   const cellMap = useMemo(() => {
     const m = new Map<string, number | null>();
     for (const d of data.data) m.set(`${d.year}-${d.month}`, d.value);

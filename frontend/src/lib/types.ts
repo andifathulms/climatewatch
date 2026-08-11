@@ -55,7 +55,6 @@ export interface FingerprintResponse {
   year_to: number;
   data: FingerprintCell[];
   stats: FingerprintStats;
-  enso_events: ENSOEvent[];
   hot_day_threshold_c: number | null;
 }
 
@@ -82,7 +81,6 @@ export interface ExtremesResponse {
   region: Region;
   results: AnnualRow[];
   trends: Record<string, Trend>;
-  enso_events: ENSOEvent[];
 }
 
 export interface SeasonRow {

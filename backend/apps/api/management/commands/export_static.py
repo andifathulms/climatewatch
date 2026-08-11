@@ -11,6 +11,7 @@ Output layout (mirrors the live endpoint shapes exactly so the frontend's
 static-mode fetcher needs no response reshaping):
 
     <out>/regions.json
+    <out>/enso.json
     <out>/region/<slug>.json
     <out>/fingerprint/<slug>/<variable>.json
     <out>/extremes/<slug>.json
@@ -86,7 +87,9 @@ class Command(BaseCommand):
 
             for variable in VARIABLE_FIELDS:
                 payload = build_fingerprint(region, variable, 1950, date.today().year)
-                payload["enso_events"] = self._enso_overlay(1950, date.today().year)
+                # enso_events used to be embedded here, in all five variants of
+                # all 90 cities: 43.9 kB x 450 copies of one global array, 45%
+                # of the whole export. It is written once as enso.json below.
                 self._write(out / "fingerprint" / region.slug / f"{variable}.json", payload)
 
             self._write(
@@ -120,6 +123,9 @@ class Command(BaseCommand):
                 )
             self.stdout.write(f"  exported {region.slug}")
 
+        self._write(
+            out / "enso.json", self._enso_overlay(1950, date.today().year)
+        )
         self._write(
             out / "rankings.json",
             self._response_data(rankings_view.get(req)),

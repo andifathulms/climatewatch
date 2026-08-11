@@ -1,5 +1,6 @@
 import type {
   CompareProfile,
+  ENSOEvent,
   CompareResponse,
   EnsoImpactResponse,
   ExtremesResponse,
@@ -24,12 +25,10 @@ const API_URL =
 type RegionRef = Pick<Region, "id" | "slug">;
 type RegionGeo = Pick<Region, "id" | "slug" | "latitude" | "longitude">;
 
-interface DoyClimatologyEntry {
-  doy: number;
-  temp_max_p10: number | null;
-  temp_max_p90: number | null;
-  temp_max_mean: number | null;
-  sample_days: number;
+/** Compact day-of-year climatology: bare rows keyed by `columns` order. */
+interface DoyClimatology {
+  columns: string[];
+  rows: (number | null)[][];
 }
 
 async function get<T>(path: string, init?: RequestInit): Promise<T> {
@@ -147,6 +146,13 @@ export const api = {
     }
     return get(`/climate/${region.id}/worked-example/`);
   },
+  /** The ENSO overlay list — one global array, fetched once, not per city. */
+  ensoEvents(): Promise<ENSOEvent[]> {
+    if (DATA_MODE === "static") {
+      return getStatic("enso.json");
+    }
+    return get("/enso/");
+  },
   movers(region: RegionRef): Promise<MoversResponse> {
     if (DATA_MODE === "static") {
       return getStatic(`movers/${region.slug}.json`);
@@ -159,15 +165,16 @@ export const api = {
     if (DATA_MODE === "static") {
       const [forecast, climatology] = await Promise.all([
         fetchOpenMeteoForecast(region),
-        getStatic<DoyClimatologyEntry[]>(`doy-climatology/${region.slug}.json`),
+        getStatic<DoyClimatology>(`doy-climatology/${region.slug}.json`),
       ]);
       const doy = dayOfYear(new Date());
-      const entry = climatology.find((c) => c.doy === doy) ?? {
-        doy,
-        temp_max_p10: null,
-        temp_max_p90: null,
-        temp_max_mean: null,
-        sample_days: 0,
+      // Positional lookup against the exported column order.
+      const row = climatology.rows.find((r) => r[0] === doy);
+      const entry = {
+        temp_max_p10: (row?.[1] ?? null) as number | null,
+        temp_max_p90: (row?.[2] ?? null) as number | null,
+        temp_max_mean: (row?.[3] ?? null) as number | null,
+        sample_days: (row?.[4] ?? 0) as number,
       };
       return {
         region: region as Region,

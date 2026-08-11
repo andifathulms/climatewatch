@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { FingerprintResponse, FingerprintVariable, Region } from "@/lib/types";
+import type {
+  ENSOEvent,
+  FingerprintResponse,
+  FingerprintVariable,
+  Region,
+} from "@/lib/types";
 import ClimateFingerprint, { FingerprintLegend } from "./ClimateFingerprint";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
@@ -41,9 +46,11 @@ const ROLLUP: Record<
 export default function FingerprintPanel({
   region,
   initial,
+  ensoEvents,
 }: {
   region: Pick<Region, "id" | "slug">;
   initial: FingerprintResponse;
+  ensoEvents: ENSOEvent[];
 }) {
   const [variable, setVariable] = useState<FingerprintVariable>("precipitation");
   const [data, setData] = useState<FingerprintResponse>(initial);
@@ -198,6 +205,7 @@ export default function FingerprintPanel({
           aria-busy={loading}
         >
           <ClimateFingerprint
+              ensoEvents={ensoEvents}
             data={data}
             showEnso={showEnso}
             onHoverYear={setHoverYear}

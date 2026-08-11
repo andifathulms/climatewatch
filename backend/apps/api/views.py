@@ -173,7 +173,9 @@ class ExtremesView(ClimateEndpoint):
                 "region": RegionSerializer(region).data,
                 "results": rows,
                 "trends": trends,
-                "enso_events": self.enso_overlay(1950, date.today().year),
+                # enso_events deliberately not included: ExtremeDaysChart never
+                # read it, and the array is 43.9 kB — 72% of this payload —
+                # duplicated across all 90 cities. It lives in enso.json now.
             }
         )
 
@@ -625,14 +627,30 @@ def _bucket_temps_by_doy(region):
     return by_doy
 
 
+# Column order for the compact day-of-year rows below. The client indexes by
+# position, so this tuple is the contract — do not reorder without changing
+# api.ts.
+DOY_COLUMNS = ("doy", "temp_max_p10", "temp_max_p90", "temp_max_mean", "sample_days")
+
+
 def build_doy_climatology(region, radius=3):
-    """Day-of-year climatology (1-366) for the static export — the same
-    windowed-percentile definition ForecastContextView uses for "today"."""
+    """
+    Day-of-year climatology (1-366) — same windowed-percentile definition
+    ForecastContextView uses for "today".
+
+    Emitted as bare arrays rather than objects. The browser downloads this file
+    in full on every city page (ForecastContextLoader is a client component)
+    and keeps exactly one of the 366 rows, so the repeated JSON keys were ~75%
+    of a 36 kB payload fetched to answer a single lookup.
+    """
     by_doy = _bucket_temps_by_doy(region)
-    return [
-        {"doy": doy, **_doy_window_stats(by_doy, doy, radius)}
-        for doy in range(1, 367)
-    ]
+    rows = []
+    for doy in range(1, 367):
+        stats = _doy_window_stats(by_doy, doy, radius)
+        rows.append(
+            [doy] + [stats[c] for c in DOY_COLUMNS[1:]]
+        )
+    return {"columns": list(DOY_COLUMNS), "rows": rows}
 
 
 class ForecastContextView(ClimateEndpoint):
