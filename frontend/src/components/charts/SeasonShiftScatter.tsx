@@ -1,7 +1,6 @@
 "use client";
 
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
-import { linearRegression } from "simple-statistics";
 import {
   CartesianGrid,
   ComposedChart,
@@ -50,9 +49,12 @@ export default function SeasonShiftScatter({
     .filter((r) => r.wet_season_onset_doy !== null)
     .map((r) => ({ year: r.year, doy: r.wet_season_onset_doy as number }));
 
+  // Exported as onset_trend — same OLS, same rows. See ExtremeDaysChart.
   const reg =
-    points.length > 1
-      ? linearRegression(points.map((p) => [p.year, p.doy] as [number, number]))
+    points.length > 1 &&
+    data.onset_trend.slope !== null &&
+    data.onset_trend.intercept !== null
+      ? { m: data.onset_trend.slope, b: data.onset_trend.intercept }
       : null;
 
   // Merge scatter points + trend value into one row set for ComposedChart.

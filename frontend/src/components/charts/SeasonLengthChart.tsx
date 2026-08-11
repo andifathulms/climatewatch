@@ -1,7 +1,6 @@
 "use client";
 
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
-import { linearRegression } from "simple-statistics";
 import {
   CartesianGrid,
   ComposedChart,
@@ -47,11 +46,12 @@ export default function SeasonLengthChart({
   const reducedMotion = usePrefersReducedMotion();
   const points = data.lengths ?? [];
 
+  // Exported as length_trend — same OLS, same rows. See ExtremeDaysChart.
   const reg =
-    points.length > 1
-      ? linearRegression(
-          points.map((p) => [p.year, p.length_days] as [number, number]),
-        )
+    points.length > 1 &&
+    data.length_trend.slope !== null &&
+    data.length_trend.intercept !== null
+      ? { m: data.length_trend.slope, b: data.length_trend.intercept }
       : null;
 
   const chartData = points.map((p) => ({
