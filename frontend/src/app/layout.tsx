@@ -27,7 +27,13 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://iklim.id"),
+  // The real deployment. metadataBase resolves every relative canonical and
+  // og:url below, so if it is wrong every share link and canonical is wrong —
+  // it was still pointing at iklim.id, a domain this build does not serve.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      "https://andifathulms.github.io/climatewatch",
+  ),
   title: {
     default: "ClimateWatch — Climate Intelligence for Indonesia",
     template: "%s — ClimateWatch",
@@ -37,10 +43,19 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "ClimateWatch",
+    locale: "en",
+    url: "/",
     title: "ClimateWatch — Climate Intelligence for Indonesia",
     description:
       "ERA5 climate data for every year since 1950, for any Indonesian city, rendered as a Climate Fingerprint.",
   },
+  twitter: {
+    card: "summary",
+    title: "ClimateWatch — Climate Intelligence for Indonesia",
+    description:
+      "ERA5 climate data for every year since 1950, for any Indonesian city, rendered as a Climate Fingerprint.",
+  },
+  alternates: { canonical: "/" },
   // Android install manifest is a static file in public/. The app/manifest.ts
   // file-convention was avoided on purpose: its auto-injected <link> drops the
   // basePath (a Next quirk) and can't be overridden, which 404s on the

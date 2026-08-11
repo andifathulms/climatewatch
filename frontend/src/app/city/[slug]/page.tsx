@@ -32,9 +32,33 @@ export async function generateMetadata({
     // the archive. The range is per-city anyway.
     const { year_from, year_to } = region.data_availability;
     const span = year_from && year_to ? `${year_from}–${year_to}` : "since 1950";
+    const title = `${region.name} climate`;
+    const description = `Climate data for ${region.name}, ${region.province}, ${span} — rainfall, temperature, extreme days and season shift.`;
+
+    // One title/description pair, reused for the page, the share card and the
+    // tweet. Previously only `title` and `description` were set here, so
+    // openGraph fell through to the root layout's static block and all 90
+    // city pages previewed as the generic site — pasting a Jakarta link into
+    // Slack showed "ClimateWatch — Climate Intelligence for Indonesia".
+    // Building them from the same two consts is what stops the share card
+    // drifting from the page.
     return {
-      title: `${region.name} climate`,
-      description: `Climate data for ${region.name}, ${region.province}, ${span} — rainfall, temperature, extreme days and season shift.`,
+      title,
+      description,
+      alternates: { canonical: `/city/${region.slug}` },
+      openGraph: {
+        type: "article",
+        siteName: "ClimateWatch",
+        locale: "en",
+        url: `/city/${region.slug}`,
+        title: `${region.name} — ${region.province}`,
+        description,
+      },
+      twitter: {
+        card: "summary",
+        title: `${region.name} climate`,
+        description,
+      },
     };
   } catch {
     return { title: "City" };
