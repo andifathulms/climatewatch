@@ -49,14 +49,20 @@ export default function IndonesiaMap({
     // Fit the coastline to a square-ish box first to measure its true aspect
     // ratio, then re-fit to that exact height so the SVG has no dead margin.
     const probe = d3.geoMercator().fitExtent(
-      [[PAD, PAD], [WIDTH - PAD, WIDTH - PAD]],
+      [
+        [PAD, PAD],
+        [WIDTH - PAD, WIDTH - PAD],
+      ],
       feature,
     );
     const [[x0, y0], [x1, y1]] = d3.geoPath(probe).bounds(feature);
-    const height = (y1 - y0) + PAD * 2;
+    const height = y1 - y0 + PAD * 2;
 
     const projection = d3.geoMercator().fitExtent(
-      [[PAD, PAD], [WIDTH - PAD, height - PAD]],
+      [
+        [PAD, PAD],
+        [WIDTH - PAD, height - PAD],
+      ],
       feature,
     );
     const path = d3.geoPath(projection);
@@ -73,9 +79,14 @@ export default function IndonesiaMap({
 
   return (
     <section className="card overflow-hidden p-6">
-      <ChartHeader eyebrow="Coverage" title="Cities with real data">
-        <p className="font-numeric text-xs text-text-muted">
-          {loaded} / {regions.length} loaded
+      {/* Reads to a visitor, not to whoever runs the ingest. The old header
+          ("Cities with real data" / "12 / 45 loaded") framed the map as a
+          pipeline status board and led with the shortfall rather than the
+          coverage. Same numbers, phrased as reach. */}
+      <ChartHeader eyebrow="Coverage" title="Pick a city from the map">
+        <p className="text-xs text-text-muted">
+          <span className="font-numeric text-text-secondary">{loaded}</span>{" "}
+          cities charted across the archipelago
         </p>
       </ChartHeader>
 
@@ -117,7 +128,9 @@ export default function IndonesiaMap({
                     region: r,
                   });
                 }}
-                onMouseLeave={() => setTip((t) => (t?.region.id === r.id ? null : t))}
+                onMouseLeave={() =>
+                  setTip((t) => (t?.region.id === r.id ? null : t))
+                }
                 onClick={() => router.push(`/city/${r.slug}`)}
               />
             );
