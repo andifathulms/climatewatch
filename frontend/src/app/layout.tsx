@@ -81,7 +81,13 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="id"
+      // Every string in this product is English. lang="id" told screen
+      // readers to pronounce English text with Indonesian phonetics (WCAG
+      // 3.1.1) and told search engines this was Indonesian-language content.
+      // JUDGEMENT CALL: the audience is Indonesian and Bahasa i18n is PRD
+      // Phase 5 — this line goes back to "id" the day translated content
+      // ships, and per-locale lang belongs on the routes at that point.
+      lang="en"
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >
       <body className="min-h-screen bg-canvas antialiased">
