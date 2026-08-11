@@ -159,18 +159,61 @@ export default function ClimateFingerprint({
   return (
     <div
       ref={wrapRef}
+      // tabIndex makes the horizontal scroller reachable: the grid is wider
+      // than its container at most widths, and with nothing focusable inside
+      // it a keyboard user could not scroll it at all. (WCAG 2.1.1)
+      tabIndex={0}
+      aria-label={`${data.region.name} fingerprint grid, scrollable`}
       className="relative overflow-x-auto pb-1"
       // 1.4.13: hover content must be dismissible without moving the pointer.
       onKeyDown={(e) => {
         if (e.key === "Escape") clearHover();
       }}
     >
+      {/* The text alternative. A real table, so screen readers get their own
+          navigation (next column, read row header) with no ARIA at all —
+          rather than a bespoke grid pattern that would have to reimplement
+          all of it. Visually hidden because the SVG above is the same data. */}
+      <table className="sr-only">
+        <caption>
+          {`Monthly ${data.variable.replace(/_/g, " ")} for ${data.region.name}, ${data.year_from} to ${data.year_to}${UNIT[data.variable] ? `, in ${UNIT[data.variable].trim() || "degrees"}` : ""}`}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Year</th>
+            {MONTHS.map((m) => (
+              <th key={m} scope="col">
+                {m}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {years.map((year) => (
+            <tr key={year}>
+              <th scope="row">{year}</th>
+              {MONTHS.map((_, mi) => {
+                const v = cellMap.get(`${year}-${mi + 1}`) ?? null;
+                return (
+                  <td key={mi}>
+                    {v === null ? "no data" : `${v.toFixed(1)}${UNIT[data.variable]}`}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {/* aria-hidden because the <table> below is the same data with real
+          semantics. role="img" + one aria-label previously made 924 values a
+          single opaque node: a screen-reader user got "climate fingerprint for
+          Jakarta, monthly precipitation from 1950 to 2026" and nothing else —
+          the whole point of the product, unavailable. (WCAG 1.1.1) */}
       <svg
         width={width}
         height={height}
         className="select-none"
-        role="img"
-        aria-label={`Climate fingerprint for ${data.region.name}: monthly ${data.variable.replace("_", " ")} from ${data.year_from} to ${data.year_to}`}
+        aria-hidden
         onMouseLeave={clearHover}
       >
         {/* Month labels */}
