@@ -1,6 +1,5 @@
 "use client";
 
-import * as d3 from "d3";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ENSOEvent,
