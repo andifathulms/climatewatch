@@ -53,7 +53,7 @@ export default function AboutPage() {
         <div className="relative max-w-2xl">
           <p className="eyebrow">Methodology</p>
           <h1 className="mt-4 text-hero font-semibold">
-            How Iklim knows what it knows
+            How ClimateWatch knows what it knows
           </h1>
           <p className="mt-4 text-lg leading-relaxed text-text-secondary">
             Every number on this site traces back to one open dataset and a

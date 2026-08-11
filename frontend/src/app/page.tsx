@@ -44,7 +44,7 @@ export default async function HomePage() {
           </h1>
 
           <p className="animate-rise mx-auto mt-7 max-w-xl text-lg leading-relaxed text-text-secondary">
-            Iklim turns three-quarters of a century of climate data into a
+            ClimateWatch turns three-quarters of a century of climate data into a
             visual story for any Indonesian city — how rainfall, temperature,
             and extreme weather have <em className="text-text-primary not-italic">really</em> changed.
           </p>
