@@ -140,8 +140,15 @@ export default async function HomePage() {
             not how they feel.
           </p>
 
-          {/* Two ways in, because most first-time visitors will not type. */}
-          <div className="animate-rise mx-auto mt-10 flex max-w-xl flex-col gap-3">
+          {/* Two ways in, because most first-time visitors will not type.
+
+              relative z-20 is load-bearing: .animate-rise animates a transform,
+              which gives this div and the stat strip below it each their own
+              stacking context. The search results' z-30 is then trapped inside
+              this one, and the stat strip — a later sibling — painted over the
+              dropdown. Raising this whole context fixes it; bumping the
+              dropdown's own z-index could not. */}
+          <div className="animate-rise relative z-20 mx-auto mt-10 flex max-w-xl flex-col gap-3">
             <CitySearch regions={regions} />
             {lead && (
               <p className="text-sm text-text-muted">
