@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Region } from "@/lib/types";
 import CityPicker from "@/components/ui/CityPicker";
 
@@ -17,6 +17,36 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
   const router = useRouter();
   const [a, setA] = useState<string>(regions[0]?.slug ?? "");
   const [b, setB] = useState<string>(regions[1]?.slug ?? "");
+
+  // Seed the pickers from ?a=/?b= so arriving from a city page's "How does X
+  // compare?" lands with X already selected, and so a shared /compare URL
+  // reopens with the pickers matching the chart below them. They previously
+  // always started at the first two regions alphabetically — Ambon and
+  // Balikpapan — whichever city you had come from.
+  //
+  // Read from window on mount rather than via useSearchParams: in a static
+  // export that hook forces the whole component behind a Suspense boundary,
+  // which shipped an empty selector card in the prerendered HTML. Defaults
+  // render server-side and correct themselves once mounted.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const known = (slug: string | null) =>
+      slug && regions.some((r) => r.slug === slug) ? slug : null;
+
+    const nextA = known(q.get("a"));
+    const nextB = known(q.get("b"));
+    if (nextA) setA(nextA);
+    if (nextB) setB(nextB);
+    // Never leave both sides on the same city — the compare button would be
+    // dead on arrival, since a city cannot be compared with itself.
+    if (nextA && !nextB) {
+      setB((prev) =>
+        prev === nextA
+          ? (regions.find((r) => r.slug !== nextA)?.slug ?? prev)
+          : prev,
+      );
+    }
+  }, [regions]);
 
   const same = a === b;
   const ready = Boolean(a && b) && !same;

@@ -270,7 +270,10 @@ export default async function CityPage({
             Put it side by side with another Indonesian city.
           </p>
         </div>
-        <Link href="/compare" className="btn-primary px-5 py-2.5 text-sm">
+        <Link
+          href={`/compare?a=${region.slug}`}
+          className="btn-primary px-5 py-2.5 text-sm"
+        >
           Compare cities →
         </Link>
       </section>
