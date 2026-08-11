@@ -4,6 +4,7 @@ import CitySearch from "@/components/ui/CitySearch";
 import IndonesiaMap from "@/components/map/IndonesiaMap";
 import FingerprintPreview from "@/components/fingerprint/FingerprintPreview";
 import { getIndonesiaGeometry } from "@/lib/indonesia-geo";
+import { SiteStructuredData } from "@/components/ui/StructuredData";
 import type { FingerprintResponse, Region } from "@/lib/types";
 
 /** The city the hero speaks for when nothing has been searched yet. */
@@ -88,6 +89,8 @@ export default async function HomePage() {
 
   return (
     <>
+      <SiteStructuredData />
+
       {/* ── Hero ────────────────────────────────────────────────────────── */}
       <section className="relative -mx-5 overflow-hidden px-5 pb-16 pt-16 sm:-mx-8 sm:px-8 sm:pt-24">
         <div className="canvas-aurora" aria-hidden />

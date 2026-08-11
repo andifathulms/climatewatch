@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { routeMetadata } from "@/lib/metadata";
+import { CityStructuredData } from "@/components/ui/StructuredData";
 import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import SeasonShiftScatter from "@/components/charts/SeasonShiftScatter";
@@ -147,6 +148,17 @@ export default async function CityPage({
 
   return (
     <div className="space-y-6">
+      {/* Same region + data_availability values the masthead renders below. */}
+      <CityStructuredData
+        name={region.name}
+        province={region.province}
+        slug={region.slug}
+        yearFrom={year_from}
+        yearTo={year_to}
+        latitude={region.latitude}
+        longitude={region.longitude}
+      />
+
       {/* ── City masthead ───────────────────────────────────────────────── */}
       <header className="relative -mx-5 overflow-hidden px-5 pb-10 pt-12 sm:-mx-8 sm:px-8">
         <div className="canvas-aurora opacity-60" aria-hidden />
