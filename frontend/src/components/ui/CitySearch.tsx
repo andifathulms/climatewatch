@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Region } from "@/lib/types";
+import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
 /**
  * Client-side search over the regions list, routing to /city/[slug].
@@ -43,6 +44,13 @@ export default function CitySearch({ regions }: { regions: Region[] }) {
 
   const show = open && matches.length > 0;
 
+  // The combobox announces the highlighted option, but never how many there
+  // are — so a screen-reader user typing "sur" has no idea whether they are
+  // choosing from two cities or twenty. Silent until something is typed.
+  const resultCount = q.trim()
+    ? `${matches.length} ${matches.length === 1 ? "city" : "cities"} found.`
+    : "";
+
   function go(slug: string) {
     setOpen(false);
     router.push(`/city/${slug}`);
@@ -67,6 +75,7 @@ export default function CitySearch({ regions }: { regions: Region[] }) {
 
   return (
     <div ref={rootRef} className="relative">
+      <LiveAnnouncement message={resultCount} />
       <div className="relative">
         <span
           aria-hidden

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FingerprintResponse } from "@/lib/types";
 import BaselineYearPicker from "@/components/ui/BaselineYearPicker";
+import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
 /**
  * Re-anchors the warming figure to a year the reader chooses.
@@ -52,6 +53,8 @@ export default function PersonalBaseline({
 }) {
   const latestAllowed = yearTo - MIN_WINDOW;
   const [since, setSince] = useState<number | null>(null);
+  // Empty until the reader changes something, so nothing is announced on load.
+  const [announcement, setAnnouncement] = useState("");
 
   // Deep links still work: read the URL once on mount, after the server HTML
   // (which always shows the full-record baseline) has already painted.
@@ -66,6 +69,7 @@ export default function PersonalBaseline({
   // a screenshot can always be traced back to the baseline that produced it.
   function apply(next: number | null) {
     setSince(next);
+    setAnnouncement("");
     const url = new URL(window.location.href);
     if (next === null) {
       url.searchParams.delete("since");

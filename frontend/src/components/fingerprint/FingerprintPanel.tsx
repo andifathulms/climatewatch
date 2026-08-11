@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import type { FingerprintResponse, FingerprintVariable, Region } from "@/lib/types";
 import ClimateFingerprint, { FingerprintLegend } from "./ClimateFingerprint";
 import SegmentedControl from "@/components/ui/SegmentedControl";
+import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "precipitation", label: "Rainfall" },
@@ -49,6 +50,10 @@ export default function FingerprintPanel({
   const [showEnso, setShowEnso] = useState(false);
   const [hoverYear, setHoverYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  // Silent until the reader picks a different variable. A live region that
+  // ships with content in the prerendered HTML risks being read out on load,
+  // which is not what "the result changed" means.
+  const [touched, setTouched] = useState(false);
 
   useEffect(() => {
     if (variable === initial.variable && data.variable === variable) return;
@@ -112,7 +117,10 @@ export default function FingerprintPanel({
             label="Climate variable"
             options={VARIABLES.map((v) => ({ value: v.key, label: v.label }))}
             value={variable}
-            onChange={setVariable}
+            onChange={(next) => {
+              setTouched(true);
+              setVariable(next);
+            }}
           />
 
           {/* ENSO switch */}
@@ -152,6 +160,16 @@ export default function FingerprintPanel({
           record, so a static readout would scroll out of sight before you
           finish reading the rows it describes. Plain flex-row with the grid
           first gives the same visual placement the reversed row did. */}
+      {/* Announced only once the swap has landed — saying "showing rainfall"
+          while the old grid is still on screen would be a lie. */}
+      <LiveAnnouncement
+        message={
+          touched && !loading
+            ? `Showing ${BLURB[data.variable].toLowerCase()}.`
+            : ""
+        }
+      />
+
       <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-start">
         <div
           className="min-w-0 flex-1 transition-opacity duration-200"
