@@ -29,7 +29,7 @@ export default function WhatMovedMost({ data }: { data: MoversResponse }) {
   if (!leader) {
     return (
       <section className="card p-6">
-        <p className="eyebrow">What moved most</p>
+        <h2 className="eyebrow">What moved most</h2>
         <p className="mt-3 max-w-prose leading-relaxed text-text-secondary">
           No single signal in {data.region.name}&rsquo;s record stands out —
           every tracked measure has drifted by less than{" "}
@@ -46,13 +46,17 @@ export default function WhatMovedMost({ data }: { data: MoversResponse }) {
 
   return (
     <section className="card p-6">
-      <p className="eyebrow">What moved most</p>
+      {/* The section's *name* is the heading; the claim is a figure. Both this
+          panel and PersonalBaseline used to put their claim in an <h2>, and
+          because 69 of 90 cities lead with avg_temp_max, most city pages
+          carried two headline-weight <h2>s asserting the same metric. */}
+      <h2 className="eyebrow">What moved most</h2>
 
-      <h2 className="mt-3 max-w-prose text-title font-semibold">
+      <p className="mt-3 max-w-prose font-display text-title font-semibold text-text-primary">
         {leader.label} in {data.region.name} is trending{" "}
         <span className="text-heat-light">{leader.direction}</span> —{" "}
         <span className="font-numeric">{formatDelta(leader)}</span> per decade.
-      </h2>
+      </p>
 
       <p className="mt-4 max-w-prose leading-relaxed text-text-secondary">
         Averaged over the first ten years of the record it was{" "}

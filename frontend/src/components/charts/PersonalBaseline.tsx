@@ -88,10 +88,10 @@ export default function PersonalBaseline({
 
   return (
     <section className="card p-6">
-      <p className="eyebrow">Your baseline</p>
+      <h2 className="eyebrow">Your baseline</h2>
 
       {result ? (
-        <h2 className="mt-3 max-w-prose text-title font-semibold">
+        <p className="mt-3 max-w-prose font-display text-title font-semibold text-text-primary">
           Since {baselineYear}, {tempMax.region.name}&rsquo;s average daily high
           has moved{" "}
           <span
@@ -105,7 +105,7 @@ export default function PersonalBaseline({
             </span>
           </span>
           .
-        </h2>
+        </p>
       ) : (
         <p className="mt-3 text-text-secondary">
           Not enough data around {baselineYear} to compare.
@@ -122,9 +122,11 @@ export default function PersonalBaseline({
       </div>
 
       <p className="mt-4 border-t border-border pt-3 text-2xs leading-relaxed text-text-muted">
-        Compares the {WINDOW}-year mean starting at your baseline against the
-        last {WINDOW} complete years ({yearTo - WINDOW}–{yearTo - 1}), using
-        monthly average daily maximum. Both ends are decade means so one strong
+        An endpoint comparison, not the fitted trend in &ldquo;what moved
+        most&rdquo; above — the two answer different questions and will not
+        agree. This compares the {WINDOW}-year mean starting at your baseline
+        against the last {WINDOW} complete years ({yearTo - WINDOW}–
+        {yearTo - 1}), using monthly average daily maximum. Both ends are decade means so one strong
         El Niño cannot pass for a trend. Baselines after{" "}
         <span className="font-numeric">{latestAllowed}</span> are not offered —
         too few years remain for the comparison to mean anything.
