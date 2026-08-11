@@ -19,6 +19,7 @@ static-mode fetcher needs no response reshaping):
     <out>/compare-profile/<slug>.json
     <out>/doy-climatology/<slug>.json
     <out>/movers/<slug>.json
+    <out>/worked-example/<slug>.json
     <out>/rankings.json
     <out>/monthly-records.json
     <out>/leaders-over-time.json
@@ -33,6 +34,7 @@ from apps.climate.models import ClimateAnnual, ENSOEvent
 from apps.regions.models import IndonesiaRegion
 
 from ...fingerprint import VARIABLE_FIELDS, build_fingerprint
+from ...worked_example import build_worked_example
 from ...serializers import ENSOEventSerializer, RegionDetailSerializer, RegionSerializer
 from ...views import (
     ENSOImpactView,
@@ -111,6 +113,11 @@ class Command(BaseCommand):
                 out / "movers" / f"{region.slug}.json",
                 build_movers(region),
             )
+            example = build_worked_example(region)
+            if example is not None:
+                self._write(
+                    out / "worked-example" / f"{region.slug}.json", example
+                )
             self.stdout.write(f"  exported {region.slug}")
 
         self._write(
