@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { linearRegression } from "simple-statistics";
 import {
   CartesianGrid,
@@ -44,6 +45,7 @@ export default function SeasonShiftScatter({
   data: SeasonResponse;
   headingLevel?: HeadingLevel;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
   const points = data.results
     .filter((r) => r.wet_season_onset_doy !== null)
     .map((r) => ({ year: r.year, doy: r.wet_season_onset_doy as number }));
@@ -119,7 +121,7 @@ export default function SeasonShiftScatter({
               />
             }
           />
-          <Scatter
+          <Scatter isAnimationActive={!reducedMotion}
             dataKey="doy"
             fill="var(--rain-blue)"
             // >=8px marker with a 2px surface ring so overlapping years read.
@@ -136,7 +138,7 @@ export default function SeasonShiftScatter({
             name="Onset"
           />
           {reg && (
-            <Line
+            <Line isAnimationActive={!reducedMotion}
               type="linear"
               dataKey="trend"
               stroke="var(--drought-amber)"

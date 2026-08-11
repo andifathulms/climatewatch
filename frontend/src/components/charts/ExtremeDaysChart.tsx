@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { linearRegression } from "simple-statistics";
 import { useState } from "react";
 import {
@@ -56,6 +57,7 @@ export default function ExtremeDaysChart({
   data: ExtremesResponse;
   headingLevel?: HeadingLevel;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
   const [metric, setMetric] = useState<string>("hot_days_local");
   const active = METRICS.find((m) => m.key === metric) ?? METRICS[0];
 
@@ -167,7 +169,7 @@ export default function ExtremeDaysChart({
               />
             }
           />
-          <Line
+          <Line isAnimationActive={!reducedMotion}
             type="monotone"
             dataKey="value"
             stroke="var(--heat-orange)"
@@ -182,7 +184,7 @@ export default function ExtremeDaysChart({
             }}
             name={active.short}
           />
-          <Line
+          <Line isAnimationActive={!reducedMotion}
             type="monotone"
             dataKey="trend"
             stroke="var(--drought-amber)"

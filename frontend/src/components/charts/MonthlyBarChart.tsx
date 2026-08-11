@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import {
   Bar,
   BarChart,
@@ -56,6 +57,7 @@ export default function MonthlyBarChart({
   title: string;
   unit: string;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
   const data = MONTHS.map((m, i) => ({
     month: m,
     [a.region.name]: a.climatology[i]?.[metric] ?? null,
@@ -100,7 +102,7 @@ export default function MonthlyBarChart({
               { name: a.region.name, color: colorA },
               { name: b.region.name, color: colorB },
             ].map((s) => (
-              <Line
+              <Line isAnimationActive={!reducedMotion}
                 key={s.name}
                 type="monotone"
                 dataKey={s.name}
@@ -126,8 +128,8 @@ export default function MonthlyBarChart({
               cursor={{ fill: "var(--surface-muted)", opacity: 0.5 }}
               content={<ChartTooltip labelSuffix={` · ${unit}`} />}
             />
-            <Bar dataKey={a.region.name} fill={colorA} radius={[3, 3, 0, 0]} />
-            <Bar dataKey={b.region.name} fill={colorB} radius={[3, 3, 0, 0]} />
+            <Bar isAnimationActive={!reducedMotion} dataKey={a.region.name} fill={colorA} radius={[3, 3, 0, 0]} />
+            <Bar isAnimationActive={!reducedMotion} dataKey={b.region.name} fill={colorB} radius={[3, 3, 0, 0]} />
           </BarChart>
         )}
       </ResponsiveContainer>

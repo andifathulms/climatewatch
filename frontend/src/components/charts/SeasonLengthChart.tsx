@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { linearRegression } from "simple-statistics";
 import {
   CartesianGrid,
@@ -43,6 +44,7 @@ export default function SeasonLengthChart({
   data: SeasonResponse;
   headingLevel?: HeadingLevel;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
   const points = data.lengths ?? [];
 
   const reg =
@@ -145,7 +147,7 @@ export default function SeasonLengthChart({
               />
             }
           />
-          <Scatter
+          <Scatter isAnimationActive={!reducedMotion}
             dataKey="length"
             fill="var(--enso-nina)"
             shape={(props: { cx?: number; cy?: number }) => (
@@ -161,7 +163,7 @@ export default function SeasonLengthChart({
             name="Length"
           />
           {reg && (
-            <Line
+            <Line isAnimationActive={!reducedMotion}
               type="linear"
               dataKey="trend"
               stroke="var(--drought-amber)"

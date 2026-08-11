@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import { useMemo, useState } from "react";
 import {
@@ -59,6 +60,7 @@ function buildReigns(
 }
 
 export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
+  const reducedMotion = usePrefersReducedMotion();
   const [metricKey, setMetricKey] = useState<MetricKey>("temp");
   const metric = data[metricKey];
 
@@ -225,7 +227,7 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
             .map((s) => {
               const isColored = colored.get(s.region.slug);
               return (
-                <Line
+                <Line isAnimationActive={!reducedMotion}
                   key={s.region.slug}
                   type="monotone"
                   dataKey={s.region.slug}
