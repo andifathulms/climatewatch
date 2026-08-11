@@ -1,9 +1,20 @@
 import { api } from "@/lib/api";
+import { routeMetadata } from "@/lib/metadata";
 import RankingsTable from "@/components/rankings/RankingsTable";
 import RecordsBoard from "@/components/rankings/RecordsBoard";
 import LeadersOverTime from "@/components/rankings/LeadersOverTime";
 
-export const metadata = { title: "Rankings" };
+// Own canonical and share card. Without these the root layout's
+// `canonical: "/"` is inherited, which told search engines this page was a
+// duplicate of the homepage and should not be indexed separately — worse than
+// having no canonical at all.
+export const metadata = routeMetadata({
+  title: "Rankings",
+  cardTitle: "City rankings",
+  description:
+    "Every loaded Indonesian city ranked on temperature, rainfall, warming rate and extreme weather — from the same ERA5 record, every year since 1950.",
+  path: "/rankings",
+});
 
 export default async function RankingsPage() {
   const [rankings, records, overTime] = await Promise.all([

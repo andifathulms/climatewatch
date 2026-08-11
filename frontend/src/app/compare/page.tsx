@@ -1,9 +1,16 @@
 import { Suspense } from "react";
+import { routeMetadata } from "@/lib/metadata";
 import { api } from "@/lib/api";
 import CityCompare from "@/components/compare/CityCompare";
 import CompareResult from "@/components/compare/CompareResult";
 
-export const metadata = { title: "Compare cities" };
+export const metadata = routeMetadata({
+  title: "Compare cities",
+  cardTitle: "Compare two Indonesian cities",
+  description:
+    "Put two Indonesian cities on the same axes — monthly climate, warming trend and extreme weather, across the full ERA5 record.",
+  path: "/compare",
+});
 
 export default async function ComparePage() {
   const regions = await api.allRegions().catch(() => []);

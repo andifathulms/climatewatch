@@ -1,4 +1,11 @@
-export const metadata = { title: "About & methodology" };
+import { routeMetadata } from "@/lib/metadata";
+export const metadata = routeMetadata({
+  title: "About & methodology",
+  cardTitle: "How ClimateWatch knows what it knows",
+  description:
+    "Every definition this site uses: hot days, wet season onset, season length, the ENSO overlay, and how the trends are fitted. Sources cited at each rule.",
+  path: "/about",
+});
 
 const DEFINITIONS: { term: string; body: string; color: string }[] = [
   {
