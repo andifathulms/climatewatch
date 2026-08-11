@@ -182,7 +182,7 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
               const leader = metric.leader_by_year[idx];
               return (
                 <div className="rounded-lg border border-border-strong bg-canvas-deep px-3 py-2 shadow-float">
-                  <div className="font-numeric text-[10px] uppercase tracking-wider text-text-muted">
+                  <div className="font-numeric text-2xs uppercase tracking-wider text-text-muted">
                     {label}
                   </div>
                   <div className="mt-1 space-y-0.5">
@@ -291,7 +291,7 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
         <div className="space-y-1">
           {reignRows.map((row) => (
             <div key={row.place} className="flex items-center gap-2">
-              <span className="font-numeric w-6 shrink-0 text-[10px] text-text-muted">
+              <span className="font-numeric w-6 shrink-0 text-2xs text-text-muted">
                 {row.place}
               </span>
               <div className="flex h-7 flex-1 overflow-hidden rounded border border-border">
@@ -310,7 +310,7 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
                         borderTop: `2px solid ${r.color}`,
                       }}
                     >
-                      <span className="truncate text-[10px] font-medium text-text-primary">
+                      <span className="truncate text-2xs font-medium text-text-primary">
                         {width > 10 ? r.name : ""}
                       </span>
                     </div>
@@ -320,7 +320,7 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
             </div>
           ))}
         </div>
-        <div className="font-numeric ml-8 mt-1 flex justify-between text-[10px] text-text-muted">
+        <div className="font-numeric ml-8 mt-1 flex justify-between text-2xs text-text-muted">
           <span>{metric.years[0]}</span>
           <span>{metric.years[metric.years.length - 1]}</span>
         </div>

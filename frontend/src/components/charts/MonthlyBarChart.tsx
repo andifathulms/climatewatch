@@ -72,7 +72,7 @@ export default function MonthlyBarChart({
         eyebrow={metric === "avg_precipitation" ? "Rainfall" : "Temperature"}
         title={title}
       >
-        <span className="font-numeric rounded-full border border-border bg-surface-inset px-2.5 py-1 text-[10px] text-text-muted">
+        <span className="font-numeric rounded-full border border-border bg-surface-inset px-2.5 py-1 text-2xs text-text-muted">
           {unit}
         </span>
       </ChartHeader>

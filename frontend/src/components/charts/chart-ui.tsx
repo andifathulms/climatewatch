@@ -76,7 +76,7 @@ export function ChartTooltip({
 
   return (
     <div className="rounded-lg border border-border-strong bg-canvas-deep px-3 py-2 shadow-float">
-      <div className="font-numeric text-[10px] uppercase tracking-wider text-text-muted">
+      <div className="font-numeric text-2xs uppercase tracking-wider text-text-muted">
         {label}
         {labelSuffix}
       </div>

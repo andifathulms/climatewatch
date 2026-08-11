@@ -153,7 +153,7 @@ export default function IndonesiaMap({
               {tip.region.province}
             </div>
             <div
-              className="font-numeric mt-1.5 text-[11px]"
+              className="font-numeric mt-1.5 text-2xs"
               style={{
                 color: tip.region.has_data
                   ? "var(--rain-blue)"

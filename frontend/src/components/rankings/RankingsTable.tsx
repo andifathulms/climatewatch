@@ -148,7 +148,7 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
         <p className="eyebrow">{active.eyebrow}</p>
         {/* Disclose the axis. This is what makes the temperature scale honest:
             the reader can see the bars run 25.6–30.8°C, not 0–30.8°C. */}
-        <p className="font-numeric text-[11px] text-text-muted">
+        <p className="font-numeric text-2xs text-text-muted">
           scale {active.format(domainMin)} – {active.format(domainMax)}
         </p>
       </div>

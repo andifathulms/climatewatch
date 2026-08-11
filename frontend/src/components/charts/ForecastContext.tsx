@@ -77,7 +77,7 @@ export default function ForecastContext({
               backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
             }}
           >
-            <span aria-hidden className="text-[9px]">
+            <span aria-hidden className="text-2xs">
               {flag.icon}
             </span>
             {flag.text}
@@ -102,10 +102,10 @@ export default function ForecastContext({
               key={d}
               className="rounded-lg border border-border bg-surface-inset p-2.5 text-center"
             >
-              <div className="text-[10px] font-medium text-text-secondary">
+              <div className="text-2xs font-medium text-text-secondary">
                 {i === 0 ? "Today" : weekday(d)}
               </div>
-              <div className="font-numeric text-[9px] text-text-muted">
+              <div className="font-numeric text-2xs text-text-muted">
                 {fmtDate(d)}
               </div>
               <div className="font-numeric mt-2 text-base font-medium text-heat-light">
@@ -125,7 +125,7 @@ export default function ForecastContext({
                 )}
               </div>
 
-              <div className="font-numeric mt-2 text-[10px] text-rain-light">
+              <div className="font-numeric mt-2 text-2xs text-rain-light">
                 {fmt(precip[i], "mm")}
               </div>
             </li>

@@ -60,7 +60,9 @@
      text at all, and only labels and metadata are allowed down there — the
      old ad-hoc `text-[10px]` coordinate stamps sat below legibility.
      Tailwind's fontSize keys map onto these in tailwind.config.ts, so
-     `text-sm` resolves here rather than to Tailwind's own defaults. */
+     `text-sm` resolves here rather than to Tailwind's own defaults. As of the
+     presentation sweep no .tsx sets a raw pixel font-size at all — if you are
+     about to add `text-[Npx]`, add a rung here instead. */
   --text-2xs: 0.8125rem; /* 13px — metadata floor, labels only */
   --text-xs: 0.875rem; /*  14px — dense labels, axis ticks */
   --text-sm: 0.9375rem; /* 15px — secondary UI */

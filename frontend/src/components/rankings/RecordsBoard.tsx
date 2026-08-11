@@ -119,19 +119,19 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="w-8 py-2 pr-2 text-right font-normal text-[10px] uppercase tracking-wider text-text-muted">
+              <th className="w-8 py-2 pr-2 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
                 #
               </th>
-              <th className="py-2 pr-4 font-normal text-[10px] uppercase tracking-wider text-text-muted">
+              <th className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
                 City
               </th>
-              <th className="hidden py-2 pr-4 font-normal text-[10px] uppercase tracking-wider text-text-muted sm:table-cell">
+              <th className="hidden py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted sm:table-cell">
                 Province
               </th>
-              <th className="py-2 pr-4 font-normal text-[10px] uppercase tracking-wider text-text-muted">
+              <th className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
                 {grain === "month" ? "Month" : "Year"}
               </th>
-              <th className="py-2 pl-4 text-right font-normal text-[10px] uppercase tracking-wider text-text-muted">
+              <th className="py-2 pl-4 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
                 {metric === "wettest" || metric === "driest" ? "Rainfall" : "Avg high"}
               </th>
             </tr>

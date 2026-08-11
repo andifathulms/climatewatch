@@ -51,7 +51,7 @@ export default function SiteHeader() {
         {/* overflow-x-auto is the safety net: if the labels ever exceed the row
             (long future item, 320px device), the nav scrolls inside the header
             instead of widening the page. */}
-        <nav className="-mr-1 flex items-center gap-0.5 overflow-x-auto text-[13px] [scrollbar-width:none] sm:mr-0 sm:gap-1 sm:text-sm [&::-webkit-scrollbar]:hidden">
+        <nav className="-mr-1 flex items-center gap-0.5 overflow-x-auto text-2xs [scrollbar-width:none] sm:mr-0 sm:gap-1 sm:text-sm [&::-webkit-scrollbar]:hidden">
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (

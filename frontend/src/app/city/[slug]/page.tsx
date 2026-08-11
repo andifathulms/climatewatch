@@ -111,7 +111,7 @@ export default async function CityPage({
 
           <dl className="flex divide-x divide-border rounded-lg border border-border bg-surface/60 backdrop-blur-sm">
             <div className="px-5 py-3">
-              <dt className="text-[10px] uppercase tracking-wider text-text-muted">
+              <dt className="text-2xs uppercase tracking-wider text-text-muted">
                 Record
               </dt>
               <dd className="font-numeric mt-0.5 text-sm font-medium">
@@ -119,7 +119,7 @@ export default async function CityPage({
               </dd>
             </div>
             <div className="px-5 py-3">
-              <dt className="text-[10px] uppercase tracking-wider text-text-muted">
+              <dt className="text-2xs uppercase tracking-wider text-text-muted">
                 Years
               </dt>
               <dd className="font-numeric mt-0.5 text-sm font-medium">

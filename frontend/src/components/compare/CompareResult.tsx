@@ -158,7 +158,7 @@ function DayNightInsight({ a, b }: { a: CompareProfile; b: CompareProfile }) {
             domHi={domHi}
           />
         </div>
-        <div className="font-numeric mt-2 flex justify-between text-[10px] text-text-muted">
+        <div className="font-numeric mt-2 flex justify-between text-2xs text-text-muted">
           <span>{domLo}°</span>
           <span className="text-text-secondary">bar = night→day · tick = 24h mean</span>
           <span>{domHi}°</span>

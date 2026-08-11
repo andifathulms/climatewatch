@@ -69,7 +69,7 @@ export function FingerprintLegend({
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
       <div className="flex items-center gap-2.5">
-        <span className="font-numeric text-[10px] text-text-muted">
+        <span className="font-numeric text-2xs text-text-muted">
           {lo.toFixed(0)}
         </span>
         <span
@@ -78,7 +78,7 @@ export function FingerprintLegend({
           role="img"
           aria-label={`Color scale from ${lo.toFixed(0)} to ${hi.toFixed(0)}${UNIT[variable]}`}
         />
-        <span className="font-numeric text-[10px] text-text-muted">
+        <span className="font-numeric text-2xs text-text-muted">
           {hi.toFixed(0)}
           {UNIT[variable]}
         </span>
@@ -90,7 +90,7 @@ export function FingerprintLegend({
           className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
           style={{ background: "var(--null-cell)" }}
         />
-        <span className="text-[11px] text-text-muted">no data</span>
+        <span className="text-2xs text-text-muted">no data</span>
       </div>
     </div>
   );
@@ -297,7 +297,7 @@ export default function ClimateFingerprint({
             top: tip.y + 14,
           }}
         >
-          <div className="font-numeric text-[10px] uppercase tracking-wider text-text-muted">
+          <div className="font-numeric text-2xs uppercase tracking-wider text-text-muted">
             {MONTHS[tip.month - 1]} {tip.year}
           </div>
           <div className="font-numeric mt-0.5 text-sm font-medium text-text-primary">
@@ -306,7 +306,7 @@ export default function ClimateFingerprint({
               : `${tip.value.toFixed(1)}${UNIT[data.variable]}`}
           </div>
           {showEnso && tip.enso && (
-            <div className="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 text-[11px] text-text-secondary">
+            <div className="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 text-2xs text-text-secondary">
               <span
                 aria-hidden
                 className="h-2 w-2 rounded-full"

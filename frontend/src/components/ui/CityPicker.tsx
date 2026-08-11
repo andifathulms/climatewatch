@@ -311,13 +311,13 @@ export default function CityPicker({
                           {isSelected ? (
                             <span
                               aria-hidden
-                              className="shrink-0 text-[11px]"
+                              className="shrink-0 text-2xs"
                               style={{ color }}
                             >
                               ● selected
                             </span>
                           ) : isDisabled ? (
-                            <span className="shrink-0 text-[10px] uppercase tracking-wide text-text-muted">
+                            <span className="shrink-0 text-2xs uppercase tracking-wide text-text-muted">
                               other side
                             </span>
                           ) : null}

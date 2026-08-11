@@ -60,14 +60,14 @@ export default function ENSOImpactCard({ data }: { data: EnsoImpactResponse }) {
               <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: p.color }}>
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: p.color }} />
                 {p.label}
-                <span className="font-numeric ml-auto text-[10px] uppercase tracking-wider text-text-muted">
+                <span className="font-numeric ml-auto text-2xs uppercase tracking-wider text-text-muted">
                   {phase.months} months
                 </span>
               </div>
 
               <dl className="mt-3 grid grid-cols-2 gap-3">
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-text-muted">
+                  <dt className="text-2xs uppercase tracking-wider text-text-muted">
                     Rainfall
                   </dt>
                   <dd className="font-numeric mt-0.5 text-sm font-medium text-text-primary">
@@ -84,7 +84,7 @@ export default function ENSOImpactCard({ data }: { data: EnsoImpactResponse }) {
                   )}
                 </div>
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-text-muted">
+                  <dt className="text-2xs uppercase tracking-wider text-text-muted">
                     Temperature
                   </dt>
                   <dd className="font-numeric mt-0.5 text-sm font-medium text-text-primary">
