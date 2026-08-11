@@ -104,17 +104,32 @@ export default async function HomePage() {
             <span className="text-gradient">getting hotter?</span>
           </h1>
 
-          {/* Answer the question the headline asks, immediately and with a
-              real figure. A visitor who reads nothing else should leave
-              knowing what this site can tell them. */}
-          {lead && warming !== null && (
-            <p className="animate-rise mx-auto mt-6 max-w-2xl text-xl text-text-primary">
-              Yes — {lead.name} runs{" "}
-              <span className="font-numeric font-medium text-heat-light">
-                {warming.toFixed(1)} °C
-              </span>{" "}
-              hotter on an average day than it did in the 1950s.
-            </p>
+          {/* Answer the question — and show the arithmetic that produced the
+              answer. A bare "+2.1 °C" asks to be trusted; the two decade means
+              either side of it can be checked against the city page. */}
+          {lead && warming !== null && baseline !== null && recent !== null && (
+            <div className="animate-rise mx-auto mt-6 max-w-2xl">
+              <p className="text-xl text-text-primary">
+                Yes. In the 1950s an average day in {lead.name} peaked at{" "}
+                <span className="font-numeric">{baseline.toFixed(1)} °C</span>.
+                Over {yearTo - 10}–{yearTo - 1} it peaked at{" "}
+                <span className="font-numeric">{recent.toFixed(1)} °C</span>.
+              </p>
+              <p className="mt-3 text-xl text-text-primary">
+                That is{" "}
+                <span className="font-numeric font-medium text-heat-light">
+                  {warming.toFixed(1)} °C
+                </span>{" "}
+                of warming, inside one lifetime.
+              </p>
+              <p className="mx-auto mt-4 max-w-prose text-sm leading-relaxed text-text-muted">
+                Both figures are ten-year averages of the daily maximum, so one
+                hot year cannot swing them. Subtracting two endpoints is not the
+                same as fitting a line through all 77 years — {lead.name}&rsquo;s
+                page reports that separately, and the two will not match. Neither
+                is wrong; they answer different questions.
+              </p>
+            </div>
           )}
 
           <p className="animate-rise mx-auto mt-5 max-w-xl text-lg text-text-secondary">
