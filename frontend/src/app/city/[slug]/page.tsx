@@ -104,7 +104,14 @@ export default async function CityPage({
         <div className="relative mt-4 flex flex-wrap items-end justify-between gap-6">
           <div>
             <h1 className="text-hero font-semibold">{region.name}</h1>
-            <p className="font-numeric mt-2 text-xs uppercase tracking-wider text-text-muted">
+            {/* Province leads, coordinates follow. This matched the home cards'
+                old ordering, which put a decimal lat/long where the
+                identifying fact belongs — nobody recognises a city from
+                106.846°, and the province was buried in the breadcrumb. */}
+            <p className="mt-2 text-base text-text-secondary">
+              {region.province}
+            </p>
+            <p className="font-numeric mt-1 text-2xs uppercase tracking-wider text-text-muted">
               {region.latitude.toFixed(3)}°, {region.longitude.toFixed(3)}°
             </p>
           </div>
