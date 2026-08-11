@@ -31,13 +31,16 @@
   --text-muted: #9a8f7c; /*  5.6:1 on card */
 
   /* ── Data encoding ─────────────────────────────────────────────────────── */
-  --rain-blue: #3e93d0;
-  --rain-light: #9bd0f0;
-  --heat-orange: #e2661f;
-  --heat-light: #f5a868;
-  --drought-amber: #c9982f;
-  --enso-nino: #e2661f;
-  --enso-nina: #45a05f;
+  /* Contrast measured against the worst surface each lands on
+     (--surface-raised #221e18); every value clears WCAG AA 4.5:1, so any of
+     these is safe as text, not just as a fill. */
+  --rain-blue: #3e93d0; /*     4.96:1 */
+  --rain-light: #9bd0f0; /*   10.00:1 */
+  --heat-orange: #e2661f; /*   4.86:1 */
+  --heat-light: #f5a868; /*    8.43:1 */
+  --drought-amber: #c9982f; /* 6.33:1 */
+  --enso-nino: #e2661f; /*     4.86:1 */
+  --enso-nina: #45a05f; /*     5.09:1 */
 
   /* Null / missing data cell — warm neutral, deliberately off every ramp so
      "no data" can never be mistaken for "zero". */
@@ -50,6 +53,59 @@
   /* ── Chart chrome ──────────────────────────────────────────────────────── */
   --grid-line: #2b251d;
   --axis-line: #3d362c;
+
+  /* ── Type scale ────────────────────────────────────────────────────────── */
+  /* One scale, three families (display / sans / mono — no fourth). Base is
+     16px and body copy never goes below it. 13px is the hard floor for any
+     text at all, and only labels and metadata are allowed down there — the
+     old ad-hoc `text-[10px]` coordinate stamps sat below legibility.
+     Tailwind's fontSize keys map onto these in tailwind.config.ts, so
+     `text-sm` resolves here rather than to Tailwind's own defaults. */
+  --text-2xs: 0.8125rem; /* 13px — metadata floor, labels only */
+  --text-xs: 0.875rem; /*  14px — dense labels, axis ticks */
+  --text-sm: 0.9375rem; /* 15px — secondary UI */
+  --text-base: 1rem; /*    16px — body floor */
+  --text-lg: 1.125rem; /*  18px — lead paragraph */
+  --text-xl: 1.375rem; /*  22px */
+  --text-2xl: 1.75rem; /*  28px */
+  --text-3xl: 2.25rem; /*  36px */
+
+  /* Fluid editorial steps. Ratio widens as the step grows, which is why these
+     are clamps rather than another rung on the linear ramp above. */
+  --text-title: clamp(1.5rem, 2.4vw, 2rem);
+  --text-hero: clamp(2rem, 4.5vw, 3.25rem);
+  --text-display: clamp(2.75rem, 7vw, 5.25rem);
+
+  /* Leading pairs with size: tight for display, generous for reading. */
+  --leading-display: 0.95;
+  --leading-tight: 1.12;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* Tracking. Negative as size grows, positive for uppercase micro-labels. */
+  --tracking-display: -0.035em;
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.08em;
+  --tracking-label: 0.14em;
+
+  /* ── Spacing scale ─────────────────────────────────────────────────────── */
+  /* A 4px base ramp. Tailwind's numeric utilities (p-4, mt-6 …) are the
+     authoring interface for this exact ramp — these vars exist so CSS-authored
+     components in globals.css draw from the same source instead of
+     improvising their own pixel values. */
+  --space-1: 0.25rem; /*  4px */
+  --space-2: 0.5rem; /*   8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /*    16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /*  24px */
+  --space-8: 2rem; /*    32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /*   48px */
+  --space-16: 4rem; /*   64px */
+  --space-20: 5rem; /*   80px */
+  --space-24: 6rem; /*   96px */
 
   /* ── Elevation & radius ────────────────────────────────────────────────── */
   --radius-sm: 6px;

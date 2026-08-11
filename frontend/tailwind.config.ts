@@ -38,19 +38,47 @@ const config: Config = {
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
       fontSize: {
-        // Editorial display scale — tight leading, negative tracking.
-        display: [
-          "clamp(2.75rem, 7vw, 5.25rem)",
-          { lineHeight: "0.95", letterSpacing: "-0.035em" },
+        // One type scale, defined once in tokens.css. These keys *override*
+        // Tailwind's defaults rather than extending them, so `text-sm` can
+        // never resolve to a value that isn't on the scale. Note xs is 14px
+        // and 2xs (13px) is the floor — Tailwind's own 12px xs is gone.
+        "2xs": ["var(--text-2xs)", { lineHeight: "var(--leading-snug)" }],
+        xs: ["var(--text-xs)", { lineHeight: "var(--leading-snug)" }],
+        sm: ["var(--text-sm)", { lineHeight: "var(--leading-normal)" }],
+        base: ["var(--text-base)", { lineHeight: "var(--leading-normal)" }],
+        lg: ["var(--text-lg)", { lineHeight: "var(--leading-relaxed)" }],
+        xl: ["var(--text-xl)", { lineHeight: "var(--leading-tight)" }],
+        "2xl": ["var(--text-2xl)", { lineHeight: "var(--leading-tight)" }],
+        "3xl": ["var(--text-3xl)", { lineHeight: "var(--leading-tight)" }],
+
+        // Editorial display steps — tight leading, negative tracking.
+        title: [
+          "var(--text-title)",
+          {
+            lineHeight: "var(--leading-tight)",
+            letterSpacing: "var(--tracking-tight)",
+          },
         ],
         hero: [
-          "clamp(2rem, 4.5vw, 3.25rem)",
-          { lineHeight: "1.03", letterSpacing: "-0.03em" },
+          "var(--text-hero)",
+          {
+            lineHeight: "var(--leading-tight)",
+            letterSpacing: "var(--tracking-tight)",
+          },
         ],
-        title: [
-          "clamp(1.5rem, 2.4vw, 2rem)",
-          { lineHeight: "1.12", letterSpacing: "-0.02em" },
+        display: [
+          "var(--text-display)",
+          {
+            lineHeight: "var(--leading-display)",
+            letterSpacing: "var(--tracking-display)",
+          },
         ],
+      },
+      spacing: {
+        // Named rungs on the same 4px ramp Tailwind's numeric utilities walk.
+        // For CSS-authored components that need the token by name.
+        section: "var(--space-16)",
+        gutter: "var(--space-5)",
       },
       boxShadow: {
         rim: "var(--rim)",
