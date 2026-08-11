@@ -102,6 +102,19 @@
     font-size: var(--svg-tick-size);
   }
 
+  /* Map city links. The global :focus-visible outline is unreliable on SVG
+     children across browsers, so the marker draws its own ring with a stroke
+     — which is also what makes the focused city legible against the
+     coastline. Uses the same --rain-blue the global ring uses. */
+  .map-marker {
+    outline: none;
+  }
+  .map-marker:focus-visible circle {
+    stroke: var(--text-primary);
+    stroke-width: 2.5;
+    r: 9;
+  }
+
   /* Small monospaced label above a section title.
      On the scale, not beside it: this class is used 54 times across 24 files —
      it is the most-repeated label in the product — and it was the one place

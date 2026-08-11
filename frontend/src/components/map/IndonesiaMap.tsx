@@ -1,8 +1,8 @@
 "use client";
 
 import * as d3 from "d3";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { MultiPolygon } from "geojson";
 import type { Region } from "@/lib/types";
 import { ChartHeader } from "@/components/charts/chart-ui";
@@ -33,7 +33,6 @@ export default function IndonesiaMap({
   regions: Region[];
   geometry: MultiPolygon;
 }) {
-  const router = useRouter();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip | null>(null);
 
@@ -91,12 +90,18 @@ export default function IndonesiaMap({
       </ChartHeader>
 
       <div ref={wrapRef} className="relative">
+        {/* role="img" removed on purpose: it collapses the subtree into a
+            single node, which would hide the 94 city links from assistive tech
+            the moment they became real links. The <title> below names the
+            graphic instead, and the markers are announced as what they are. */}
         <svg
           viewBox={`0 0 ${WIDTH} ${height}`}
           className="h-auto w-full"
-          role="img"
-          aria-label="Map of Indonesia with a dot for every seeded city, colored by whether real climate data has been loaded"
+          aria-labelledby="map-title"
         >
+          <title id="map-title">
+            Map of Indonesia. Every loaded city is a link to its climate page.
+          </title>
           <path
             d={pathData}
             fill="var(--surface-inset)"
@@ -109,16 +114,16 @@ export default function IndonesiaMap({
             const active = r.has_data;
             const focused = tip?.region.id === r.id;
             return (
-              <circle
+              // A real <a>, not a click handler on a <circle>. That gives
+              // keyboard focus, Enter activation and link semantics from the
+              // browser, and the <title> supplies the accessible name — so
+              // this needs no role, no tabIndex and no aria-label. Previously
+              // the marker was a bare <circle> with onClick: unreachable
+              // without a mouse. (WCAG 2.1.1)
+              <Link
                 key={r.id}
-                cx={x}
-                cy={y}
-                r={focused ? 8 : active ? 6 : 4.5}
-                fill={active ? "var(--rain-blue)" : "var(--drought-amber)"}
-                fillOpacity={active ? 0.9 : 0.55}
-                stroke={focused ? "var(--text-primary)" : "none"}
-                strokeWidth={focused ? 1.5 : 0}
-                className="cursor-pointer transition-[r] duration-100"
+                href={`/city/${r.slug}`}
+                className="map-marker"
                 onMouseMove={(e) => {
                   const box = wrapRef.current?.getBoundingClientRect();
                   if (!box) return;
@@ -131,8 +136,25 @@ export default function IndonesiaMap({
                 onMouseLeave={() =>
                   setTip((t) => (t?.region.id === r.id ? null : t))
                 }
-                onClick={() => router.push(`/city/${r.slug}`)}
-              />
+              >
+                {/* One interpolated string, not several children: React
+                    special-cases <title> and silently renders nothing when it
+                    has more than one child — which left all 94 links unnamed
+                    on the first attempt at this fix. */}
+                <title>{`${r.name}, ${r.province}${
+                  active ? "" : " — no climate data loaded yet"
+                }`}</title>
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={focused ? 8 : active ? 6 : 4.5}
+                  fill={active ? "var(--rain-blue)" : "var(--drought-amber)"}
+                  fillOpacity={active ? 0.9 : 0.55}
+                  stroke={focused ? "var(--text-primary)" : "none"}
+                  strokeWidth={focused ? 1.5 : 0}
+                  className="cursor-pointer transition-[r] duration-100"
+                />
+              </Link>
             );
           })}
         </svg>
