@@ -1,5 +1,9 @@
 import * as d3 from "d3";
 import type { FingerprintStats, FingerprintVariable } from "@/lib/types";
+// Plain JSON so the build-time share-card renderer reads the exact same stops.
+// Copying six hex values into a .mjs script is how the cards would quietly
+// stop matching the grid they advertise.
+import rampsJson from "./ramps.json";
 
 /*
  * The fingerprint's color scale, deliberately kept out of
@@ -29,24 +33,7 @@ import type { FingerprintStats, FingerprintVariable } from "@/lib/types";
  * zero stays distinct from a null cell (ΔE 13–26 vs --null-cell). Do not swap
  * these for the d3 built-ins.
  */
-export const RAMPS: Record<FingerprintVariable, string[]> = {
-  precipitation: [
-    "#122A42",
-    "#1A4E7C",
-    "#1C74AC",
-    "#1998D6",
-    "#22BBEF",
-    "#4FD8FF",
-  ],
-  temp_max: ["#2A1608", "#5C2A0E", "#9C3D14", "#D6591C", "#EE7A1E", "#FFA028"],
-  hot_days: ["#3A1010", "#7A1E1A", "#B93227", "#E05B3D", "#F5794A", "#FF8A3C"],
-  // Same hue family as hot_days — it is the same phenomenon counted against a
-  // local rather than absolute threshold, so it must not read as a different
-  // variable. Kept a step warmer so the two are still distinguishable when
-  // someone toggles between them.
-  hot_days_local: ["#3A1408", "#7A2A12", "#B94A1E", "#E07330", "#F59248", "#FFAA3C"],
-  dry_days: ["#2E2108", "#5E4310", "#8F6816", "#C08F1C", "#E0B324", "#F5CC2E"],
-};
+export const RAMPS = rampsJson as Record<FingerprintVariable, string[]>;
 
 /** Build the D3 sequential color scale for a variable (domains per CLAUDE.md). */
 export function buildColorScale(

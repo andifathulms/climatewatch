@@ -41,6 +41,9 @@ export async function generateMetadata({
       cardTitle: `${region.name} — ${region.province}`,
       description: `Climate data for ${region.name}, ${region.province}, ${span} — rainfall, temperature, extreme days and season shift.`,
       path: `/city/${region.slug}`,
+      // Rendered at build time from this city's own rainfall grid, so a shared
+      // link previews the actual fingerprint rather than a generic logo.
+      image: `/og/${region.slug}.png`,
       type: "article",
     });
   } catch {

@@ -22,6 +22,7 @@ export function routeMetadata({
   description,
   path,
   cardTitle,
+  image,
   type = "website",
 }: {
   /** The <title>. */
@@ -32,9 +33,13 @@ export function routeMetadata({
   path: string;
   /** Optional longer title for the share card, where there is more room. */
   cardTitle?: string;
+  /** Per-page card. City pages pass their own, generated at build time from
+   *  that city's real fingerprint; everything else falls back to the site card. */
+  image?: string;
   type?: "website" | "article";
 }): Metadata {
   const social = cardTitle ?? title;
+  const card = image ? { ...OG_IMAGE, url: image, alt: social } : OG_IMAGE;
   return {
     title,
     description,
@@ -46,13 +51,13 @@ export function routeMetadata({
       url: path,
       title: social,
       description,
-      images: [OG_IMAGE],
+      images: [card],
     },
     twitter: {
       card: "summary_large_image",
       title: social,
       description,
-      images: [OG_IMAGE.url],
+      images: [card.url],
     },
   };
 }
