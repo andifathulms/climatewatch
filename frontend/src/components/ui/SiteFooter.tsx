@@ -24,9 +24,17 @@ export default function SiteFooter() {
             aria-label="Footer"
             className="flex gap-12 text-sm sm:gap-16"
           >
+            {/* Labelled with <p> + aria-labelledby rather than <h2>. These name
+                two nav lists, not two document sections — as headings they
+                landed at the same rank as "Climate Fingerprint" and "Extreme
+                Days", so every page's heading outline ended with two footer
+                links indistinguishable from its actual analysis. The list
+                keeps its accessible name; the outline loses the noise. */}
             <div>
-              <h2 className="eyebrow mb-3">Explore</h2>
-              <ul className="space-y-2">
+              <p id="footer-explore" className="eyebrow mb-3">
+                Explore
+              </p>
+              <ul aria-labelledby="footer-explore" className="space-y-2">
                 <li>
                   <Link
                     href="/"
@@ -46,8 +54,10 @@ export default function SiteFooter() {
               </ul>
             </div>
             <div>
-              <h2 className="eyebrow mb-3">Data</h2>
-              <ul className="space-y-2">
+              <p id="footer-data" className="eyebrow mb-3">
+                Data
+              </p>
+              <ul aria-labelledby="footer-data" className="space-y-2">
                 <li>
                   <Link
                     href="/about"
