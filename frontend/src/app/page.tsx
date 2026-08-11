@@ -2,7 +2,29 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import CitySearch from "@/components/ui/CitySearch";
 import IndonesiaMap from "@/components/map/IndonesiaMap";
+import FingerprintPreview from "@/components/fingerprint/FingerprintPreview";
 import { getIndonesiaGeometry } from "@/lib/indonesia-geo";
+import type { FingerprintResponse, Region } from "@/lib/types";
+
+/** The city the hero speaks for when nothing has been searched yet. */
+const LEAD_CITY = "jakarta";
+
+/**
+ * Mean of a fingerprint variable across an inclusive year range, ignoring
+ * null months. Used to answer the headline's question with a real number
+ * instead of restating the question.
+ */
+function meanOverYears(
+  fp: FingerprintResponse,
+  from: number,
+  to: number,
+): number | null {
+  const values = fp.data
+    .filter((d) => d.year >= from && d.year <= to && d.value !== null)
+    .map((d) => d.value as number);
+  if (!values.length) return null;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
 
 export default async function HomePage() {
   const regions = await api.allRegions().catch(() => []);
@@ -16,13 +38,52 @@ export default async function HomePage() {
   const featured = allFeatured.slice(0, FEATURED_LIMIT);
   const remaining = allFeatured.length - featured.length;
 
-  // Derived from real data only — never hard-code a headline number.
+  const withData = regions.filter((r) => r.has_data);
+  const lead: Region | undefined =
+    withData.find((r) => r.slug === LEAD_CITY) ?? withData[0];
+
+  // The hero shows the product, not a description of it: one real city's
+  // rainfall fingerprint, and one real warming figure derived from the same
+  // dataset. Both are read at build time from the static export — nothing here
+  // is a hard-coded headline number.
+  const [leadRain, leadHeat] = lead
+    ? await Promise.all([
+        api.fingerprint(lead, "precipitation").catch(() => null),
+        api.fingerprint(lead, "temp_max").catch(() => null),
+      ])
+    : [null, null];
+
   const yearFrom = 1950;
   const yearTo = new Date().getFullYear();
+
+  // Inclusive span: 1950–2026 is 77 years of record, not 76. The old
+  // subtraction silently under-reported the archive by one year.
+  const yearsOfRecord = yearTo - yearFrom + 1;
+
+  // First full decade of the record against the most recent complete one.
+  const baseline = leadHeat ? meanOverYears(leadHeat, 1950, 1959) : null;
+  const recent = leadHeat
+    ? meanOverYears(leadHeat, yearTo - 10, yearTo - 1)
+    : null;
+  const warming =
+    baseline !== null && recent !== null ? recent - baseline : null;
+
   const stats = [
-    { value: `${yearTo - yearFrom}`, label: "years of record", suffix: "yr" },
-    { value: `${regions.length || "—"}`, label: "Indonesian cities" },
-    { value: "ERA5", label: "reanalysis source" },
+    {
+      value: `${yearsOfRecord}`,
+      label: "years of daily records",
+      suffix: "yr",
+    },
+    {
+      value: `${withData.length || "—"}`,
+      label: "Indonesian cities loaded",
+    },
+    {
+      // The grid size, not a count of populated months — the current year is
+      // still filling in, so "mapped" would overclaim.
+      value: `${(yearsOfRecord * 12).toLocaleString("en-US")}`,
+      label: "months per fingerprint",
+    },
   ];
 
   return (
@@ -43,14 +104,41 @@ export default async function HomePage() {
             <span className="text-gradient">getting hotter?</span>
           </h1>
 
-          <p className="animate-rise mx-auto mt-7 max-w-xl text-lg leading-relaxed text-text-secondary">
-            ClimateWatch turns three-quarters of a century of climate data into a
-            visual story for any Indonesian city — how rainfall, temperature,
-            and extreme weather have <em className="text-text-primary not-italic">really</em> changed.
+          {/* Answer the question the headline asks, immediately and with a
+              real figure. A visitor who reads nothing else should leave
+              knowing what this site can tell them. */}
+          {lead && warming !== null && (
+            <p className="animate-rise mx-auto mt-6 max-w-2xl text-xl text-text-primary">
+              Yes — {lead.name} runs{" "}
+              <span className="font-numeric font-medium text-heat-light">
+                {warming.toFixed(1)} °C
+              </span>{" "}
+              hotter on an average day than it did in the 1950s.
+            </p>
+          )}
+
+          <p className="animate-rise mx-auto mt-5 max-w-xl text-lg text-text-secondary">
+            ClimateWatch turns {yearsOfRecord} years of daily weather records
+            into one picture per city, so you can see how rainfall, temperature
+            and extreme weather have{" "}
+            <em className="not-italic text-text-primary">actually</em> changed —
+            not how they feel.
           </p>
 
-          <div className="animate-rise mx-auto mt-10 max-w-xl">
+          {/* Two ways in, because most first-time visitors will not type. */}
+          <div className="animate-rise mx-auto mt-10 flex max-w-xl flex-col gap-3">
             <CitySearch regions={regions} />
+            {lead && (
+              <p className="text-sm text-text-muted">
+                or jump straight to{" "}
+                <Link
+                  href={`/city/${lead.slug}`}
+                  className="font-medium text-rain-light underline decoration-rain-blue/40 underline-offset-4 transition-colors hover:decoration-rain-light"
+                >
+                  {lead.name}&rsquo;s full climate record →
+                </Link>
+              </p>
+            )}
           </div>
 
           {/* Stat strip */}
@@ -74,8 +162,24 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── The artifact itself ─────────────────────────────────────────── */}
+      {/* Showing one real fingerprint beats describing it. This is the first
+          thing below the headline for a reason: it is the fastest available
+          explanation of what the product produces. */}
+      {leadRain && (
+        <section className="animate-rise mt-2">
+          <div className="mb-5">
+            <p className="eyebrow">The Climate Fingerprint</p>
+            <h2 className="mt-2 text-title font-semibold">
+              Every city gets one of these
+            </h2>
+          </div>
+          <FingerprintPreview fingerprint={leadRain} />
+        </section>
+      )}
+
       {/* ── Featured cities ─────────────────────────────────────────────── */}
-      <section className="mt-4">
+      <section className="mt-10">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
             <p className="eyebrow">Start here</p>
@@ -83,9 +187,7 @@ export default async function HomePage() {
           </div>
           <p className="hidden max-w-xs text-right text-sm text-text-muted sm:block">
             {remaining > 0 ? (
-              <>
-                {remaining} more cities — search above.
-              </>
+              <>{remaining} more in the search box above.</>
             ) : (
               <>Each city opens on its Climate Fingerprint.</>
             )}
@@ -106,16 +208,20 @@ export default async function HomePage() {
                     className="pointer-events-none absolute inset-0 bg-gradient-to-br from-rain-blue/0 to-heat-orange/0 opacity-0 transition-opacity duration-300 group-hover:from-rain-blue/[0.07] group-hover:to-heat-orange/[0.07] group-hover:opacity-100"
                   />
                   <div className="relative">
-                    <div className="font-display text-lg font-semibold leading-tight text-text-primary">
+                    <div className="font-display text-xl font-semibold leading-tight text-text-primary">
                       {r.name}
                     </div>
-                    <div className="mt-1 text-xs leading-snug text-text-muted">
+                    {/* Province, not latitude. A visitor locates a city by the
+                        province it sits in; nobody recognises a city from its
+                        decimal coordinates, which is what used to occupy this
+                        slot in 10px type. */}
+                    <div className="mt-1.5 text-sm leading-snug text-text-secondary">
                       {r.province}
                     </div>
                   </div>
                   <div className="relative mt-6 flex items-center justify-between">
-                    <span className="font-numeric text-[10px] uppercase tracking-wider text-text-muted">
-                      {r.latitude.toFixed(2)}°, {r.longitude.toFixed(2)}°
+                    <span className="text-2xs text-text-muted">
+                      {yearFrom}–{yearTo}
                     </span>
                     <span
                       aria-hidden
@@ -130,12 +236,15 @@ export default async function HomePage() {
           </ul>
         ) : (
           <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-10 text-center">
-            <p className="text-sm text-text-secondary">
-              No regions loaded yet. Run{" "}
-              <code className="font-numeric rounded bg-surface-inset px-1.5 py-0.5 text-xs text-heat-light">
-                manage.py load_regions
-              </code>{" "}
-              on the backend.
+            {/* User-facing wording only. The old copy printed a Django
+                management command at visitors, who can neither run it nor
+                read it as anything but a broken page. */}
+            <p className="text-base text-text-secondary">
+              No cities are available right now.
+            </p>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-text-muted">
+              The climate archive could not be reached. This is on our end —
+              please try again shortly.
             </p>
           </div>
         )}
