@@ -3,8 +3,10 @@ export default function NullDataWarning({ coverage }: { coverage: number }) {
   if (coverage >= 0.9) return null;
 
   return (
+    // No role="status": this renders from prerendered HTML at page load, so
+    // it is never a status *message* in the 4.1.3 sense. It is already
+    // announced in normal reading order; the role only duplicated it.
     <div
-      role="status"
       className="flex items-start gap-3 rounded-lg border border-drought-amber/40 bg-drought-amber/[0.08] px-4 py-3"
     >
       {/* Icon + label pairing — a status never rests on color alone. */}

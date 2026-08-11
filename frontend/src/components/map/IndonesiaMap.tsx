@@ -138,8 +138,11 @@ export default function IndonesiaMap({
         </svg>
 
         {tip && (
+          // Pointer-following tooltip, not a status message — see the same
+          // note in ClimateFingerprint. The city list is reachable by
+          // keyboard from the markers themselves.
           <div
-            role="status"
+            aria-hidden
             className="pointer-events-none absolute z-10 rounded-lg border border-border-strong bg-canvas-deep px-3 py-2 shadow-float"
             style={{
               left: tip.x > WIDTH * 0.7 ? tip.x - 150 : tip.x + 14,

@@ -287,8 +287,12 @@ export default function ClimateFingerprint({
       </svg>
 
       {tip && (
+        // Not role="status". A live region that follows the pointer
+        // re-announces on every mouse move, and a keyboard user never opens
+        // it at all — wrong in both directions. The values are exposed to
+        // assistive tech through the grid itself, not through this.
         <div
-          role="status"
+          aria-hidden
           className="pointer-events-none absolute z-10 rounded-lg border border-border-strong bg-canvas-deep px-3 py-2 shadow-float"
           style={{
             // Flip to the left of the cursor near the right edge so the tooltip
