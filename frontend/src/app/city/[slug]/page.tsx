@@ -26,9 +26,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   try {
     const region = await api.region(params.slug);
+    // Derived, not asserted. This said "75 years" while the home page said 77,
+    // so search results and the page they led to disagreed about the size of
+    // the archive. The range is per-city anyway.
+    const { year_from, year_to } = region.data_availability;
+    const span = year_from && year_to ? `${year_from}–${year_to}` : "since 1950";
     return {
       title: `${region.name} climate`,
-      description: `75 years of climate data for ${region.name}, ${region.province} — rainfall, temperature, extreme days and season shift.`,
+      description: `Climate data for ${region.name}, ${region.province}, ${span} — rainfall, temperature, extreme days and season shift.`,
     };
   } catch {
     return { title: "City" };

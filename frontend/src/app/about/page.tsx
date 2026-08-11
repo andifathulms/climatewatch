@@ -109,7 +109,8 @@ export default function AboutPage() {
           decades — the right basis for long-term trend analysis, and different
           from direct weather-station readings. A station moves, changes
           instruments, or goes offline; the reanalysis does not. That
-          consistency is exactly what makes a 75-year comparison meaningful.
+          consistency is exactly what makes a comparison across the whole record
+          meaningful.
         </p>
       </Section>
 

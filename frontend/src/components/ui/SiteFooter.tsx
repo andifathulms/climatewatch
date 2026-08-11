@@ -16,7 +16,7 @@ export default function SiteFooter() {
           <div className="max-w-xs">
             <div className="font-display text-lg font-semibold">ClimateWatch</div>
             <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-              Seventy-five years of Indonesian climate, made legible.
+              Indonesian climate since 1950, made legible.
             </p>
           </div>
 

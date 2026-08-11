@@ -22,7 +22,7 @@ export default async function RankingsPage() {
           <p className="mt-4 text-lg leading-relaxed text-text-secondary">
             Every bootstrapped city, compared head-to-head on temperature,
             rainfall, warming trend, and extreme weather — all from the same
-            75-year ERA5 record.
+            ERA5 record, every year since 1950.
           </p>
         </div>
       </header>

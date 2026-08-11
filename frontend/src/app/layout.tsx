@@ -33,13 +33,13 @@ export const metadata: Metadata = {
     template: "%s — ClimateWatch",
   },
   description:
-    "Seventy-five years of ERA5 climate data for any Indonesian city. See how rainfall, temperature, and extreme weather have actually changed.",
+    "ERA5 climate data for every year since 1950, for any Indonesian city. See how rainfall, temperature, and extreme weather have actually changed.",
   openGraph: {
     type: "website",
     siteName: "ClimateWatch",
     title: "ClimateWatch — Climate Intelligence for Indonesia",
     description:
-      "Seventy-five years of ERA5 climate data for any Indonesian city, rendered as a Climate Fingerprint.",
+      "ERA5 climate data for every year since 1950, for any Indonesian city, rendered as a Climate Fingerprint.",
   },
   // Android install manifest is a static file in public/. The app/manifest.ts
   // file-convention was avoided on purpose: its auto-injected <link> drops the
