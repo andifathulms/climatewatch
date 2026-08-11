@@ -98,6 +98,11 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
         The 15 most extreme single {grain}s across all cities, 1950–present.
       </p>
 
+      {/* The rank column is dropped below sm rather than scrolled: it restates
+          the row order, which is already conveyed by position, so it is the one
+          column that costs nothing to lose. With it and province hidden, the
+          remaining three fit 320px and the nested horizontal scroller never
+          engages. overflow-x-auto stays as the safety net for long city names. */}
       <div className="mt-4 overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           {/* The visible section heading names the board; it does not say which
@@ -109,7 +114,7 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
           </caption>
           <thead>
             <tr className="border-b border-border text-left">
-              <th scope="col" className="w-8 py-2 pr-2 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
+              <th scope="col" className="hidden w-8 py-2 pr-2 text-right font-normal text-2xs uppercase tracking-wider text-text-muted sm:table-cell">
                 #
               </th>
               <th scope="col" className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
@@ -132,7 +137,7 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
                 key={`${r.region.slug}-${r.year}-${r.month ?? "y"}`}
                 className="group border-b border-border/60 last:border-0"
               >
-                <td className="font-numeric py-2.5 pr-2 text-right text-xs text-text-muted">
+                <td className="font-numeric hidden py-2.5 pr-2 text-right text-xs text-text-muted sm:table-cell">
                   {i + 1}
                 </td>
                 <td className="py-2.5 pr-4">
