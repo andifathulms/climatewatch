@@ -141,11 +141,29 @@ export default function FingerprintPanel({
       </div>
 
       {/* ── Grid + sidebar ────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-6 p-6 lg:flex-row-reverse lg:items-start">
-        {/* Sidebar sticks: the grid is ~1,900px tall for a 77-year record, so a
-            static readout would scroll out of sight before you finish reading
-            the rows it describes. Ordered first in the DOM only via
-            flex-row-reverse — it stays after the grid for screen readers. */}
+      {/* Grid first in the DOM, sidebar second — matching the reading order,
+          which is what a reversed row previously broke. The <aside> was the
+          first DOM child of a flex-row-reverse container, so it rendered on
+          the right but was announced *before* the figure it describes: a
+          screen reader met an empty "—" readout, then the grid. (WCAG 1.3.2)
+          The old comment claimed the opposite of what the code did.
+
+          The sidebar sticks because the grid is ~1,900px tall for a 77-year
+          record, so a static readout would scroll out of sight before you
+          finish reading the rows it describes. Plain flex-row with the grid
+          first gives the same visual placement the reversed row did. */}
+      <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-start">
+        <div
+          className="min-w-0 flex-1 transition-opacity duration-200"
+          style={{ opacity: loading ? 0.4 : 1 }}
+          aria-busy={loading}
+        >
+          <ClimateFingerprint
+            data={data}
+            showEnso={showEnso}
+            onHoverYear={setHoverYear}
+          />
+  
         <aside className="flex w-full min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:w-[15rem] lg:shrink-0">
           {/* Hovered-year readout. Reserves its own height so the panel does
               not reflow as the pointer moves across the grid. */}
@@ -199,18 +217,7 @@ export default function FingerprintPanel({
             </div>
           )}
         </aside>
-
-        <div
-          className="min-w-0 flex-1 transition-opacity duration-200"
-          style={{ opacity: loading ? 0.4 : 1 }}
-          aria-busy={loading}
-        >
-          <ClimateFingerprint
-            data={data}
-            showEnso={showEnso}
-            onHoverYear={setHoverYear}
-          />
-        </div>
+      </div>
       </div>
     </section>
   );
