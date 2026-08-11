@@ -107,22 +107,31 @@ export default async function HomePage() {
           {/* Answer the question — and show the arithmetic that produced the
               answer. A bare "+2.1 °C" asks to be trusted; the two decade means
               either side of it can be checked against the city page. */}
+          {/* One measure for the whole hero body. The answer, the caveat and
+              the pitch previously ran at max-w-2xl, max-w-prose and max-w-xl —
+              three widths stacked and centred, which tapered the block into a
+              pyramid with ragged gaps down both sides. */}
           {lead && warming !== null && baseline !== null && recent !== null && (
             <div className="animate-rise mx-auto mt-6 max-w-2xl">
-              <p className="text-xl text-text-primary">
+              <p className="text-balance text-xl text-text-primary">
                 Yes. In the 1950s an average day in {lead.name} peaked at{" "}
-                <span className="font-numeric">{baseline.toFixed(1)} °C</span>.
-                Over {yearTo - 10}–{yearTo - 1} it peaked at{" "}
-                <span className="font-numeric">{recent.toFixed(1)} °C</span>.
+                <span className="font-numeric whitespace-nowrap">
+                  {baseline.toFixed(1)} °C
+                </span>
+                . Over {yearTo - 10}–{yearTo - 1} it peaked at{" "}
+                <span className="font-numeric whitespace-nowrap">
+                  {recent.toFixed(1)} °C
+                </span>
+                .
               </p>
-              <p className="mt-3 text-xl text-text-primary">
+              <p className="mt-3 text-balance text-xl text-text-primary">
                 That is{" "}
-                <span className="font-numeric font-medium text-heat-light">
+                <span className="font-numeric whitespace-nowrap font-medium text-heat-light">
                   {warming.toFixed(1)} °C
                 </span>{" "}
                 of warming, inside one lifetime.
               </p>
-              <p className="mx-auto mt-4 max-w-prose text-sm leading-relaxed text-text-muted">
+              <p className="mt-4 text-sm leading-relaxed text-text-muted">
                 Both figures are ten-year averages of the daily maximum, so one
                 hot year cannot swing them. Subtracting two endpoints is not the
                 same as fitting a line through all 77 years — {lead.name}&rsquo;s
@@ -132,7 +141,7 @@ export default async function HomePage() {
             </div>
           )}
 
-          <p className="animate-rise mx-auto mt-5 max-w-xl text-lg text-text-secondary">
+          <p className="animate-rise mx-auto mt-5 max-w-2xl text-balance text-lg text-text-secondary">
             ClimateWatch turns {yearsOfRecord} years of daily weather records
             into one picture per city, so you can see how rainfall, temperature
             and extreme weather have{" "}
