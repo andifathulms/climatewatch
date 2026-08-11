@@ -280,7 +280,24 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
           #1 row is the leader ribbon; #2 and #3 stack beneath it. */}
       <div className="mt-6">
         <p className="eyebrow mb-2">Podium over time</p>
-        <div className="space-y-1">
+
+        {/* The visual timeline encodes each reign as a proportional width and
+            drops the label under ~10% — the years exist only as geometry, and
+            the `title` attribute on a <div> is not reliably announced. The
+            sr-only list below is the text alternative; the bars are marked
+            aria-hidden so the same data is not announced twice. (WCAG 1.1.1) */}
+        <ul className="sr-only">
+          {reignRows.map((row) => (
+            <li key={`sr-${row.place}`}>
+              {row.place}:{" "}
+              {row.reigns
+                .map((r) => `${r.name} ${r.from} to ${r.to}`)
+                .join(", ")}
+            </li>
+          ))}
+        </ul>
+
+        <div aria-hidden className="space-y-1">
           {reignRows.map((row) => (
             <div key={row.place} className="flex items-center gap-2">
               <span className="font-numeric w-6 shrink-0 text-2xs text-text-muted">
