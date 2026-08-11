@@ -175,6 +175,23 @@ export default async function HomePage() {
             </h2>
           </div>
           <FingerprintPreview fingerprint={leadRain} />
+
+          {/* "ERA5 Reanalysis" is in the eyebrow at the top of this page and
+              nowhere is it explained. It is the single biggest assumed word on
+              the site, and what it means changes how much weight a reader
+              should put on any number here. */}
+          <p className="mt-4 max-w-prose text-sm leading-relaxed text-text-muted">
+            Where this comes from:{" "}
+            <span className="text-text-secondary">ERA5 reanalysis</span> is not
+            a thermometer archive. It is a weather model re-run over every
+            historical observation available — satellites, ships, balloons,
+            stations — to produce one gap-free record with the same method
+            applied to 1950 as to today. That consistency is what makes a
+            77-year comparison possible, and it is also the catch: a value is a
+            modelled estimate for a ~30km grid square, not a reading from your
+            street. Local effects like an urban heat island or a narrow valley
+            are smoothed away.
+          </p>
         </section>
       )}
 

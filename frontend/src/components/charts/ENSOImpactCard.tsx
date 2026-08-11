@@ -31,6 +31,28 @@ export default function ENSOImpactCard({
   return (
     <section className="card p-6">
       <ChartHeader level={headingLevel} eyebrow="ENSO" title="El Niño / La Niña Impact" />
+      {/* "ENSO" was used as a section label with no expansion anywhere on the
+          page. Defined here, at the only place the site uses it, with the
+          source named where the rule is applied rather than in a footnote. */}
+      <p className="mb-4 max-w-prose text-sm leading-relaxed text-text-secondary">
+        ENSO is a Pacific Ocean cycle that swings Indonesia&rsquo;s weather from
+        year to year. When the central Pacific runs warm it is{" "}
+        <span className="text-text-primary">El Niño</span> — usually drier here;
+        when it runs cool,{" "}
+        <span className="text-text-primary">La Niña</span> — usually wetter. A
+        month counts as one phase or the other when the{" "}
+        <a
+          href="https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-rain-blue underline decoration-rain-blue/40 underline-offset-2 hover:decoration-rain-blue"
+        >
+          NOAA Oceanic Niño Index
+        </a>{" "}
+        — a three-month average sea-surface temperature anomaly — sits at or
+        beyond ±0.5°C. Everything else is Neutral.
+      </p>
+
       <p className="mb-5 max-w-prose text-sm leading-relaxed text-text-secondary">
         Average monthly rainfall and temperature during each ENSO phase since
         1950, compared against this city&apos;s own{" "}

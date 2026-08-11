@@ -108,6 +108,27 @@ export default function FingerprintPanel({
               {data.year_from}–{data.year_to}
             </span>
           </p>
+
+          {/* Vocabulary where it is used, not on a page the reader has to go
+              find. Both terms are load-bearing: every cell is an aggregate,
+              and the hot-day rule is a percentile. */}
+          <p className="mt-3 max-w-prose text-2xs leading-relaxed text-text-muted">
+            One cell is one month — an average (or a count) over its 28–31
+            days, not a single reading.
+            {data.variable === "hot_days_local" &&
+              data.hot_day_threshold_c !== null && (
+                <>
+                  {" "}
+                  &ldquo;Hotter than 95%&rdquo; means: line up every daily high
+                  from 1951–1980 coldest to hottest, and the value 95% of the
+                  way along is{" "}
+                  <span className="font-numeric text-text-secondary">
+                    {data.hot_day_threshold_c.toFixed(1)}°C
+                  </span>
+                  . Days above it were roughly the hottest 1 in 20 back then.
+                </>
+              )}
+          </p>
         </div>
 
         <div className="flex flex-col items-start gap-3 lg:items-end">
