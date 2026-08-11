@@ -99,17 +99,43 @@ export default function ExtremeDaysChart({
         </label>
       </ChartHeader>
 
-      {/* A relative threshold whose value the reader cannot see is not a
-          citable threshold — name it wherever the local metrics are shown. */}
+      {/* Naming the threshold is not the same as justifying it. Three choices
+          are baked into this number and each one changes it, so each is stated
+          where the number is read. */}
       {active.key.toString().endsWith("_local") &&
         data.region.hot_day_threshold_c !== null && (
-          <p className="mb-3 text-2xs text-text-muted">
-            &ldquo;Hot&rdquo; here means above{" "}
-            <span className="font-numeric text-text-secondary">
-              {data.region.hot_day_threshold_c.toFixed(1)}°C
-            </span>{" "}
-            — hotter than 95% of {data.region.name}&rsquo;s 1951–1980 days.
-          </p>
+          <div className="mb-4 max-w-prose space-y-1.5 text-2xs leading-relaxed text-text-muted">
+            <p>
+              &ldquo;Hot&rdquo; here means above{" "}
+              <span className="font-numeric text-text-secondary">
+                {data.region.hot_day_threshold_c.toFixed(1)}°C
+              </span>{" "}
+              — hotter than 95% of {data.region.name}&rsquo;s 1951–1980 days.
+            </p>
+            <p>
+              <span className="text-text-secondary">Why a local threshold:</span>{" "}
+              a fixed 35°C is a temperate-climate convention and it never once
+              occurred in 25 of the 90 cities here across 77 years. Warming in
+              the tropics does not arrive as new record highs; it arrives as the
+              ordinary day moving, which a local threshold measures and a fixed
+              one cannot.
+            </p>
+            <p>
+              <span className="text-text-secondary">Why 1951–1980:</span> a
+              30-year window, the length WMO uses for a climate normal, placed
+              early enough to sit before most of the warming. It is frozen — if
+              it slid forward with time it would rise along with the climate it
+              is meant to be the yardstick for, and report no change at all.
+            </p>
+            <p>
+              <span className="text-text-secondary">Why 95%:</span> it picks out
+              roughly the hottest one day in twenty of that period — often
+              enough to count reliably year to year, rare enough that
+              &ldquo;unusual&rdquo; still means something. It is a convention,
+              not a law of nature: 90% or 99% would draw a different line and a
+              different-looking chart.
+            </p>
+          </div>
         )}
 
       {/* The headline sentence — the chart's actual finding, in words. */}

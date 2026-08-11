@@ -18,12 +18,12 @@ const DEFINITIONS: { term: string; body: string; color: string }[] = [
   },
   {
     term: "Heavy rain day",
-    body: "Daily rainfall above 50mm. Above 100mm counts as extreme rain.",
+    body: "Daily rainfall above 50mm — roughly the point at which urban drainage in Indonesian cities starts to be overwhelmed. Above 100mm counts as extreme rain, a common flood-risk proxy. Both are round numbers chosen for legibility, not derived from a local damage study.",
     color: "var(--rain-blue)",
   },
   {
     term: "Dry day",
-    body: "Daily rainfall below 1mm.",
+    body: "Daily rainfall below 1mm — effectively a day with no usable rain. 1mm rather than 0mm because trace amounts evaporate before reaching the ground or a crop.",
     color: "var(--drought-amber)",
   },
   {

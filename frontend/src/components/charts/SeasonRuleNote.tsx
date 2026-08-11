@@ -16,9 +16,14 @@ export default function SeasonRuleNote({
 }) {
   return (
     <p className="mt-4 border-t border-border pt-3 text-2xs leading-relaxed text-text-muted">
-      Onset: first 5-day spell totalling ≥40 mm after Aug 1 (simplified BMKG).
-      End: the last such spell before Aug 1 of the following year. Length pairs
-      the two across the calendar boundary.
+      Onset: first 5-day spell totalling ≥40 mm after Aug 1 — the threshold
+      BMKG uses, because 40 mm over five days is roughly the point where soil
+      holds enough water to plant into, and a five-day window is long enough
+      that one thunderstorm cannot trigger a false start. August 1 is the scan
+      start because the dry season bottoms out around July across most of
+      Indonesia. End: the last such spell before Aug 1 of the following year —
+      our own mirror of the onset rule, not BMKG&rsquo;s, so it is the weaker
+      of the two. Length pairs the two across the calendar boundary.
       {saturatedShare !== undefined && (
         <>
           {" "}
