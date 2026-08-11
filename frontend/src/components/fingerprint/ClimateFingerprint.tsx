@@ -215,7 +215,13 @@ export default function ClimateFingerprint({
       // it a keyboard user could not scroll it at all. (WCAG 2.1.1)
       tabIndex={0}
       aria-label={`${data.region.name} fingerprint grid, scrollable`}
-      className="relative overflow-x-auto pb-1"
+      // overflow-y-visible is deliberate. Per CSS, setting overflow-x to
+      // anything but `visible` computes the other axis to `auto` too, so
+      // `overflow-x-auto` alone gave this container a vertical scrollbar as
+      // well — a second, nested scroll region down the side of a 1,900px-tall
+      // grid that the page already scrolls. Pinning y back to visible leaves
+      // only the horizontal scroll this actually needs.
+      className="relative overflow-x-auto overflow-y-visible pb-1"
       // 1.4.13: hover content must be dismissible without moving the pointer.
       onKeyDown={(e) => {
         if (e.key === "Escape") clearHover();

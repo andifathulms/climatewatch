@@ -205,12 +205,13 @@ export default function FingerprintPanel({
           aria-busy={loading}
         >
           <ClimateFingerprint
-              ensoEvents={ensoEvents}
             data={data}
+            ensoEvents={ensoEvents}
             showEnso={showEnso}
             onHoverYear={setHoverYear}
           />
-  
+        </div>
+
         <aside className="flex w-full min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:w-[15rem] lg:shrink-0">
           {/* Hovered-year readout. Reserves its own height so the panel does
               not reflow as the pointer moves across the grid. */}
@@ -264,7 +265,6 @@ export default function FingerprintPanel({
             </div>
           )}
         </aside>
-      </div>
       </div>
     </section>
   );
