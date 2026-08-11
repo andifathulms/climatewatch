@@ -1,8 +1,5 @@
 export type FingerprintVariable =
-  | "precipitation"
-  | "temp_max"
-  | "hot_days"
-  | "dry_days";
+  "precipitation" | "temp_max" | "hot_days" | "hot_days_local" | "dry_days";
 
 export interface Region {
   id: number;
@@ -15,6 +12,9 @@ export interface Region {
   bps_code: string;
   is_featured: boolean;
   has_data: boolean;
+  /** 95th percentile of this city's 1951-1980 daily max, in °C. Null if the
+   *  reference period is too incomplete to define one. */
+  hot_day_threshold_c: number | null;
 }
 
 export interface RegionDetail extends Region {
@@ -56,6 +56,7 @@ export interface FingerprintResponse {
   data: FingerprintCell[];
   stats: FingerprintStats;
   enso_events: ENSOEvent[];
+  hot_day_threshold_c: number | null;
 }
 
 export interface AnnualRow {
@@ -87,11 +88,50 @@ export interface SeasonRow {
   wet_season_end_doy: number | null;
 }
 
+export interface SeasonLength {
+  year: number;
+  length_days: number;
+}
+
 export interface SeasonResponse {
   region: Region;
   results: SeasonRow[];
   onset_trend: Trend;
   null_onset_years: number;
+  lengths: SeasonLength[];
+  length_trend: Trend;
+  /** True when the onset rule fires almost immediately at its Aug 1 scan start
+   *  in most years — the city has no detectable dry season, so onset and
+   *  length are artifacts of the rule and must not be trended. */
+  onset_saturated: boolean;
+  onset_saturated_share: number;
+}
+
+export interface MoverSignal {
+  field: string;
+  label: string;
+  unit: string;
+  per_decade: number;
+  z_per_decade: number;
+  direction: string;
+  first_year: number;
+  last_year: number;
+  n: number;
+  early_mean: number;
+  recent_mean: number;
+}
+
+export interface MoversResponse {
+  region: Region;
+  signals: MoverSignal[];
+  /** Null when nothing cleared the minimum movement threshold. */
+  leader: MoverSignal | null;
+  rule: {
+    method: string;
+    min_years: number;
+    min_abs_z: number;
+    excludes_current_year: boolean;
+  };
 }
 
 export interface ForecastContextResponse {

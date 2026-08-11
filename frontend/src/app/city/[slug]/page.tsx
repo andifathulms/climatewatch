@@ -7,6 +7,9 @@ import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import SeasonShiftScatter from "@/components/charts/SeasonShiftScatter";
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
 import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
+import SeasonLengthChart from "@/components/charts/SeasonLengthChart";
+import WhatMovedMost from "@/components/charts/WhatMovedMost";
+import PersonalBaseline from "@/components/charts/PersonalBaseline";
 
 // Required for `output: 'export'` (static mode) — every dynamic segment must
 // be enumerated at build time since there's no server to resolve one on
@@ -46,8 +49,8 @@ export default async function CityPage({
         <p className="eyebrow">No data yet</p>
         <h1 className="mt-4 text-hero font-semibold">{region.name}</h1>
         <p className="mt-4 leading-relaxed text-text-secondary">
-          Climate data for {region.name} hasn&apos;t been loaded yet. Run this on
-          the backend to fetch it:
+          Climate data for {region.name} hasn&apos;t been loaded yet. Run this
+          on the backend to fetch it:
         </p>
         <code className="font-numeric mt-5 block overflow-x-auto rounded-lg border border-border bg-surface-inset px-4 py-3 text-left text-xs text-heat-light">
           manage.py climate_bootstrap --slug {region.slug}
@@ -59,12 +62,18 @@ export default async function CityPage({
     );
   }
 
-  const [fingerprint, extremes, season, ensoImpact] = await Promise.all([
-    api.fingerprint(region, "precipitation"),
-    api.extremes(region).catch(() => null),
-    api.season(region).catch(() => null),
-    api.ensoImpact(region).catch(() => null),
-  ]);
+  const [fingerprint, tempMax, extremes, season, ensoImpact, movers] =
+    await Promise.all([
+      api.fingerprint(region, "precipitation"),
+      // Fetched here rather than inside PersonalBaseline: that panel is a
+      // client component (it re-baselines on ?since after mount) and so
+      // cannot read the static export off disk itself.
+      api.fingerprint(region, "temp_max").catch(() => null),
+      api.extremes(region).catch(() => null),
+      api.season(region).catch(() => null),
+      api.ensoImpact(region).catch(() => null),
+      api.movers(region).catch(() => null),
+    ]);
 
   const { year_from, year_to, years_loaded } = region.data_availability;
 
@@ -118,12 +127,26 @@ export default async function CityPage({
 
       <ForecastContextLoader region={region} />
 
+      {/* Lead with the signal that actually moved here, before the charts that
+          treat all four as equally important. */}
+      {movers && <WhatMovedMost data={movers} />}
+
       <FingerprintPanel region={region} initial={fingerprint} />
+
+      {tempMax && year_from !== null && year_to !== null && (
+        <PersonalBaseline
+          tempMax={tempMax}
+          yearFrom={year_from}
+          yearTo={year_to}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {extremes && <ExtremeDaysChart data={extremes} />}
         {season && <SeasonShiftScatter data={season} />}
       </div>
+
+      {season && <SeasonLengthChart data={season} />}
 
       {ensoImpact && <ENSOImpactCard data={ensoImpact} />}
 

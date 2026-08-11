@@ -2,9 +2,14 @@ export const metadata = { title: "About & methodology" };
 
 const DEFINITIONS: { term: string; body: string; color: string }[] = [
   {
-    term: "Hot day",
-    body: "Daily maximum temperature above 35°C.",
+    term: "Hot day (local)",
+    body: "A day hotter than 95% of days in this city's 1951–1980 record. The threshold is computed per city and then held fixed — a baseline that drifted upward with the warming it measures would report no change at all. This is what the Hot Days fingerprint shows.",
     color: "var(--heat-orange)",
+  },
+  {
+    term: "Hot day (absolute)",
+    body: "Daily maximum above 35°C. Kept for cross-city ranking, where a shared threshold is the point, but not used on city pages: 25 of the 90 loaded cities have never recorded a single one in 77 years, so it renders as an empty grid across a quarter of Indonesia. Warming in the tropics does not look like new record highs — it looks like the ordinary day moving.",
+    color: "var(--heat-light)",
   },
   {
     term: "Heavy rain day",
@@ -20,6 +25,21 @@ const DEFINITIONS: { term: string; body: string; color: string }[] = [
     term: "Wet season onset",
     body: "The first 5 consecutive days after August 1 with cumulative rainfall ≥ 40mm — a simplified BMKG-style definition.",
     color: "var(--enso-nina)",
+  },
+  {
+    term: "Wet season end",
+    body: "The last such 5-day spell before August 1 of the following year. This mirrors the onset rule rather than deriving from BMKG, so it is the weaker of the two definitions — and season length inherits the uncertainty of both.",
+    color: "var(--enso-nina)",
+  },
+  {
+    term: "Wet season length",
+    body: "Onset paired with the end of the same season, which falls in the next calendar year — a season beginning in October ends the following April. Seasons missing either endpoint are omitted, never interpolated.",
+    color: "var(--rain-light)",
+  },
+  {
+    term: "Saturated onset",
+    body: "The onset rule scans forward from August 1, so a city whose rain never really stops triggers it almost immediately nearly every year. Where that happens in more than half of years, the onset date reflects where the search starts rather than a seasonal turn: 12 of 90 cities behave this way, and for them we show no onset trend and no season length at all.",
+    color: "var(--drought-amber)",
   },
 ];
 
@@ -113,10 +133,10 @@ export default function AboutPage() {
 
       <Section eyebrow="Overlay" title="ENSO">
         <p className="max-w-prose leading-relaxed text-text-secondary">
-          El Niño / La Niña annotations use the Oceanic Niño Index (ONI) from the
-          NOAA Climate Prediction Center. El Niño tends to bring drier conditions
-          to Indonesia; La Niña wetter. Toggle the overlay on any Climate
-          Fingerprint to see the pattern against the rainfall grid.
+          El Niño / La Niña annotations use the Oceanic Niño Index (ONI) from
+          the NOAA Climate Prediction Center. El Niño tends to bring drier
+          conditions to Indonesia; La Niña wetter. Toggle the overlay on any
+          Climate Fingerprint to see the pattern against the rainfall grid.
         </p>
         <div className="flex flex-wrap gap-6 pt-2">
           <span className="flex items-center gap-2.5 text-sm text-text-secondary">
@@ -138,6 +158,29 @@ export default function AboutPage() {
         </div>
       </Section>
 
+      <Section
+        eyebrow="Ranking"
+        title="How &ldquo;what moved most&rdquo; is chosen"
+      >
+        <p className="max-w-prose leading-relaxed text-text-secondary">
+          Each city page leads with the one signal that changed most there,
+          because the four charts below it are the same size everywhere and that
+          quietly implies the four matter equally in every city. They do not.
+        </p>
+        <p className="max-w-prose leading-relaxed text-text-secondary">
+          The rule, in full: fit an ordinary least-squares line to the annual
+          series (the same fit drawn on every trend line on this site), express
+          the slope as change per decade, then divide by that series&rsquo; own
+          standard deviation. The result is standard deviations of movement per
+          decade, which puts millimetres and days on one comparable scale. It is
+          a normalisation, not a weighting — no signal is declared more
+          important than another. A signal needs at least 30 years of data to
+          rank, the incomplete current year is excluded, and when nothing clears
+          0.15 standard deviations per decade the page says so rather than
+          promoting the largest number in a flat field.
+        </p>
+      </Section>
+
       <Section eyebrow="Caveats" title="What this is not">
         <p className="max-w-prose leading-relaxed text-text-secondary">
           Reanalysis is a model. It is not a thermometer reading from your
@@ -145,6 +188,13 @@ export default function AboutPage() {
           narrow valleys, coastal microclimates. Read the trends, not any single
           cell. Where a region&apos;s data coverage drops below 90%, the page
           says so.
+        </p>
+        <p className="max-w-prose leading-relaxed text-text-secondary">
+          Every trend line here is a straight line fitted across the whole
+          record, which assumes the rate of change has been constant. It very
+          likely has not been. A straight fit cannot show a flat stretch
+          followed by a steep one, so read these as &ldquo;how much,
+          overall&rdquo; and not as &ldquo;when it started&rdquo;.
         </p>
       </Section>
 

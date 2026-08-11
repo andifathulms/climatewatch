@@ -40,6 +40,11 @@ export const RAMPS: Record<FingerprintVariable, string[]> = {
   ],
   temp_max: ["#2A1608", "#5C2A0E", "#9C3D14", "#D6591C", "#EE7A1E", "#FFA028"],
   hot_days: ["#3A1010", "#7A1E1A", "#B93227", "#E05B3D", "#F5794A", "#FF8A3C"],
+  // Same hue family as hot_days — it is the same phenomenon counted against a
+  // local rather than absolute threshold, so it must not read as a different
+  // variable. Kept a step warmer so the two are still distinguishable when
+  // someone toggles between them.
+  hot_days_local: ["#3A1408", "#7A2A12", "#B94A1E", "#E07330", "#F59248", "#FFAA3C"],
   dry_days: ["#2E2108", "#5E4310", "#8F6816", "#C08F1C", "#E0B324", "#F5CC2E"],
 };
 
@@ -58,6 +63,8 @@ export function buildColorScale(
     case "temp_max":
       return d3.scaleSequential(interp).domain([p10, p90]);
     case "hot_days":
+      return d3.scaleSequential(interp).domain([0, max]);
+    case "hot_days_local":
       return d3.scaleSequential(interp).domain([0, max]);
     case "dry_days":
       return d3.scaleSequential(interp).domain([0, max]);

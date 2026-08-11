@@ -24,6 +24,7 @@ const UNIT: Record<FingerprintVariable, string> = {
   precipitation: " mm",
   temp_max: "°C",
   hot_days: " days",
+  hot_days_local: " days",
   dry_days: " days",
 };
 

@@ -8,7 +8,7 @@ import ClimateFingerprint, { FingerprintLegend } from "./ClimateFingerprint";
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "precipitation", label: "Rainfall" },
   { key: "temp_max", label: "Temperature" },
-  { key: "hot_days", label: "Hot Days" },
+  { key: "hot_days_local", label: "Hot Days" },
   { key: "dry_days", label: "Dry Days" },
 ];
 
@@ -16,6 +16,7 @@ const BLURB: Record<FingerprintVariable, string> = {
   precipitation: "Total monthly rainfall",
   temp_max: "Average monthly maximum temperature",
   hot_days: "Days above 35°C per month",
+  hot_days_local: "Days hotter than 95% of this city's 1951–1980 days",
   dry_days: "Days below 1mm rain per month",
 };
 
@@ -31,6 +32,7 @@ const ROLLUP: Record<
   precipitation: { kind: "sum", label: "Annual total", unit: " mm" },
   temp_max: { kind: "mean", label: "Annual average", unit: "°C" },
   hot_days: { kind: "sum", label: "Hot days this year", unit: "" },
+  hot_days_local: { kind: "sum", label: "Hot days this year", unit: "" },
   dry_days: { kind: "sum", label: "Dry days this year", unit: "" },
 };
 
@@ -83,7 +85,19 @@ export default function FingerprintPanel({
             Climate Fingerprint
           </h2>
           <p className="mt-1.5 text-sm text-text-secondary">
-            {BLURB[data.variable]} ·{" "}
+            {BLURB[data.variable]}
+            {/* Name the actual threshold. A relative rule the reader cannot
+                see the value of is not a citable rule. */}
+            {data.variable === "hot_days_local" &&
+              data.hot_day_threshold_c !== null && (
+                <>
+                  {" — above "}
+                  <span className="font-numeric text-text-primary">
+                    {data.hot_day_threshold_c.toFixed(1)}°C
+                  </span>
+                </>
+              )}{" "}
+            ·{" "}
             <span className="font-numeric">
               {data.year_from}–{data.year_to}
             </span>

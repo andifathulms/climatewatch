@@ -6,6 +6,7 @@ import type {
   FingerprintResponse,
   FingerprintVariable,
   ForecastContextResponse,
+  MoversResponse,
   OverTimeResponse,
   RankingsResponse,
   RecordsResponse,
@@ -138,6 +139,12 @@ export const api = {
       return getStatic(`season/${region.slug}.json`);
     }
     return get(`/climate/${region.id}/season/`);
+  },
+  movers(region: RegionRef): Promise<MoversResponse> {
+    if (DATA_MODE === "static") {
+      return getStatic(`movers/${region.slug}.json`);
+    }
+    return get(`/climate/${region.id}/movers/`);
   },
   async forecastContext(
     region: RegionGeo & Partial<Region>,
