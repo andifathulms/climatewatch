@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { FingerprintResponse, FingerprintVariable, Region } from "@/lib/types";
 import ClimateFingerprint, { FingerprintLegend } from "./ClimateFingerprint";
+import SegmentedControl from "@/components/ui/SegmentedControl";
 
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "precipitation", label: "Rainfall" },
@@ -106,30 +107,13 @@ export default function FingerprintPanel({
 
         <div className="flex flex-col items-start gap-3 lg:items-end">
           {/* Segmented control */}
-          <div
-            role="tablist"
-            aria-label="Climate variable"
-            className="inline-flex rounded-full border border-border bg-surface-inset p-1"
-          >
-            {VARIABLES.map((v) => {
-              const on = variable === v.key;
-              return (
-                <button
-                  key={v.key}
-                  role="tab"
-                  aria-selected={on}
-                  onClick={() => setVariable(v.key)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ${
-                    on
-                      ? "bg-text-primary text-canvas shadow-sm"
-                      : "text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  {v.label}
-                </button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            name="fingerprint-variable"
+            label="Climate variable"
+            options={VARIABLES.map((v) => ({ value: v.key, label: v.label }))}
+            value={variable}
+            onChange={setVariable}
+          />
 
           {/* ENSO switch */}
           <button

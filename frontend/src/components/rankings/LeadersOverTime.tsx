@@ -1,5 +1,6 @@
 "use client";
 
+import SegmentedControl from "@/components/ui/SegmentedControl";
 import { useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -136,27 +137,16 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
             Who led each year
           </h2>
         </div>
-        <div
-          role="tablist"
-          aria-label="Metric"
-          className="inline-flex rounded-full border border-border bg-surface-inset p-1"
-        >
-          {(["temp", "rain"] as MetricKey[]).map((k) => (
-            <button
-              key={k}
-              role="tab"
-              aria-selected={metricKey === k}
-              onClick={() => setMetricKey(k)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-                metricKey === k
-                  ? "bg-text-primary text-canvas"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {data[k].label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          name="leaders-metric"
+          label="Metric"
+          options={(["temp", "rain"] as MetricKey[]).map((k) => ({
+            value: k,
+            label: data[k].label,
+          }))}
+          value={metricKey}
+          onChange={setMetricKey}
+        />
       </div>
 
       <p className="mb-4 max-w-prose text-sm leading-relaxed text-text-secondary">

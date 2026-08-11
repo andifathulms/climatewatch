@@ -1,5 +1,6 @@
 "use client";
 
+import SegmentedControl from "@/components/ui/SegmentedControl";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { RankingEntry, RankingsResponse } from "@/lib/types";
@@ -128,20 +129,15 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
 
   return (
     <section className="card p-6">
-      <div className="mb-5 flex flex-wrap gap-2">
-        {METRICS.map((m) => (
-          <button
-            key={m.key}
-            onClick={() => setMetric(m.key)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              m.key === metric
-                ? "bg-surface-muted text-text-primary ring-1 ring-border-strong"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            {m.label}
-          </button>
-        ))}
+      <div className="mb-5">
+        <SegmentedControl
+          name="rankings-metric"
+          label="Ranking metric"
+          variant="ghost"
+          options={METRICS.map((m) => ({ value: m.key, label: m.label }))}
+          value={metric}
+          onChange={setMetric}
+        />
       </div>
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

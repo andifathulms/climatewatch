@@ -1,5 +1,6 @@
 "use client";
 
+import SegmentedControl from "@/components/ui/SegmentedControl";
 import Link from "next/link";
 import { useState } from "react";
 import type {
@@ -70,44 +71,26 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
   return (
     <section className="card p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {METRICS.map((m) => (
-            <button
-              key={m.key}
-              onClick={() => setMetric(m.key)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                m.key === metric
-                  ? "bg-surface-muted text-text-primary ring-1 ring-border-strong"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          name="records-metric"
+          label="Record type"
+          variant="ghost"
+          options={METRICS.map((m) => ({ value: m.key, label: m.label }))}
+          value={metric}
+          onChange={setMetric}
+        />
 
         {/* Granularity toggle — the whole point of the section. */}
-        <div
-          role="tablist"
-          aria-label="Granularity"
-          className="inline-flex rounded-full border border-border bg-surface-inset p-1"
-        >
-          {(["month", "year"] as Grain[]).map((g) => (
-            <button
-              key={g}
-              role="tab"
-              aria-selected={grain === g}
-              onClick={() => setGrain(g)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium capitalize transition-all ${
-                grain === g
-                  ? "bg-text-primary text-canvas"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              By {g}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          name="records-grain"
+          label="Granularity"
+          options={[
+            { value: "month" as Grain, label: "Month" },
+            { value: "year" as Grain, label: "Year" },
+          ]}
+          value={grain}
+          onChange={setGrain}
+        />
       </div>
 
       <p className="eyebrow">{active.eyebrow(grain)}</p>
