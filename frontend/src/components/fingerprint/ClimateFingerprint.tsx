@@ -173,9 +173,8 @@ export default function ClimateFingerprint({
             x={LEFT + i * (cellW + PAD) + cellW / 2}
             y={TOP - 9}
             textAnchor="middle"
-            className="font-numeric"
+            className="svg-tick font-numeric"
             fill="var(--text-muted)"
-            fontSize={10}
             letterSpacing={0.5}
           >
             {m.toUpperCase()}
@@ -215,7 +214,7 @@ export default function ClimateFingerprint({
                 x={LEFT - GUTTER - BORDER - 4}
                 y={y + CELL_H / 2 + 3.5}
                 textAnchor="end"
-                className="font-numeric"
+                className="svg-tick font-numeric"
                 fill={
                   rowActive
                     ? "var(--text-primary)"
@@ -223,7 +222,6 @@ export default function ClimateFingerprint({
                       ? "var(--text-secondary)"
                       : "var(--text-muted)"
                 }
-                fontSize={10}
                 opacity={rowActive || isDecade ? 1 : 0.65}
               >
                 {year}

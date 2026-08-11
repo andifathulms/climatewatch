@@ -92,6 +92,16 @@
     box-shadow: var(--shadow), var(--rim);
   }
 
+  /* Tick labels inside an SVG (fingerprint axes, Recharts axes). A class,
+     not an attribute, because SVG presentation attributes cannot read a
+     custom property — CSS font-size on <text> can. */
+  /* Size only. Setting `fill` here would beat the dynamic fill *attribute*
+     on the fingerprint's year labels — CSS outranks SVG presentation
+     attributes — and flatten the decade / hovered-row highlighting. */
+  .svg-tick {
+    font-size: var(--svg-tick-size);
+  }
+
   /* Small monospaced label above a section title.
      On the scale, not beside it: this class is used 54 times across 24 files —
      it is the most-repeated label in the product — and it was the one place

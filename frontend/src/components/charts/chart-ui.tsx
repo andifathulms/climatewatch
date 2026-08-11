@@ -9,7 +9,13 @@ import type { ReactNode } from "react";
  */
 
 export const AXIS = {
-  tick: { fontSize: 11, fill: "var(--text-muted)", fontFamily: "var(--font-mono)" },
+  // Size comes from --svg-tick-size via .svg-tick; fill/family stay as
+  // attributes so Recharts keeps applying them per tick.
+  tick: {
+    className: "svg-tick",
+    fill: "var(--text-muted)",
+    fontFamily: "var(--font-mono)",
+  },
   stroke: "var(--axis-line)",
   tickLine: false,
 } as const;

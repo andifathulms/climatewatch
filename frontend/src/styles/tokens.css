@@ -64,6 +64,16 @@
      presentation sweep no .tsx sets a raw pixel font-size at all — if you are
      about to add `text-[Npx]`, add a rung here instead. */
   --text-2xs: 0.8125rem; /* 13px — metadata floor, labels only */
+
+  /* SVG tick labels. Separate from the ramp above because SVG font-size is in
+     user units: it scales with page zoom but ignores text-only zoom, so it
+     cannot honour the 13px DOM floor without crowding a 12-column grid whose
+     cells can be 26px wide. 12px is the compromise — up from the 10px and
+     11px literals that were scattered across two chart files. Unitless: SVG
+     attributes take a number, so it is read via getComputedStyle rather than
+     applied through the .svg-tick class, since SVG presentation attributes
+     cannot take a var(). */
+  --svg-tick-size: 12px;
   --text-xs: 0.875rem; /*  14px — dense labels, axis ticks */
   --text-sm: 0.9375rem; /* 15px — secondary UI */
   --text-base: 1rem; /*    16px — body floor */
