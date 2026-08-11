@@ -157,7 +157,14 @@ export default function ClimateFingerprint({
   }
 
   return (
-    <div ref={wrapRef} className="relative overflow-x-auto pb-1">
+    <div
+      ref={wrapRef}
+      className="relative overflow-x-auto pb-1"
+      // 1.4.13: hover content must be dismissible without moving the pointer.
+      onKeyDown={(e) => {
+        if (e.key === "Escape") clearHover();
+      }}
+    >
       <svg
         width={width}
         height={height}

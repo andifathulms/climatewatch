@@ -89,7 +89,13 @@ export default function IndonesiaMap({
         </p>
       </ChartHeader>
 
-      <div ref={wrapRef} className="relative">
+      <div
+        ref={wrapRef}
+        className="relative"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setTip(null);
+        }}
+      >
         {/* role="img" removed on purpose: it collapses the subtree into a
             single node, which would hide the 94 city links from assistive tech
             the moment they became real links. The <title> below names the
@@ -134,6 +140,21 @@ export default function IndonesiaMap({
                   });
                 }}
                 onMouseLeave={() =>
+                  setTip((t) => (t?.region.id === r.id ? null : t))
+                }
+                // 1.4.13: content available on hover must also be available on
+                // focus, and must be dismissible without moving the pointer.
+                // Positioned from the projected marker, not the pointer.
+                onFocus={() => {
+                  const box = wrapRef.current?.getBoundingClientRect();
+                  if (!box) return;
+                  setTip({
+                    x: (x / WIDTH) * box.width,
+                    y: (y / WIDTH) * box.width,
+                    region: r,
+                  });
+                }}
+                onBlur={() =>
                   setTip((t) => (t?.region.id === r.id ? null : t))
                 }
               >
