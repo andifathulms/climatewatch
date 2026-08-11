@@ -124,6 +124,13 @@ export interface MoverSignal {
   recent_mean: number;
 }
 
+/** One year's monthly values collapsed to a weighted-mean-preserving pair. */
+export interface YearlyAggregate {
+  year: number;
+  sum: number;
+  n: number;
+}
+
 export interface WorkedExampleDay {
   day: number;
   temp_max: number | null;

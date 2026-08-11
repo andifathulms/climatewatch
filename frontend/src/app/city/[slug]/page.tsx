@@ -140,6 +140,25 @@ export default async function CityPage({
       api.workedExample(region).catch(() => null),
     ]);
 
+  // Collapse 924 monthly cells to 77 {year, sum, n} rows before they cross
+  // into a client component. PersonalBaseline only ever averages over year
+  // ranges, and sum/count preserves that exactly — including for years with
+  // missing months, where the count carries the weighting.
+  const tempMaxByYear = tempMax
+    ? Object.values(
+        tempMax.data.reduce<Record<number, { year: number; sum: number; n: number }>>(
+          (acc, d) => {
+            if (d.value === null) return acc;
+            acc[d.year] ??= { year: d.year, sum: 0, n: 0 };
+            acc[d.year].sum += d.value;
+            acc[d.year].n += 1;
+            return acc;
+          },
+          {},
+        ),
+      )
+    : null;
+
   const { year_from, year_to, years_loaded } = region.data_availability;
 
   return (
@@ -211,9 +230,10 @@ export default async function CityPage({
         {workedExample && <WorkedExample data={workedExample} />}
 
         <FingerprintPanel region={region} initial={fingerprint} />
-        {tempMax && year_from !== null && year_to !== null && (
+        {tempMaxByYear && year_from !== null && year_to !== null && (
           <PersonalBaseline
-            tempMax={tempMax}
+            series={tempMaxByYear}
+            regionName={region.name}
             yearFrom={year_from}
             yearTo={year_to}
           />

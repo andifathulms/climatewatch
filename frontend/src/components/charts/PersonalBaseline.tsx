@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { FingerprintResponse } from "@/lib/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { YearlyAggregate } from "@/lib/types";
 import BaselineYearPicker from "@/components/ui/BaselineYearPicker";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
@@ -30,24 +30,39 @@ const MIN_WINDOW = 20;
 // end cannot masquerade as a trend.
 const WINDOW = 10;
 
+/**
+ * Mean of the monthly values across an inclusive year range.
+ *
+ * Takes per-year {sum, n} rather than the 924 monthly cells this used to
+ * receive: sum(sums) / sum(counts) is arithmetically identical to averaging
+ * the months directly, including where a year has missing months, because the
+ * counts carry the weighting. 77 numbers instead of 924 serialised into the
+ * page for a component that only ever needed decade averages.
+ */
 function meanBetween(
-  fp: FingerprintResponse,
+  series: YearlyAggregate[],
   from: number,
   to: number,
 ): number | null {
-  const values = fp.data
-    .filter((d) => d.year >= from && d.year <= to && d.value !== null)
-    .map((d) => d.value as number);
-  if (!values.length) return null;
-  return values.reduce((a, b) => a + b, 0) / values.length;
+  let sum = 0;
+  let n = 0;
+  for (const y of series) {
+    if (y.year >= from && y.year <= to) {
+      sum += y.sum;
+      n += y.n;
+    }
+  }
+  return n === 0 ? null : sum / n;
 }
 
 export default function PersonalBaseline({
-  tempMax,
+  series,
+  regionName,
   yearFrom,
   yearTo,
 }: {
-  tempMax: FingerprintResponse;
+  series: YearlyAggregate[];
+  regionName: string;
   yearFrom: number;
   yearTo: number;
 }) {
@@ -69,7 +84,17 @@ export default function PersonalBaseline({
   // a screenshot can always be traced back to the baseline that produced it.
   function apply(next: number | null) {
     setSince(next);
-    setAnnouncement("");
+    // Announced from here, not from an effect on `since`: an effect would also
+    // fire for the deep-link read on mount, announcing a figure the reader
+    // never asked to change.
+    const year = next ?? yearFrom;
+    const d = deltaFor(year);
+    setAnnouncement(
+      d === null
+        ? `Not enough data around ${year} to compare.`
+        : `Since ${year}, ${regionName}'s average daily high has moved ` +
+          `${d >= 0 ? "up" : "down"} ${Math.abs(d).toFixed(1)} degrees Celsius.`,
+    );
     const url = new URL(window.location.href);
     if (next === null) {
       url.searchParams.delete("since");
@@ -81,14 +106,22 @@ export default function PersonalBaseline({
 
   const baselineYear = since ?? yearFrom;
 
+  // Shared by the rendered figure and the announcement so the two cannot
+  // disagree about what the number is.
+  const deltaFor = useCallback(
+    (from: number): number | null => {
+      const early = meanBetween(series, from, from + WINDOW - 1);
+      const recent = meanBetween(series, yearTo - WINDOW, yearTo - 1);
+      if (early === null || recent === null) return null;
+      return recent - early;
+    },
+    [series, yearTo],
+  );
+
   const result = useMemo(() => {
-    // The most recent complete decade, against the decade starting at the
-    // chosen baseline.
-    const early = meanBetween(tempMax, baselineYear, baselineYear + WINDOW - 1);
-    const recent = meanBetween(tempMax, yearTo - WINDOW, yearTo - 1);
-    if (early === null || recent === null) return null;
-    return { early, recent, delta: recent - early };
-  }, [tempMax, baselineYear, yearTo]);
+    const delta = deltaFor(baselineYear);
+    return delta === null ? null : { delta };
+  }, [deltaFor, baselineYear]);
 
   return (
     <section className="card p-6">
@@ -96,7 +129,7 @@ export default function PersonalBaseline({
 
       {result ? (
         <p className="mt-3 max-w-prose font-display text-title font-semibold text-text-primary">
-          Since {baselineYear}, {tempMax.region.name}&rsquo;s average daily high
+          Since {baselineYear}, {regionName}&rsquo;s average daily high
           has moved{" "}
           <span
             className={
