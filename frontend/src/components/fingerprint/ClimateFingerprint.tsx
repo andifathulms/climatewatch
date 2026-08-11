@@ -66,32 +66,79 @@ export function FingerprintLegend({
   const scale = buildColorScale(variable, stats);
   const [lo, hi] = scale.domain() as [number, number];
 
+  // The scale tops out at the 90th percentile, not the maximum, so roughly one
+  // month in ten sits at or past the bright end and they are all drawn the same
+  // colour. Printing "0 … 385mm" with no qualifier reads as "385 is the
+  // wettest month" — it is not, and the months a reader most wants to find are
+  // exactly the ones this flattens. Say so where the scale is shown.
+  const cappedTop = stats.max !== null && hi < stats.max;
+  // temp_max runs p10..p90, so its scale clips at the cold end too — saying
+  // only "stops at the 90th" would be half the truth for that variable.
+  const cappedBottom = stats.min !== null && lo > stats.min;
+
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
-      <div className="flex items-center gap-2.5">
-        <span className="font-numeric text-2xs text-text-muted">
-          {lo.toFixed(0)}
-        </span>
-        <span
-          className="h-2 w-28 rounded-full ring-1 ring-inset ring-border"
-          style={{ background: gradient }}
-          role="img"
-          aria-label={`Color scale from ${lo.toFixed(0)} to ${hi.toFixed(0)}${UNIT[variable]}`}
-        />
-        <span className="font-numeric text-2xs text-text-muted">
-          {hi.toFixed(0)}
-          {UNIT[variable]}
-        </span>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="font-numeric text-2xs text-text-muted">
+            {lo.toFixed(0)}
+          </span>
+          <span
+            className="h-2 w-28 rounded-full ring-1 ring-inset ring-border"
+            style={{ background: gradient }}
+            role="img"
+            aria-label={`Color scale from ${lo.toFixed(0)} to ${hi.toFixed(0)}${UNIT[variable]}`}
+          />
+          <span className="font-numeric text-2xs text-text-muted">
+            {hi.toFixed(0)}
+            {UNIT[variable]}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
+            style={{ background: "var(--null-cell)" }}
+          />
+          <span className="text-2xs text-text-muted">no data</span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
-          style={{ background: "var(--null-cell)" }}
-        />
-        <span className="text-2xs text-text-muted">no data</span>
-      </div>
+      {(cappedTop || cappedBottom) && (
+        <p className="max-w-prose text-2xs leading-relaxed text-text-muted">
+          The scale stops at the 90th percentile —{" "}
+          <span className="font-numeric">
+            {hi.toFixed(0)}
+            {UNIT[variable]}
+          </span>
+          , the value nine months in ten fall below — so every month above it is
+          drawn the same brightest colour. The record maximum is actually{" "}
+          <span className="font-numeric text-text-secondary">
+            {stats.max?.toFixed(0)}
+            {UNIT[variable]}
+          </span>
+          .
+          {cappedBottom && (
+            <>
+              {" "}
+              The dark end is clipped the same way at the 10th percentile (
+              <span className="font-numeric">
+                {lo.toFixed(0)}
+                {UNIT[variable]}
+              </span>
+              ; lowest on record{" "}
+              <span className="font-numeric text-text-secondary">
+                {stats.min?.toFixed(0)}
+                {UNIT[variable]}
+              </span>
+              ).
+            </>
+          )}{" "}
+          The extremes are flattened on purpose — it keeps the middle 80% legible
+          — but it means this grid understates the outliers.
+        </p>
+      )}
     </div>
   );
 }
@@ -196,7 +243,9 @@ export default function ClimateFingerprint({
                 const v = cellMap.get(`${year}-${mi + 1}`) ?? null;
                 return (
                   <td key={mi}>
-                    {v === null ? "no data" : `${v.toFixed(1)}${UNIT[data.variable]}`}
+                    {v === null
+                      ? "no data"
+                      : `${v.toFixed(1)}${UNIT[data.variable]}`}
                   </td>
                 );
               })}
