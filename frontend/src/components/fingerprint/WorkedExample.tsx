@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorkedExampleResponse } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
 
@@ -27,6 +27,10 @@ import { MONTHS } from "@/lib/format";
 /** Round to one decimal without exposing float noise in the URL. */
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/** Quiet period before the URL is rewritten. Long enough that a full drag
+ *  produces one history entry, short enough to feel instant on release. */
+const URL_SYNC_MS = 300;
+
 export default function WorkedExample({
   data,
 }: {
@@ -44,16 +48,39 @@ export default function WorkedExample({
     if (Number.isFinite(n) && n >= 20 && n <= 40) setThreshold(round1(n));
   }, []);
 
+  // The URL write is debounced, the state update is not.
+  //
+  // A range input fires onChange on every pixel of a drag. Writing
+  // history.replaceState on each one tripped Safari's "more than 100 times per
+  // 10 seconds" limit, which throws a SecurityError — and because that throws
+  // inside a React event handler it took the whole page down with "a
+  // client-side exception has occurred". The slider felt fine right up until
+  // it killed the app.
+  //
+  // So: state moves immediately (the bars, count and dashed rule stay live at
+  // 60fps) and the URL catches up once the drag settles.
+  const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (urlTimer.current) clearTimeout(urlTimer.current);
+    };
+  }, []);
+
   function apply(next: number) {
     const v = round1(next);
     setThreshold(v);
-    const url = new URL(window.location.href);
-    if (official !== null && v === round1(official)) {
-      url.searchParams.delete("t");
-    } else {
-      url.searchParams.set("t", String(v));
-    }
-    window.history.replaceState(null, "", url);
+
+    if (urlTimer.current) clearTimeout(urlTimer.current);
+    urlTimer.current = setTimeout(() => {
+      const url = new URL(window.location.href);
+      if (official !== null && v === round1(official)) {
+        url.searchParams.delete("t");
+      } else {
+        url.searchParams.set("t", String(v));
+      }
+      window.history.replaceState(null, "", url);
+    }, URL_SYNC_MS);
   }
 
   const active = threshold ?? official;
