@@ -9,6 +9,7 @@ import type {
   FingerprintVariable,
 } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
+import { RAMPS, buildColorScale } from "./color-scale";
 
 const CELL_H = 22; // row height — one year
 const CELL_W_MIN = 26; // narrowest a month column may get before we scroll
@@ -25,50 +26,6 @@ const UNIT: Record<FingerprintVariable, string> = {
   hot_days: " days",
   dry_days: " days",
 };
-
-/**
- * Sequential ramps for the Musim Nokturnal (dark) surface.
- *
- * Anchored dark→vivid, not dark→pale. An earlier version of this ramp bottomed
- * out at a pale tint at the high end (e.g. near-white blue for max rainfall) —
- * technically the brightest cell, but pale/desaturated colors read as "faint"
- * regardless of lightness, so high-magnitude cells looked weaker than the
- * saturated-but-dark low-magnitude ones. Perceived "intensity" tracks
- * saturation more than raw lightness, so the fix keeps the low end dark *and*
- * muted (blends into the canvas, doesn't compete for attention) while the
- * high end is dark→light but stays fully saturated (vivid, "loud") the whole
- * way — never fading to pastel. That also satisfies the plain-language
- * reading "darker/more colorful = more rain/heat".
- *
- * Each ramp holds a single hue and is verified monotonic in both L* and
- * saturation (no dip at the top), and keeps its zero end chromatic so a true
- * zero stays distinct from a null cell (ΔE 13–26 vs --null-cell). Do not swap
- * these for the d3 built-ins.
- */
-const RAMPS: Record<FingerprintVariable, string[]> = {
-  precipitation: ["#122A42", "#1A4E7C", "#1C74AC", "#1998D6", "#22BBEF", "#4FD8FF"],
-  temp_max: ["#2A1608", "#5C2A0E", "#9C3D14", "#D6591C", "#EE7A1E", "#FFA028"],
-  hot_days: ["#3A1010", "#7A1E1A", "#B93227", "#E05B3D", "#F5794A", "#FF8A3C"],
-  dry_days: ["#2E2108", "#5E4310", "#8F6816", "#C08F1C", "#E0B324", "#F5CC2E"],
-};
-
-/** Build the D3 sequential color scale for a variable (domains per CLAUDE.md). */
-function buildColorScale(variable: FingerprintVariable, stats: FingerprintStats) {
-  const p90 = stats.p90 ?? stats.max ?? 1;
-  const p10 = stats.p10 ?? stats.min ?? 0;
-  const max = stats.max ?? 1;
-  const interp = d3.interpolateRgbBasis(RAMPS[variable]);
-  switch (variable) {
-    case "precipitation":
-      return d3.scaleSequential(interp).domain([0, p90]);
-    case "temp_max":
-      return d3.scaleSequential(interp).domain([p10, p90]);
-    case "hot_days":
-      return d3.scaleSequential(interp).domain([0, max]);
-    case "dry_days":
-      return d3.scaleSequential(interp).domain([0, max]);
-  }
-}
 
 /** Reduce ENSO monthly events to a dominant phase per year. */
 function ensoByYear(events: ENSOEvent[]): Map<number, ENSOEvent["phase"]> {
@@ -169,10 +126,7 @@ export default function ClimateFingerprint({
 
   const cellW =
     avail > 0
-      ? Math.max(
-          CELL_W_MIN,
-          Math.min(CELL_W_MAX, (avail - LEFT) / 12 - PAD),
-        )
+      ? Math.max(CELL_W_MIN, Math.min(CELL_W_MAX, (avail - LEFT) / 12 - PAD))
       : CELL_W_MIN;
 
   const years = useMemo(() => {
@@ -306,7 +260,9 @@ export default function ClimateFingerprint({
                     width={cellW}
                     height={CELL_H}
                     rx={3}
-                    fill={isNull ? "var(--null-cell)" : (color(value) as string)}
+                    fill={
+                      isNull ? "var(--null-cell)" : (color(value) as string)
+                    }
                     stroke={focused ? "var(--text-primary)" : "none"}
                     strokeWidth={focused ? 1.5 : 0}
                     opacity={hoverRow !== null && !rowActive ? 0.55 : 1}
