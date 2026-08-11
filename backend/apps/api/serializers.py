@@ -12,6 +12,7 @@ class RegionSerializer(serializers.ModelSerializer):
         fields = (
             "id", "name", "slug", "type", "latitude", "longitude",
             "province", "bps_code", "is_featured", "has_data",
+            "hot_day_threshold_c",
         )
 
     def get_has_data(self, obj):
@@ -54,8 +55,8 @@ class ClimateMonthlySerializer(serializers.ModelSerializer):
         model = ClimateMonthly
         fields = (
             "year", "month", "avg_temp_max", "avg_temp_min", "avg_temp_mean",
-            "total_precipitation", "hot_days", "heavy_rain_days",
-            "extreme_rain_days", "dry_days", "coverage",
+            "total_precipitation", "hot_days", "hot_days_local",
+            "heavy_rain_days", "extreme_rain_days", "dry_days", "coverage",
         )
 
 
@@ -64,7 +65,7 @@ class ClimateAnnualSerializer(serializers.ModelSerializer):
         model = ClimateAnnual
         fields = (
             "year", "avg_temp_max", "avg_temp_min", "total_precipitation",
-            "rainy_days", "hot_days", "cool_days", "heavy_rain_days",
+            "rainy_days", "hot_days", "hot_days_local", "cool_days", "heavy_rain_days",
             "extreme_rain_days", "max_consecutive_dry_days",
             "max_consecutive_hot_days",
             "wet_season_onset_doy", "wet_season_end_doy",

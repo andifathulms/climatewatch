@@ -9,6 +9,22 @@ from datetime import date
 from django.db.models import Avg, Count, Q, Sum
 
 from apps.climate.models import ClimateAnnual, ClimateDaily, ClimateMonthly
+from apps.regions.models import IndonesiaRegion
+
+
+def _local_threshold(region_id: int) -> float | None:
+    """
+    The region's own hot-day threshold, or None if it has not been computed.
+
+    Kept as a lookup rather than a recomputation: it is a fixed 1951-1980
+    baseline, so recomputing it here as new years arrive would let it drift
+    upward with the very warming it exists to measure.
+    """
+    return (
+        IndonesiaRegion.objects.filter(pk=region_id)
+        .values_list("hot_day_threshold_c", flat=True)
+        .first()
+    )
 
 
 def rebuild_climate_monthly(region_id: int, year: int, month: int):
@@ -16,6 +32,7 @@ def rebuild_climate_monthly(region_id: int, year: int, month: int):
     qs = ClimateDaily.objects.filter(
         region_id=region_id, date__year=year, date__month=month
     )
+    threshold = _local_threshold(region_id)
     result = qs.aggregate(
         avg_temp_max=Avg("temp_max"),
         avg_temp_min=Avg("temp_min"),
@@ -25,6 +42,9 @@ def rebuild_climate_monthly(region_id: int, year: int, month: int):
         heavy_rain_days=Count("id", filter=Q(precipitation_mm__gt=50)),
         extreme_rain_days=Count("id", filter=Q(precipitation_mm__gt=100)),
         dry_days=Count("id", filter=Q(precipitation_mm__lt=1)),
+    )
+    result["hot_days_local"] = (
+        qs.filter(temp_max__gt=threshold).count() if threshold is not None else 0
     )
 
     days_in_month = calendar.monthrange(year, month)[1]
@@ -128,6 +148,10 @@ def rebuild_climate_annual(region_id: int, year: int):
         cool_days=Count("id", filter=Q(temp_min__lt=20)),
         heavy_rain_days=Count("id", filter=Q(precipitation_mm__gt=50)),
         extreme_rain_days=Count("id", filter=Q(precipitation_mm__gt=100)),
+    )
+    threshold = _local_threshold(region_id)
+    result["hot_days_local"] = (
+        qs.filter(temp_max__gt=threshold).count() if threshold is not None else 0
     )
     result["max_consecutive_dry_days"] = compute_max_consecutive_dry_days(
         region_id, year

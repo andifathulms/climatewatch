@@ -4,10 +4,17 @@ from statistics import mean
 from apps.climate.models import ClimateMonthly
 
 # variable name -> ClimateMonthly field
+#
+# `hot_days_local` counts days above the region's own 1951-1980 95th
+# percentile; `hot_days` counts days above a flat 35°C. Both are exported —
+# the local one is what the UI shows (the absolute rule is zero for 25 of 90
+# cities, i.e. a blank grid), the absolute one stays for cross-city ranking
+# where a shared threshold is the whole point.
 VARIABLE_FIELDS = {
     "precipitation": "total_precipitation",
     "temp_max": "avg_temp_max",
     "hot_days": "hot_days",
+    "hot_days_local": "hot_days_local",
     "dry_days": "dry_days",
 }
 
@@ -59,4 +66,9 @@ def build_fingerprint(region, variable: str, year_from: int, year_to: int) -> di
         "year_to": year_to,
         "data": data,
         "stats": stats,
+        # Ships on every variable so the client never has to special-case a
+        # missing key; only hot_days_local is actually defined by it. Null
+        # means this region has no computed baseline, and the client must not
+        # claim a threshold it cannot name.
+        "hot_day_threshold_c": region.hot_day_threshold_c,
     }

@@ -60,7 +60,15 @@ class ClimateMonthly(BaseModel):
     avg_temp_min = models.FloatField(null=True, blank=True)
     avg_temp_mean = models.FloatField(null=True, blank=True)
     total_precipitation = models.FloatField(null=True, blank=True)
-    hot_days = models.IntegerField(default=0)
+    hot_days = models.IntegerField(
+        default=0, help_text="Days with temp_max > 35C (absolute, cross-city comparable)"
+    )
+    # Days above this region's own 1951-1980 95th percentile. Unlike hot_days
+    # this is alive in every city, so it is what the UI shows; hot_days stays
+    # for cross-city comparison, where a shared absolute threshold is the point.
+    hot_days_local = models.IntegerField(
+        default=0, help_text="Days above the region's hot_day_threshold_c"
+    )
     heavy_rain_days = models.IntegerField(default=0)
     extreme_rain_days = models.IntegerField(default=0)
     dry_days = models.IntegerField(default=0)
@@ -97,6 +105,9 @@ class ClimateAnnual(BaseModel):
     total_precipitation = models.FloatField(null=True, blank=True)
     rainy_days = models.IntegerField(default=0)
     hot_days = models.IntegerField(default=0)
+    hot_days_local = models.IntegerField(
+        default=0, help_text="Days above the region's hot_day_threshold_c"
+    )
     cool_days = models.IntegerField(default=0)
     heavy_rain_days = models.IntegerField(default=0)
     extreme_rain_days = models.IntegerField(default=0)
