@@ -76,6 +76,14 @@ export default function WorkedExample({
     return { sum, mean, count };
   }, [rains, temps, active]);
 
+  // Same scale the bars use, so the dashed rule lands exactly where a bar of
+  // that temperature would reach.
+  const thresholdY =
+    active === null || !temps.length
+      ? null
+      : Math.min(52, Math.max(0, 16 + ((active - Math.min(...temps)) /
+          Math.max(Math.max(...temps) - Math.min(...temps), 1)) * 34));
+
   const hottest = temps.length ? Math.max(...temps) : 0;
   const coolest = temps.length ? Math.min(...temps) : 0;
   const span = Math.max(hottest - coolest, 1);
@@ -90,9 +98,30 @@ export default function WorkedExample({
 
       <p className="mt-4 max-w-prose leading-relaxed text-text-secondary">
         {monthLabel} in {data.region.name} — the most recent month with a
-        reading for every single day. Each bar is one day&rsquo;s highest
-        temperature; the number under it is that day&rsquo;s rainfall.
+        reading for every single day.
       </p>
+
+      {/* The strip has three rows and they were unlabelled, so the two numbers
+          under each bar could have been anything. Say what they are before
+          showing them. */}
+      <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-2xs text-text-muted">
+        <li className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="inline-block h-3 w-2 rounded-[2px]"
+            style={{ background: "var(--border-strong)" }}
+          />
+          bar height = that day&rsquo;s highest temperature
+        </li>
+        <li>
+          <span className="font-numeric text-text-secondary">30°</span> = the
+          same number, in °C
+        </li>
+        <li>
+          <span className="font-numeric text-rain-light">1mm</span> = that
+          day&rsquo;s rainfall
+        </li>
+      </ul>
 
       {/* ── The raw days ─────────────────────────────────────────────── */}
       <ol className="mt-6 flex flex-wrap gap-1">
@@ -112,17 +141,33 @@ export default function WorkedExample({
                 {d.day}
               </span>
               <span
-                className="flex w-full items-end justify-center rounded-[3px]"
+                className="relative flex w-full items-end justify-center rounded-[3px]"
                 style={{ height: 52 }}
               >
+                {/* The threshold drawn across the bars, so dragging the slider
+                    visibly raises or lowers the line and you can see which
+                    bars cross it — rather than only watching a count change. */}
+                {thresholdY !== null && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0"
+                    style={{
+                      bottom: thresholdY,
+                      borderTop: "1px dashed var(--heat-light)",
+                      opacity: 0.75,
+                    }}
+                  />
+                )}
                 <span
                   className="w-full rounded-[3px]"
                   style={{
                     height,
+                    // --surface-muted on a --surface card was near-invisible:
+                    // the bars read as empty boxes and the height encoding
+                    // conveyed nothing at all.
                     background: isHot
                       ? "var(--heat-orange)"
-                      : "var(--surface-muted)",
-                    outline: isHot ? "1px solid var(--heat-light)" : "none",
+                      : "var(--border-strong)",
                   }}
                 />
               </span>
@@ -131,12 +176,12 @@ export default function WorkedExample({
                   isHot ? "text-heat-light" : "text-text-muted"
                 }`}
               >
-                {d.temp_max === null ? "—" : d.temp_max.toFixed(0)}
+                {d.temp_max === null ? "—" : `${d.temp_max.toFixed(0)}°`}
               </span>
               <span className="font-numeric text-2xs text-rain-light">
                 {d.precipitation_mm === null
                   ? "—"
-                  : d.precipitation_mm.toFixed(0)}
+                  : `${d.precipitation_mm.toFixed(0)}mm`}
               </span>
             </li>
           );
