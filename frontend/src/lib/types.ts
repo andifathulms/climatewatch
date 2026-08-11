@@ -62,11 +62,14 @@ export interface FingerprintResponse {
 export interface AnnualRow {
   year: number;
   hot_days: number;
+  /** Days above this city's own 1951-1980 p95 threshold. */
+  hot_days_local: number;
   cool_days: number;
   heavy_rain_days: number;
   extreme_rain_days: number;
   max_consecutive_dry_days: number;
   max_consecutive_hot_days: number;
+  max_consecutive_hot_days_local: number;
 }
 
 export interface Trend {

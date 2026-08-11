@@ -67,7 +67,7 @@ class ClimateAnnualSerializer(serializers.ModelSerializer):
             "year", "avg_temp_max", "avg_temp_min", "total_precipitation",
             "rainy_days", "hot_days", "hot_days_local", "cool_days", "heavy_rain_days",
             "extreme_rain_days", "max_consecutive_dry_days",
-            "max_consecutive_hot_days",
+            "max_consecutive_hot_days", "max_consecutive_hot_days_local",
             "wet_season_onset_doy", "wet_season_end_doy",
         )
 

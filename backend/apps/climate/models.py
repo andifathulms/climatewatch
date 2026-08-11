@@ -115,6 +115,14 @@ class ClimateAnnual(BaseModel):
     max_consecutive_hot_days = models.IntegerField(
         default=0, help_text="Longest streak of consecutive days with temp_max > 35C"
     )
+    # Same streak against the region's own threshold. The absolute version is
+    # zero for 25 of 90 cities, which made both the extremes chart and the
+    # rankings column read as "no heatwaves here" when it only meant "never
+    # above a number borrowed from a different climate".
+    max_consecutive_hot_days_local = models.IntegerField(
+        default=0,
+        help_text="Longest streak of consecutive days above hot_day_threshold_c",
+    )
     wet_season_onset_doy = models.IntegerField(null=True, blank=True)
     wet_season_end_doy = models.IntegerField(null=True, blank=True)
 

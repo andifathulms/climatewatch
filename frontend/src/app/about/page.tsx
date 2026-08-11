@@ -7,6 +7,11 @@ const DEFINITIONS: { term: string; body: string; color: string }[] = [
     color: "var(--heat-orange)",
   },
   {
+    term: "Hot spell / heatwave",
+    body: "The longest run of consecutive days above a threshold in a single year; a day with no data breaks the run rather than extending it, and runs do not carry across the New Year. City pages use the local threshold. The rankings table keeps the absolute 35°C version, because ranking cities against thresholds that differ per city would compare events that are not the same event — the cost is that 25 of 90 cities read “never” there.",
+    color: "var(--heat-orange)",
+  },
+  {
     term: "Hot day (absolute)",
     body: "Daily maximum above 35°C. Kept for cross-city ranking, where a shared threshold is the point, but not used on city pages: 25 of the 90 loaded cities have never recorded a single one in 77 years, so it renders as an empty grid across a quarter of Indonesia. Warming in the tropics does not look like new record highs — it looks like the ordinary day moving.",
     color: "var(--heat-light)",

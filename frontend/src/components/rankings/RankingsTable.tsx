@@ -80,9 +80,13 @@ const METRICS: {
   {
     key: "heatwave",
     label: "Longest heatwave",
+    // Stays on the absolute 35°C rule on purpose. This is a leaderboard, and
+    // ranking cities against thresholds that differ per city would compare
+    // events that are not the same event. The cost is that 25 of 90 cities
+    // have never had one — which "never" states plainly and "0 days" did not.
     eyebrow: "Longest streak above 35°C, any year on record",
     get: (r) => r.max_consecutive_hot_days,
-    format: (v) => `${v.toFixed(0)} days`,
+    format: (v) => (v === 0 ? "never" : `${v.toFixed(0)} days`),
     sort: "desc",
     color: "var(--heat-orange)",
     baseline: "zero",

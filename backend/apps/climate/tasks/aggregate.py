@@ -74,7 +74,16 @@ def compute_max_consecutive_dry_days(region_id: int, year: int) -> int:
     return best
 
 
-def compute_max_consecutive_hot_days(region_id: int, year: int) -> int:
+def compute_max_consecutive_hot_days(
+    region_id: int, year: int, threshold: float = 35.0
+) -> int:
+    """
+    Longest run of consecutive days above `threshold`.
+
+    Defaults to the absolute 35C rule; callers pass the region's own threshold
+    for the local variant. A null day breaks the run rather than extending it —
+    missing data is not evidence of a continued heatwave.
+    """
     days = (
         ClimateDaily.objects.filter(region_id=region_id, date__year=year)
         .order_by("date")
@@ -82,7 +91,7 @@ def compute_max_consecutive_hot_days(region_id: int, year: int) -> int:
     )
     best = run = 0
     for t in days:
-        if t is not None and t > 35:
+        if t is not None and t > threshold:
             run += 1
             best = max(best, run)
         else:
@@ -158,6 +167,11 @@ def rebuild_climate_annual(region_id: int, year: int):
     )
     result["max_consecutive_hot_days"] = compute_max_consecutive_hot_days(
         region_id, year
+    )
+    result["max_consecutive_hot_days_local"] = (
+        compute_max_consecutive_hot_days(region_id, year, threshold)
+        if threshold is not None
+        else 0
     )
     result["wet_season_onset_doy"] = compute_wet_season_onset(region_id, year)
     result["wet_season_end_doy"] = compute_wet_season_end(region_id, year)

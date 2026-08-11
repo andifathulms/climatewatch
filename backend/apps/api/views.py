@@ -153,15 +153,18 @@ class ExtremesView(ClimateEndpoint):
         region = self.get_region(region_id)
         qs = ClimateAnnual.objects.filter(region=region).order_by("year")
         rows = list(qs.values(
-            "year", "hot_days", "cool_days", "heavy_rain_days",
-            "extreme_rain_days", "max_consecutive_dry_days",
-            "max_consecutive_hot_days",
+            "year", "hot_days", "hot_days_local", "cool_days",
+            "heavy_rain_days", "extreme_rain_days",
+            "max_consecutive_dry_days",
+            "max_consecutive_hot_days", "max_consecutive_hot_days_local",
         ))
 
         trends = {}
-        for metric in ("hot_days", "cool_days", "heavy_rain_days",
-                       "extreme_rain_days", "max_consecutive_dry_days",
-                       "max_consecutive_hot_days"):
+        for metric in ("hot_days", "hot_days_local", "cool_days",
+                       "heavy_rain_days", "extreme_rain_days",
+                       "max_consecutive_dry_days",
+                       "max_consecutive_hot_days",
+                       "max_consecutive_hot_days_local"):
             pts = [(r["year"], r[metric]) for r in rows if r[metric] is not None]
             trends[metric] = _linreg(pts)
 
@@ -777,6 +780,7 @@ MOVER_SIGNALS = {
     "total_precipitation": ("Annual rainfall", "mm", "wetter", "drier"),
     "heavy_rain_days": ("Heavy rain days", "days/yr", "more", "fewer"),
     "max_consecutive_dry_days": ("Longest dry spell", "days", "longer", "shorter"),
+    "max_consecutive_hot_days_local": ("Longest hot spell", "days", "longer", "shorter"),
 }
 
 

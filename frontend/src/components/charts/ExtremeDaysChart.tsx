@@ -27,16 +27,29 @@ const METRICS: {
   label: string;
   short: string;
 }[] = [
-  { key: "hot_days", label: "Hot days (>35°C)", short: "Hot days" },
+  // Local threshold first, and the default: >35°C is zero for 25 of 90
+  // cities, so the chart used to open on a flat line at zero for more than a
+  // quarter of the country. The absolute rule stays available below it.
+  { key: "hot_days_local", label: "Hot days (local)", short: "Hot days" },
   { key: "heavy_rain_days", label: "Heavy rain (>50mm)", short: "Heavy rain days" },
   { key: "extreme_rain_days", label: "Extreme rain (>100mm)", short: "Extreme rain days" },
   { key: "max_consecutive_dry_days", label: "Longest dry spell", short: "Dry spell (days)" },
-  { key: "max_consecutive_hot_days", label: "Longest heatwave", short: "Heatwave (days)" },
+  {
+    key: "max_consecutive_hot_days_local",
+    label: "Longest hot spell",
+    short: "Hot spell (days)",
+  },
   { key: "cool_days", label: "Cool days (<20°C)", short: "Cool days" },
+  { key: "hot_days", label: "Hot days (>35°C)", short: "Hot days >35°C" },
+  {
+    key: "max_consecutive_hot_days",
+    label: "Longest heatwave (>35°C)",
+    short: "Heatwave (days)",
+  },
 ];
 
 export default function ExtremeDaysChart({ data }: { data: ExtremesResponse }) {
-  const [metric, setMetric] = useState<string>("hot_days");
+  const [metric, setMetric] = useState<string>("hot_days_local");
   const active = METRICS.find((m) => m.key === metric) ?? METRICS[0];
 
   const rows = data.results.map((r) => ({
@@ -76,6 +89,19 @@ export default function ExtremeDaysChart({ data }: { data: ExtremesResponse }) {
           </select>
         </label>
       </ChartHeader>
+
+      {/* A relative threshold whose value the reader cannot see is not a
+          citable threshold — name it wherever the local metrics are shown. */}
+      {active.key.toString().endsWith("_local") &&
+        data.region.hot_day_threshold_c !== null && (
+          <p className="mb-3 text-2xs text-text-muted">
+            &ldquo;Hot&rdquo; here means above{" "}
+            <span className="font-numeric text-text-secondary">
+              {data.region.hot_day_threshold_c.toFixed(1)}°C
+            </span>{" "}
+            — hotter than 95% of {data.region.name}&rsquo;s 1951–1980 days.
+          </p>
+        )}
 
       {/* The headline sentence — the chart's actual finding, in words. */}
       {first && last && (

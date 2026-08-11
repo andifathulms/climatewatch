@@ -1,5 +1,5 @@
 """
-Compute each region's local hot-day threshold and backfill hot_days_local.
+Compute each region's local hot-day threshold and backfill what derives from it.
 
 Why this exists
 ---------------
@@ -18,19 +18,25 @@ The threshold is per region and, once written, fixed. It must never be
 recomputed against a moving window — a baseline that drifts upward with the
 warming it measures would report no change at all.
 
+Derived from the threshold, and refreshed on every run:
+  · ClimateMonthly.hot_days_local
+  · ClimateAnnual.hot_days_local
+  · ClimateAnnual.max_consecutive_hot_days_local
+
 Running it
 ----------
     python manage.py compute_local_baseline            # all regions
     python manage.py compute_local_baseline --slug jakarta
-    python manage.py compute_local_baseline --force    # overwrite existing
+    python manage.py compute_local_baseline --force    # recompute thresholds
 
-Idempotent. Skips regions that already have a threshold unless --force, so a
-re-run cannot silently move anyone's baseline.
+Idempotent, and safe to re-run when a new derived field is added: an existing
+threshold is reused rather than recomputed, so only --force can ever move a
+baseline. Everything downstream of it is rebuilt from scratch each time.
 """
 from django.core.management.base import BaseCommand
 from django.db import connection, transaction
 
-from apps.climate.models import ClimateAnnual, ClimateMonthly
+from apps.climate.models import ClimateAnnual, ClimateDaily, ClimateMonthly
 from apps.regions.models import IndonesiaRegion
 
 BASELINE_FROM = 1951
@@ -43,14 +49,20 @@ MIN_BASELINE_DAYS = 7000  # ~64% of the 10,957 days in 1951-1980
 
 
 class Command(BaseCommand):
-    help = "Compute per-region 1951-1980 p95 temp_max threshold and backfill hot_days_local."
+    help = (
+        "Compute per-region 1951-1980 p95 temp_max threshold, then rebuild "
+        "every count and streak that derives from it."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--slug", help="Only this region.")
         parser.add_argument(
             "--force",
             action="store_true",
-            help="Recompute thresholds that are already set (moves the baseline — be sure).",
+            help=(
+                "Recompute thresholds that are already set. This MOVES the "
+                "baseline — derived counts are rebuilt on every run without it."
+            ),
         )
 
     def handle(self, *args, **options):
@@ -58,35 +70,45 @@ class Command(BaseCommand):
         if options["slug"]:
             regions = regions.filter(slug=options["slug"])
 
-        done = skipped = insufficient = 0
+        computed = reused = insufficient = 0
 
         for region in regions:
-            if region.hot_day_threshold_c is not None and not options["force"]:
-                skipped += 1
-                continue
-
-            threshold = self._percentile_temp_max(region.id)
-            if threshold is None:
-                insufficient += 1
-                self.stdout.write(
-                    f"  – {region.slug}: insufficient {BASELINE_FROM}-{BASELINE_TO} data, skipped"
-                )
-                continue
+            # Two separable steps: establishing the baseline, and recounting
+            # what derives from it. --force governs only the first. Keeping
+            # them apart means adding a new derived field (as
+            # max_consecutive_hot_days_local was) can be backfilled by a plain
+            # re-run, without --force and so without any risk of moving a
+            # baseline that is supposed to be permanent.
+            if region.hot_day_threshold_c is None or options["force"]:
+                threshold = self._percentile_temp_max(region.id)
+                if threshold is None:
+                    insufficient += 1
+                    self.stdout.write(
+                        f"  – {region.slug}: insufficient "
+                        f"{BASELINE_FROM}-{BASELINE_TO} data, skipped"
+                    )
+                    continue
+                region.hot_day_threshold_c = round(threshold, 2)
+                computed += 1
+                note = "computed"
+            else:
+                reused += 1
+                note = "existing"
 
             with transaction.atomic():
-                region.hot_day_threshold_c = round(threshold, 2)
                 region.save(update_fields=["hot_day_threshold_c"])
-                monthly, annual = self._backfill(region.id, region.hot_day_threshold_c)
+                monthly, annual = self._backfill(
+                    region.id, region.hot_day_threshold_c
+                )
 
-            done += 1
             self.stdout.write(
-                f"  ✓ {region.slug}: {region.hot_day_threshold_c}°C "
-                f"({monthly} monthly, {annual} annual rows)"
+                f"  ✓ {region.slug}: {region.hot_day_threshold_c}°C ({note}) "
+                f"— {monthly} monthly, {annual} annual rows"
             )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Thresholds written: {done} · already set: {skipped} · "
+                f"Thresholds computed: {computed} · reused: {reused} · "
                 f"insufficient baseline: {insufficient}"
             )
         )
@@ -175,4 +197,53 @@ class Command(BaseCommand):
             )
             annual = cur.rowcount
 
+        Command._backfill_streaks(region_id, threshold)
         return monthly, annual
+
+    @staticmethod
+    def _backfill_streaks(region_id: int, threshold: float) -> None:
+        """
+        Longest run of consecutive days above the threshold, per year.
+
+        Done in Python rather than SQL: a streak is a gaps-and-islands problem,
+        and the window-function version is far harder to read than the loop
+        while producing the same answer. One query per region, one pass.
+
+        A null day breaks the run rather than extending it — missing data is
+        not evidence that a heatwave continued.
+        """
+        rows = (
+            ClimateDaily.objects.filter(region_id=region_id)
+            .order_by("date")
+            .values_list("date", "temp_max")
+        )
+
+        best_by_year: dict[int, int] = {}
+        run = 0
+        current_year: int | None = None
+        for day, temp in rows.iterator(chunk_size=20_000):
+            # Reset at the year boundary. rebuild_climate_annual() computes
+            # this per year and would otherwise overwrite the backfill with a
+            # different number the first time it runs — a streak carried from
+            # December into January would also be credited entirely to the new
+            # year, which is not what "longest heatwave of 1998" means.
+            if day.year != current_year:
+                current_year = day.year
+                run = 0
+            if temp is not None and temp > threshold:
+                run += 1
+            else:
+                run = 0
+            if run > best_by_year.get(day.year, 0):
+                best_by_year[day.year] = run
+
+        annual_rows = list(
+            ClimateAnnual.objects.filter(region_id=region_id).only(
+                "id", "year", "max_consecutive_hot_days_local"
+            )
+        )
+        for row in annual_rows:
+            row.max_consecutive_hot_days_local = best_by_year.get(row.year, 0)
+        ClimateAnnual.objects.bulk_update(
+            annual_rows, ["max_consecutive_hot_days_local"], batch_size=500
+        )
