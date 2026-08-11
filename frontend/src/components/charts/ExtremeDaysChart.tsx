@@ -17,6 +17,7 @@ import {
   CHART_MARGIN,
   CURSOR,
   ChartHeader,
+  type HeadingLevel,
   ChartTooltip,
   LegendKey,
   GRID,
@@ -48,7 +49,13 @@ const METRICS: {
   },
 ];
 
-export default function ExtremeDaysChart({ data }: { data: ExtremesResponse }) {
+export default function ExtremeDaysChart({
+  data,
+  headingLevel = "h2",
+}: {
+  data: ExtremesResponse;
+  headingLevel?: HeadingLevel;
+}) {
   const [metric, setMetric] = useState<string>("hot_days_local");
   const active = METRICS.find((m) => m.key === metric) ?? METRICS[0];
 
@@ -73,7 +80,7 @@ export default function ExtremeDaysChart({ data }: { data: ExtremesResponse }) {
 
   return (
     <section className="card p-6">
-      <ChartHeader eyebrow="Extremes" title="Extreme Days">
+      <ChartHeader level={headingLevel} eyebrow="Extremes" title="Extreme Days">
         <label className="flex flex-col gap-1">
           <span className="sr-only">Metric</span>
           <select

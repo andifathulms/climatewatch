@@ -81,9 +81,9 @@ export default function FingerprintPanel({
       <div className="flex flex-col gap-4 border-b border-border p-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="eyebrow">The signature view</p>
-          <h2 className="mt-2 font-display text-2xl font-semibold">
+          <h3 className="mt-2 font-display text-2xl font-semibold">
             Climate Fingerprint
-          </h2>
+          </h3>
           <p className="mt-1.5 text-sm text-text-secondary">
             {BLURB[data.variable]}
             {/* Name the actual threshold. A relative rule the reader cannot

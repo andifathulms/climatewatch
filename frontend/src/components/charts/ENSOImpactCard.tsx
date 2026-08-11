@@ -1,6 +1,6 @@
 import type { EnsoImpactResponse } from "@/lib/types";
 import { fmt } from "@/lib/format";
-import { ChartHeader } from "./chart-ui";
+import { ChartHeader, type HeadingLevel } from "./chart-ui";
 
 const PHASES: {
   key: "EL_NINO" | "LA_NINA";
@@ -16,7 +16,13 @@ const PHASES: {
  * months, relative to its own Neutral-month baseline (not a global norm —
  * "drier than usual here", not "dry in absolute terms").
  */
-export default function ENSOImpactCard({ data }: { data: EnsoImpactResponse }) {
+export default function ENSOImpactCard({
+  data,
+  headingLevel = "h2",
+}: {
+  data: EnsoImpactResponse;
+  headingLevel?: HeadingLevel;
+}) {
   const { phases, deltas } = data;
   const hasSignal = PHASES.some((p) => phases[p.key].months > 0);
 
@@ -24,7 +30,7 @@ export default function ENSOImpactCard({ data }: { data: EnsoImpactResponse }) {
 
   return (
     <section className="card p-6">
-      <ChartHeader eyebrow="ENSO" title="El Niño / La Niña Impact" />
+      <ChartHeader level={headingLevel} eyebrow="ENSO" title="El Niño / La Niña Impact" />
       <p className="mb-5 max-w-prose text-sm leading-relaxed text-text-secondary">
         Average monthly rainfall and temperature during each ENSO phase since
         1950, compared against this city&apos;s own{" "}

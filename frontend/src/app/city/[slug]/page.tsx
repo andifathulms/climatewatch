@@ -40,6 +40,32 @@ export async function generateMetadata({
   }
 }
 
+/**
+ * One band of related panels.
+ *
+ * The group label is the <h2>; the panels inside carry <h3>. That is what
+ * makes this page's outline two levels deep — it was nine sibling <h2>s with
+ * no indication of which belonged together.
+ */
+function PageGroup({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-labelledby={id} className="pt-6">
+      <h2 id={id} className="eyebrow mb-4">
+        {label}
+      </h2>
+      <div className="space-y-5">{children}</div>
+    </section>
+  );
+}
+
 export default async function CityPage({
   params,
 }: {
@@ -139,28 +165,36 @@ export default async function CityPage({
 
       <ForecastContextLoader region={region} />
 
-      {/* Lead with the signal that actually moved here, before the charts that
-          treat all four as equally important. */}
-      {movers && <WhatMovedMost data={movers} />}
+      {/* Three groups, not eight identical slabs. Every panel used to be a
+          `.card p-6` at the same width and weight in one flat space-y-6, so
+          nothing signalled that some are findings, some are trends and one is
+          a driver. Spacing carries the grouping — tighter within a group than
+          between — with no new chrome and no new colour. */}
+      <PageGroup id="g-record" label="What the record shows">
+        {movers && <WhatMovedMost data={movers} />}
+        <FingerprintPanel region={region} initial={fingerprint} />
+        {tempMax && year_from !== null && year_to !== null && (
+          <PersonalBaseline
+            tempMax={tempMax}
+            yearFrom={year_from}
+            yearTo={year_to}
+          />
+        )}
+      </PageGroup>
 
-      <FingerprintPanel region={region} initial={fingerprint} />
+      <PageGroup id="g-trends" label="Trends over time">
+        <div className="grid gap-5 lg:grid-cols-2">
+          {extremes && <ExtremeDaysChart data={extremes} headingLevel="h3" />}
+          {season && <SeasonShiftScatter data={season} headingLevel="h3" />}
+        </div>
+        {season && <SeasonLengthChart data={season} headingLevel="h3" />}
+      </PageGroup>
 
-      {tempMax && year_from !== null && year_to !== null && (
-        <PersonalBaseline
-          tempMax={tempMax}
-          yearFrom={year_from}
-          yearTo={year_to}
-        />
+      {ensoImpact && (
+        <PageGroup id="g-drivers" label="What drives the swings">
+          <ENSOImpactCard data={ensoImpact} headingLevel="h3" />
+        </PageGroup>
       )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {extremes && <ExtremeDaysChart data={extremes} />}
-        {season && <SeasonShiftScatter data={season} />}
-      </div>
-
-      {season && <SeasonLengthChart data={season} />}
-
-      {ensoImpact && <ENSOImpactCard data={ensoImpact} />}
 
       {/* Compare CTA — the natural next step from a single city. */}
       <section className="card flex flex-wrap items-center justify-between gap-4 p-6">

@@ -17,6 +17,7 @@ import {
   CHART_MARGIN,
   CURSOR,
   ChartHeader,
+  type HeadingLevel,
   ChartTooltip,
   LegendKey,
   GRID,
@@ -35,7 +36,13 @@ import SeasonRuleNote from "./SeasonRuleNote";
  * October ends the following April. Seasons missing either endpoint are
  * dropped upstream rather than interpolated.
  */
-export default function SeasonLengthChart({ data }: { data: SeasonResponse }) {
+export default function SeasonLengthChart({
+  data,
+  headingLevel = "h2",
+}: {
+  data: SeasonResponse;
+  headingLevel?: HeadingLevel;
+}) {
   const points = data.lengths ?? [];
 
   const reg =
@@ -62,7 +69,7 @@ export default function SeasonLengthChart({ data }: { data: SeasonResponse }) {
   if (data.onset_saturated) {
     return (
       <section className="card p-6">
-        <ChartHeader eyebrow="Seasonality" title="Wet season length" />
+        <ChartHeader level={headingLevel} eyebrow="Seasonality" title="Wet season length" />
         <p className="max-w-prose text-sm leading-relaxed text-text-secondary">
           {data.region.name} has no detectable dry season by our rule — rain
           heavy enough to start a wet season falls here in almost every week of
@@ -81,7 +88,7 @@ export default function SeasonLengthChart({ data }: { data: SeasonResponse }) {
 
   return (
     <section className="card p-6">
-      <ChartHeader eyebrow="Seasonality" title="Wet season length" />
+      <ChartHeader level={headingLevel} eyebrow="Seasonality" title="Wet season length" />
 
       <p className="mb-5 max-w-prose text-sm leading-relaxed text-text-secondary">
         Days from onset to the end of the same wet season.

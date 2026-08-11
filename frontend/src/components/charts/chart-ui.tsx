@@ -106,20 +106,30 @@ export function ChartTooltip({
 }
 
 /** Consistent header for every chart card. */
+export type HeadingLevel = "h2" | "h3";
+
 export function ChartHeader({
   eyebrow,
   title,
   children,
+  // Defaults to h2 so standalone uses (home map, compare page) are unchanged.
+  // Panels nested under a group heading on the city page pass "h3", which is
+  // what makes that page's outline two levels deep instead of nine flat h2s.
+  level = "h2",
 }: {
   eyebrow?: string;
   title: string;
   children?: ReactNode;
+  level?: HeadingLevel;
 }) {
+  const Heading = level;
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h2 className="mt-1.5 font-display text-xl font-semibold">{title}</h2>
+        <Heading className="mt-1.5 font-display text-xl font-semibold">
+          {title}
+        </Heading>
       </div>
       {children}
     </div>

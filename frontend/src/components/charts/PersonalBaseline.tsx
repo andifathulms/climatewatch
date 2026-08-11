@@ -88,7 +88,7 @@ export default function PersonalBaseline({
 
   return (
     <section className="card p-6">
-      <h2 className="eyebrow">Your baseline</h2>
+      <h3 className="eyebrow">Your baseline</h3>
 
       {result ? (
         <p className="mt-3 max-w-prose font-display text-title font-semibold text-text-primary">

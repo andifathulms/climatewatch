@@ -18,6 +18,7 @@ import {
   CHART_MARGIN,
   CURSOR,
   ChartHeader,
+  type HeadingLevel,
   ChartTooltip,
   LegendKey,
   GRID,
@@ -36,7 +37,13 @@ function doyFull(doy: number): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-export default function SeasonShiftScatter({ data }: { data: SeasonResponse }) {
+export default function SeasonShiftScatter({
+  data,
+  headingLevel = "h2",
+}: {
+  data: SeasonResponse;
+  headingLevel?: HeadingLevel;
+}) {
   const points = data.results
     .filter((r) => r.wet_season_onset_doy !== null)
     .map((r) => ({ year: r.year, doy: r.wet_season_onset_doy as number }));
@@ -57,7 +64,7 @@ export default function SeasonShiftScatter({ data }: { data: SeasonResponse }) {
 
   return (
     <section className="card p-6">
-      <ChartHeader eyebrow="Seasonality" title="Season Shift" />
+      <ChartHeader level={headingLevel} eyebrow="Seasonality" title="Season Shift" />
 
       <p className="mb-5 max-w-prose text-sm leading-relaxed text-text-secondary">
         Wet season onset by year — the first 5-day spell of ≥40mm after Aug 1.
