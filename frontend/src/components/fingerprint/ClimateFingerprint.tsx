@@ -10,7 +10,8 @@ import type {
 import { MONTHS } from "@/lib/format";
 import { RAMPS, buildColorScale } from "./color-scale";
 
-const CELL_H = 22; // row height — one year
+const CELL_H_MAX = 22; // row height ceiling — legible even at a handful of rows
+const CELL_H_MIN = 4; // row height floor — a coloured hairline, still a mark
 const CELL_W_MIN = 26; // narrowest a month column may get before we scroll
 const CELL_W_MAX = 64;
 const PAD = 3; // >=2px surface gap between fills, per the dataviz mark spec
@@ -18,6 +19,30 @@ const LEFT = 54; // year labels
 const TOP = 24; // month labels
 const BORDER = 3; // ENSO left border width
 const GUTTER = 6; // gap between the ENSO border and the first cell
+
+export type FingerprintZoom = "record" | "decade" | "year";
+
+/** Rows visible at each zoom stop. `null` = the whole record, unwindowed. */
+export const ZOOM_WINDOW: Record<FingerprintZoom, number | null> = {
+  record: null,
+  decade: 10,
+  year: 1,
+};
+
+/** Target height (px) the whole-record view is fit into. DESIGN.md §5.1:
+ *  "At 75 years in a ~700px viewport this lands near 8–9px." Clamped so it
+ *  neither collapses on a short window nor sprawls on a tall one. */
+function recordHeightBudget(viewportH: number): number {
+  return Math.min(720, Math.max(320, viewportH * 0.62));
+}
+
+/** Years present in a fingerprint response, newest first. Shared by
+ *  `ClimateFingerprint` and its panel so the zoom window's bounds are
+ *  computed from the exact same list the grid renders. */
+export function fingerprintYears(data: FingerprintResponse): number[] {
+  const set = new Set(data.data.map((d) => d.year));
+  return Array.from(set).sort((a, b) => b - a);
+}
 
 const UNIT: Record<FingerprintVariable, string> = {
   precipitation: " mm",
@@ -146,6 +171,8 @@ export default function ClimateFingerprint({
   data,
   ensoEvents,
   showEnso,
+  zoom = "record",
+  windowStart = 0,
   onHoverYear,
 }: {
   data: FingerprintResponse;
@@ -154,6 +181,13 @@ export default function ClimateFingerprint({
    *  variants of all 90 cities. */
   ensoEvents: ENSOEvent[];
   showEnso: boolean;
+  /** "record" fits every year on screen at once (default). "decade"/"year"
+   *  trade coverage for row height, per DESIGN.md §5.1 — never the data or
+   *  the active layers, only how many rows are drawn and how tall each is. */
+  zoom?: FingerprintZoom;
+  /** Index into the newest-first year list where a "decade"/"year" window
+   *  starts. Ignored at "record" zoom, where every year renders. */
+  windowStart?: number;
   onHoverYear?: (year: number | null) => void;
 }) {
   const [tip, setTip] = useState<Tooltip | null>(null);
@@ -176,16 +210,46 @@ export default function ClimateFingerprint({
     return () => ro.disconnect();
   }, []);
 
+  // Row height at "record" zoom depends on the viewport, not the panel width
+  // ResizeObserver above already tracks — a 77-row grid has to shrink against
+  // vertical space, which scales with the window, not with how wide its card
+  // happens to be. "decade"/"year" zoom trade rows for legibility instead and
+  // always draw at the ceiling.
+  const [viewportH, setViewportH] = useState(0);
+  useEffect(() => {
+    function measure() {
+      setViewportH(window.innerHeight);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   const cellW =
     avail > 0
       ? Math.max(CELL_W_MIN, Math.min(CELL_W_MAX, (avail - LEFT) / 12 - PAD))
       : CELL_W_MIN;
 
+  const allYears = useMemo(() => fingerprintYears(data), [data]);
+
+  const windowSize = ZOOM_WINDOW[zoom];
   const years = useMemo(() => {
-    const set = new Set(data.data.map((d) => d.year));
-    // newest at top
-    return Array.from(set).sort((a, b) => b - a);
-  }, [data]);
+    if (windowSize === null) return allYears;
+    return allYears.slice(windowStart, windowStart + windowSize);
+  }, [allYears, windowSize, windowStart]);
+
+  const rowHeight = useMemo(() => {
+    if (zoom !== "record") return CELL_H_MAX;
+    if (years.length === 0 || viewportH === 0) return CELL_H_MAX;
+    const budget = recordHeightBudget(viewportH);
+    // DESIGN.md §5.1: rowHeight = clamp(4, floor((available - axis) / years),
+    // 22). PAD is subtracted per row here (not in the source formula) so the
+    // rendered height in `height` below actually lands inside `budget`
+    // instead of overshooting it by one PAD per row — the entire point of
+    // this computation is that the grid stops needing to scroll to be seen.
+    const perRow = Math.floor((budget - TOP) / years.length) - PAD;
+    return Math.max(CELL_H_MIN, Math.min(CELL_H_MAX, perRow));
+  }, [zoom, years.length, viewportH]);
 
   const color = useMemo(
     () => buildColorScale(data.variable, data.stats),
@@ -199,7 +263,7 @@ export default function ClimateFingerprint({
   }, [data]);
 
   const width = LEFT + 12 * (cellW + PAD);
-  const height = TOP + years.length * (CELL_H + PAD);
+  const height = TOP + years.length * (rowHeight + PAD);
 
   function clearHover() {
     setTip(null);
@@ -215,12 +279,15 @@ export default function ClimateFingerprint({
       // it a keyboard user could not scroll it at all. (WCAG 2.1.1)
       tabIndex={0}
       aria-label={`${data.region.name} fingerprint grid, scrollable`}
-      // overflow-y-visible is deliberate. Per CSS, setting overflow-x to
-      // anything but `visible` computes the other axis to `auto` too, so
-      // `overflow-x-auto` alone gave this container a vertical scrollbar as
-      // well — a second, nested scroll region down the side of a 1,900px-tall
-      // grid that the page already scrolls. Pinning y back to visible leaves
-      // only the horizontal scroll this actually needs.
+      // overflow-y-visible is deliberate, on two counts. First, the CSS quirk:
+      // setting overflow-x to anything but `visible` computes the other axis
+      // to `auto` too, so `overflow-x-auto` alone would give this container a
+      // vertical scrollbar of its own. Second, and now the real reason: at
+      // "record" zoom the row-height computation above sizes the grid to fit
+      // without one — DESIGN.md §5.1 forbids the fingerprint scrolling inside
+      // itself, so there must be no vertical overflow left to clip or scroll.
+      // Horizontal scroll stays: 12 columns under ~26px each stop being
+      // hoverable on narrow phones, and that is a deliberate exception.
       className="relative overflow-x-auto overflow-y-visible pb-1"
       // 1.4.13: hover content must be dismissible without moving the pointer.
       onKeyDown={(e) => {
@@ -246,7 +313,10 @@ export default function ClimateFingerprint({
           </tr>
         </thead>
         <tbody>
-          {years.map((year) => (
+          {/* allYears, not the (possibly windowed) `years` the SVG draws —
+              DESIGN.md §5.1: the text alternative always contains the full
+              record regardless of the visual zoom stop. */}
+          {allYears.map((year) => (
             <tr key={year}>
               <th scope="row">{year}</th>
               {MONTHS.map((_, mi) => {
@@ -291,7 +361,7 @@ export default function ClimateFingerprint({
         ))}
 
         {years.map((year, row) => {
-          const y = TOP + row * (CELL_H + PAD);
+          const y = TOP + row * (rowHeight + PAD);
           const phase = enso.get(year);
           const rowActive = hoverRow === row;
           // Decade anchors stay legible while intermediate years recede.
@@ -310,7 +380,7 @@ export default function ClimateFingerprint({
                   x={LEFT - 2}
                   y={y - 1.5}
                   width={12 * (cellW + PAD) - PAD + 4}
-                  height={CELL_H + 3}
+                  height={rowHeight + 3}
                   rx={4}
                   fill="none"
                   stroke="var(--border-strong)"
@@ -321,7 +391,7 @@ export default function ClimateFingerprint({
               {/* Year label */}
               <text
                 x={LEFT - GUTTER - BORDER - 4}
-                y={y + CELL_H / 2 + 3.5}
+                y={y + rowHeight / 2 + 3.5}
                 textAnchor="end"
                 className="svg-tick font-numeric"
                 fill={
@@ -342,7 +412,7 @@ export default function ClimateFingerprint({
                   x={LEFT - GUTTER - BORDER}
                   y={y}
                   width={BORDER}
-                  height={CELL_H}
+                  height={rowHeight}
                   rx={1.5}
                   fill={
                     phase === "EL_NINO"
@@ -366,7 +436,7 @@ export default function ClimateFingerprint({
                     x={x}
                     y={y}
                     width={cellW}
-                    height={CELL_H}
+                    height={rowHeight}
                     rx={3}
                     fill={
                       isNull ? "var(--null-cell)" : (color(value) as string)

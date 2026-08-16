@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   ENSOEvent,
@@ -8,7 +8,12 @@ import type {
   FingerprintVariable,
   Region,
 } from "@/lib/types";
-import ClimateFingerprint, { FingerprintLegend } from "./ClimateFingerprint";
+import ClimateFingerprint, {
+  FingerprintLegend,
+  ZOOM_WINDOW,
+  fingerprintYears,
+  type FingerprintZoom,
+} from "./ClimateFingerprint";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
@@ -17,6 +22,12 @@ const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "temp_max", label: "Temperature" },
   { key: "hot_days_local", label: "Hot Days" },
   { key: "dry_days", label: "Dry Days" },
+];
+
+const ZOOMS: { key: FingerprintZoom; label: string }[] = [
+  { key: "record", label: "Whole record" },
+  { key: "decade", label: "Decade" },
+  { key: "year", label: "Year" },
 ];
 
 const BLURB: Record<FingerprintVariable, string> = {
@@ -57,6 +68,10 @@ export default function FingerprintPanel({
   const [showEnso, setShowEnso] = useState(false);
   const [hoverYear, setHoverYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [zoom, setZoom] = useState<FingerprintZoom>("record");
+  // Index into the newest-first year list where the "decade"/"year" window
+  // starts. Meaningless at "record" zoom, where every year renders.
+  const [windowStart, setWindowStart] = useState(0);
   // Silent until the reader picks a different variable. A live region that
   // ships with content in the prerendered HTML risks being read out on load,
   // which is not what "the result changed" means.
@@ -75,6 +90,24 @@ export default function FingerprintPanel({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variable, region.id, region.slug]);
+
+  const years = useMemo(() => fingerprintYears(data), [data]);
+  const windowSize = ZOOM_WINDOW[zoom]; // null at "record" — every year renders
+  const maxWindowStart = Math.max(0, years.length - (windowSize ?? years.length));
+  const clampedWindowStart = Math.min(windowStart, maxWindowStart);
+  const windowLabel =
+    windowSize === null
+      ? null
+      : windowSize === 1
+        ? `${years[clampedWindowStart]}`
+        : `${years[Math.min(clampedWindowStart + windowSize - 1, years.length - 1)]}–${years[clampedWindowStart]}`;
+
+  function stepWindow(direction: -1 | 1) {
+    if (windowSize === null) return;
+    setWindowStart((s) =>
+      Math.max(0, Math.min(maxWindowStart, s + direction * windowSize)),
+    );
+  }
 
   const rollup = ROLLUP[data.variable];
   const yearCells =
@@ -151,6 +184,48 @@ export default function FingerprintPanel({
             }}
           />
 
+          {/* Zoom. "Whole record" is the default and the product's central
+              claim — DESIGN.md §5.1 — so it always resets the window rather
+              than leaving it mid-decade when a reader zooms back out. */}
+          <div className="flex items-center gap-3">
+            <SegmentedControl
+              name="fingerprint-zoom"
+              label="Zoom"
+              variant="ghost"
+              options={ZOOMS.map((z) => ({ value: z.key, label: z.label }))}
+              value={zoom}
+              onChange={(next) => {
+                setZoom(next);
+                setWindowStart(0);
+              }}
+            />
+            {windowSize !== null && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => stepWindow(1)}
+                  disabled={clampedWindowStart >= maxWindowStart}
+                  aria-label="Earlier"
+                  className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30 disabled:hover:text-text-secondary"
+                >
+                  ←
+                </button>
+                <span className="font-numeric min-w-[5.5rem] text-center text-xs text-text-secondary">
+                  {windowLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => stepWindow(-1)}
+                  disabled={clampedWindowStart <= 0}
+                  aria-label="Later"
+                  className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30 disabled:hover:text-text-secondary"
+                >
+                  →
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* ENSO switch */}
           <button
             type="button"
@@ -208,6 +283,8 @@ export default function FingerprintPanel({
             data={data}
             ensoEvents={ensoEvents}
             showEnso={showEnso}
+            zoom={zoom}
+            windowStart={clampedWindowStart}
             onHoverYear={setHoverYear}
           />
         </div>
