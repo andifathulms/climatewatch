@@ -82,6 +82,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // The browser chrome/OS reads this before any stylesheet loads, so it has
+  // to be a literal — it cannot reference var(--canvas) in tokens.css. Keep
+  // this in sync by hand if --canvas ever changes (DESIGN.md §8).
   themeColor: "#12100c",
 };
 

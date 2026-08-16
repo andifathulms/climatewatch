@@ -18,8 +18,15 @@ import { AXIS, CHART_MARGIN, CURSOR, GRID } from "@/components/charts/chart-ui";
 // Validated all-pairs on the dark surface (#1B1813): worst CVD ΔE 8.2, worst
 // normal-vision ΔE 18.2 — see the dataviz validator. Only the cities that led
 // #1 get a colour (≤4, the CVD-safe cap); the #2/#3 contenders are drawn in the
-// muted tone so the champions stay legible.
-const LINE_COLORS = ["#3E93D0", "#E2661F", "#45A05F", "#CB4F9E"];
+// muted tone so the champions stay legible. Tokenised in tokens.css
+// (--categorical-1..4, DESIGN.md §8) rather than a standalone literal array —
+// the values themselves are unchanged.
+const LINE_COLORS = [
+  "var(--categorical-1)",
+  "var(--categorical-2)",
+  "var(--categorical-3)",
+  "var(--categorical-4)",
+];
 const MUTED = "var(--text-muted)";
 
 type MetricKey = "temp" | "rain";

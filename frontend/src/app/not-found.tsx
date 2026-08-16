@@ -1,4 +1,17 @@
 import Link from "next/link";
+import * as d3 from "d3";
+import { RAMPS } from "@/components/fingerprint/color-scale";
+
+// Sampled from the real precipitation ramp (DESIGN.md §8: this row used to
+// be 8 hardcoded hexes with no relationship to the actual fingerprint
+// colours) rather than a second, independent set of literals to keep in
+// sync by hand. Two gaps in the middle read as "missing," which is the
+// entire joke — a fingerprint row with a hole in it, on the page that is
+// itself a hole in the site.
+const swatchRamp = d3.interpolateRgbBasis(RAMPS.precipitation);
+const ROW_SWATCHES: (string | null)[] = [0, 0.2, 0.4, null, null, 0.75, 0.55, 0.3].map(
+  (t) => (t === null ? null : swatchRamp(t)),
+);
 
 export default function NotFound() {
   return (
@@ -8,16 +21,7 @@ export default function NotFound() {
       <div className="relative">
         {/* A fingerprint row with a gap where the page should be. */}
         <div aria-hidden className="mb-10 flex justify-center gap-1.5">
-          {[
-            "#1D4E7A",
-            "#2B7CB8",
-            "#57A8DE",
-            null,
-            null,
-            "#9BD0F0",
-            "#57A8DE",
-            "#2B7CB8",
-          ].map((c, i) => (
+          {ROW_SWATCHES.map((c, i) => (
             <span
               key={i}
               className="h-6 w-6 rounded-[3px]"

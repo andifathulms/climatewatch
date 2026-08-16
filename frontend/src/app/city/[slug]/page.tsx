@@ -9,6 +9,7 @@ import FingerprintRecordSection from "@/components/fingerprint/FingerprintRecord
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
 import WhatMovedMost from "@/components/charts/WhatMovedMost";
 import WorkedExample from "@/components/fingerprint/WorkedExample";
+import NullDataWarning from "@/components/ui/NullDataWarning";
 
 // Required for `output: 'export'` (static mode) — every dynamic segment must
 // be enumerated at build time since there's no server to resolve one on
@@ -145,6 +146,18 @@ export default async function CityPage({
 
   const { year_from, year_to, years_loaded } = region.data_availability;
 
+  // DESIGN.md §7/§10 step 9: "Render NullDataWarning wherever coverage for
+  // the displayed window falls below 90%." No day-level coverage figure is
+  // ever exposed to this frontend (ERA5 daily rows live only in the
+  // backend), so this counts what the page actually renders: non-null
+  // months in the precipitation fingerprint already fetched above, out of
+  // every month the record's own year range implies.
+  const coverage =
+    fingerprint.data.length > 0
+      ? fingerprint.data.filter((d) => d.value !== null).length /
+        fingerprint.data.length
+      : 1;
+
   return (
     <div className="space-y-6">
       {/* Same region + data_availability values the masthead renders below. */}
@@ -210,6 +223,8 @@ export default async function CityPage({
           </dl>
         </div>
       </header>
+
+      <NullDataWarning coverage={coverage} unit="months" />
 
       {/* The page's opening claim — DESIGN.md §3.3. Directly under the
           masthead, ahead of the forecast strip: "is today unusual" is a

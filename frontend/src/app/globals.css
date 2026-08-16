@@ -186,7 +186,10 @@
   .field:focus {
     outline: none;
     border-color: var(--rain-blue);
-    box-shadow: 0 0 0 3px rgb(62 147 208 / 0.22);
+    /* Was a raw rgb() literal that happened to match --rain-blue at 22%
+       (DESIGN.md §8) — color-mix references the token directly, so the glow
+       can't drift from the border colour it's supposed to be tinting. */
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--rain-blue) 22%, transparent);
   }
 }
 

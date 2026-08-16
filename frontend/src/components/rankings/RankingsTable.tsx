@@ -115,6 +115,15 @@ export default function RankingsTable({
 }) {
   const active = METRICS.find((m) => m.key === metric)!;
 
+  // DESIGN.md §7: "Render NullDataWarning wherever coverage ... falls below
+  // 90% ... any ranking row built on a thin region." There's no single
+  // "expected" year count exposed here to divide against, so thin is
+  // relative to the fullest row actually in this dataset — today that's
+  // every row (all 90 currently load the full 77-year span), so this marks
+  // nothing yet, but it is live logic, not a hypothetical: a partially
+  // bootstrapped city added later would trip it immediately.
+  const maxYearsLoaded = Math.max(1, ...data.results.map((r) => r.years_loaded));
+
   const { ranked, domainMin, domainMax } = useMemo(() => {
     const all = data.results
       .map((r) => ({ entry: r, value: active.get(r) }))
@@ -186,8 +195,24 @@ export default function RankingsTable({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="truncate text-sm font-medium text-text-primary">
-                      {row.entry.region.name}
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-text-primary">
+                        {row.entry.region.name}
+                      </span>
+                      {row.entry.years_loaded < maxYearsLoaded * 0.9 && (
+                        <span className="shrink-0 text-xs text-drought-amber">
+                          <span aria-hidden>⚠</span>
+                          {/* title is not reliably announced (see
+                              LeadersOverTime's own note on the same
+                              limitation) — a real sr-only text alternative
+                              instead. */}
+                          <span className="sr-only">
+                            {" "}
+                            Incomplete coverage — {row.entry.years_loaded} of{" "}
+                            {maxYearsLoaded} years loaded
+                          </span>
+                        </span>
+                      )}
                     </span>
                     <span className="font-numeric shrink-0 text-sm font-medium text-text-primary">
                       {active.format(row.value)}

@@ -1,5 +1,21 @@
-/** Shown when data coverage for a region drops below 90%. */
-export default function NullDataWarning({ coverage }: { coverage: number }) {
+/**
+ * Shown when data coverage for a region drops below 90% — DESIGN.md §7 /
+ * §10 step 9: "Render NullDataWarning wherever coverage for the displayed
+ * window falls below 90%." Built long before it had a caller (zero import
+ * sites, flagged in DESIGN-AUDIT.md as "a trust bug wearing a design
+ * costume") — this wiring is what makes the component real.
+ */
+export default function NullDataWarning({
+  coverage,
+  unit = "months",
+}: {
+  coverage: number;
+  /** What was actually counted. ERA5's daily granularity is never exposed to
+   *  this frontend — every caller here computes coverage from monthly cells
+   *  or annual rows, so the copy says so rather than claiming a day-level
+   *  precision nothing on this page can verify. */
+  unit?: "months" | "years";
+}) {
   if (coverage >= 0.9) return null;
 
   return (
@@ -24,8 +40,8 @@ export default function NullDataWarning({ coverage }: { coverage: number }) {
         <strong className="font-numeric font-medium text-text-primary">
           {Math.round(coverage * 100)}%
         </strong>{" "}
-        of days in this region have data. Some months may be partial — read the
-        trends with caution.
+        of {unit} in this record have a value. Some periods may be partial —
+        read the trends with caution.
       </p>
     </div>
   );

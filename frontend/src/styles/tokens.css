@@ -59,6 +59,23 @@
      two read as clearly different colours, not close approximations. */
   --anomaly-zero: #8a827f;
 
+  /* Categorical set for "which of several named entities" charts where
+     --series-1/--series-2 (exactly two slots) isn't enough — currently just
+     LeadersOverTime's "who held #1" lines, capped at 4 for CVD safety.
+     DESIGN.md §8: previously a standalone LINE_COLORS array local to that
+     component, which broke both the entity-not-metric rule (a colour with no
+     token, so nothing else could reference "the 2nd city that ever led") and
+     the centralisation rule every other colour on this page follows. Moved
+     here verbatim — same four hex values, same validation this component's
+     own comment already recorded: all-pairs on --surface (#1B1813), worst
+     CVD ΔE 8.2, worst normal-vision ΔE 18.2. Not re-validated against
+     --surface-raised, unlike the tokens above; if a second consumer wants
+     these on a different surface, re-run the check before reusing them. */
+  --categorical-1: #3e93d0;
+  --categorical-2: #e2661f;
+  --categorical-3: #45a05f;
+  --categorical-4: #cb4f9e;
+
   /* ── Series slots — color follows the entity, never its rank ───────────── */
   --series-1: var(--rain-blue);
   --series-2: var(--heat-orange);
