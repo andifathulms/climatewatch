@@ -1,8 +1,9 @@
 import { api } from "@/lib/api";
 import { routeMetadata } from "@/lib/metadata";
-import RankingsTable from "@/components/rankings/RankingsTable";
+import RankingsSection from "@/components/rankings/RankingsSection";
 import RecordsBoard from "@/components/rankings/RecordsBoard";
 import LeadersOverTime from "@/components/rankings/LeadersOverTime";
+import { getIndonesiaGeometry } from "@/lib/indonesia-geo";
 
 // Own canonical and share card. Without these the root layout's
 // `canonical: "/"` is inherited, which told search engines this page was a
@@ -17,11 +18,13 @@ export const metadata = routeMetadata({
 });
 
 export default async function RankingsPage() {
-  const [rankings, records, overTime] = await Promise.all([
+  const [rankings, records, overTime, regions] = await Promise.all([
     api.rankings().catch(() => ({ results: [] })),
     api.records().catch(() => null),
     api.overTime().catch(() => null),
+    api.allRegions().catch(() => []),
   ]);
+  const geometry = getIndonesiaGeometry();
 
   return (
     <div className="space-y-8">
@@ -38,7 +41,7 @@ export default async function RankingsPage() {
         </div>
       </header>
 
-      <RankingsTable data={rankings} />
+      <RankingsSection regions={regions} geometry={geometry} rankings={rankings} />
 
       {overTime && <LeadersOverTime data={overTime} />}
 

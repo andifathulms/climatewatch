@@ -2,10 +2,10 @@
 
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { RankingEntry, RankingsResponse } from "@/lib/types";
 
-type MetricKey =
+export type MetricKey =
   | "hottest"
   | "wettest"
   | "driest"
@@ -13,7 +13,7 @@ type MetricKey =
   | "extreme_rain"
   | "heatwave";
 
-const METRICS: {
+export interface RankingMetric {
   key: MetricKey;
   label: string;
   eyebrow: string;
@@ -27,7 +27,12 @@ const METRICS: {
   // for every city and shows nothing. The min-based scale is disclosed to the
   // reader via the scale caption so it never reads as proportional-from-zero.
   baseline: "zero" | "min";
-}[] = [
+}
+
+// Exported so RankingsSection can drive both the table and the choropleth map
+// off the exact same metric definitions — DESIGN.md §6: "the existing 6-metric
+// segmented control drives both map and table."
+export const METRICS: RankingMetric[] = [
   {
     key: "hottest",
     label: "Hottest",
@@ -96,8 +101,18 @@ const METRICS: {
 
 const TOP_N = 15;
 
-export default function RankingsTable({ data }: { data: RankingsResponse }) {
-  const [metric, setMetric] = useState<MetricKey>("hottest");
+export default function RankingsTable({
+  data,
+  metric,
+  onMetricChange,
+}: {
+  data: RankingsResponse;
+  /** Controlled rather than owning its own state — DESIGN.md §6 wants the
+   *  same picker driving both this table and the map above it, which needs
+   *  the selection lifted to a shared parent (`RankingsSection`). */
+  metric: MetricKey;
+  onMetricChange: (next: MetricKey) => void;
+}) {
   const active = METRICS.find((m) => m.key === metric)!;
 
   const { ranked, domainMin, domainMax } = useMemo(() => {
@@ -136,7 +151,7 @@ export default function RankingsTable({ data }: { data: RankingsResponse }) {
           variant="ghost"
           options={METRICS.map((m) => ({ value: m.key, label: m.label }))}
           value={metric}
-          onChange={setMetric}
+          onChange={onMetricChange}
         />
       </div>
 

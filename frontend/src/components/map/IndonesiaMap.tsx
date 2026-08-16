@@ -26,17 +26,39 @@ const PAD = 16;
  * geo projection is the only way to place dots on an actual coastline. d3 is
  * already a dependency; this doesn't add a new one.
  */
+export interface MapMetric {
+  label: string;
+  getValue: (region: Region) => number | null;
+  color: (value: number) => string;
+  format: (value: number) => string;
+  domain: [number, number];
+  diverging: boolean;
+}
+
 export default function IndonesiaMap({
   regions,
   geometry,
+  metric = null,
 }: {
   regions: Region[];
   geometry: MultiPolygon;
+  /** DESIGN.md §6: colours cities by a ranking metric instead of the default
+   *  has-data/not-loaded distinction. `null` (the homepage's usage) keeps the
+   *  original blue/amber coverage colouring. */
+  metric?: MapMetric | null;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<Tip | null>(null);
 
   const loaded = regions.filter((r) => r.has_data).length;
+
+  const gradientStops = useMemo(() => {
+    if (!metric) return [];
+    const [lo, hi] = metric.domain;
+    return Array.from({ length: 6 }, (_, i) =>
+      metric.color(lo + (i / 5) * (hi - lo)),
+    );
+  }, [metric]);
 
   const { pathData, project, height } = useMemo(() => {
     const feature: GeoJSON.Feature<MultiPolygon> = {
@@ -82,11 +104,38 @@ export default function IndonesiaMap({
           ("Cities with real data" / "12 / 45 loaded") framed the map as a
           pipeline status board and led with the shortfall rather than the
           coverage. Same numbers, phrased as reach. */}
-      <ChartHeader eyebrow="Coverage" title="Pick a city from the map">
-        <p className="text-xs text-text-muted">
-          <span className="font-numeric text-text-secondary">{loaded}</span>{" "}
-          cities charted across the archipelago
-        </p>
+      <ChartHeader
+        eyebrow={metric ? "Rankings" : "Coverage"}
+        title={metric ? metric.label : "Pick a city from the map"}
+      >
+        {metric ? (
+          <div className="flex items-center gap-2.5">
+            <span className="font-numeric text-2xs text-text-muted">
+              {metric.format(metric.domain[0])}
+            </span>
+            <span
+              aria-hidden
+              className="h-2 w-24 rounded-full ring-1 ring-inset ring-border"
+              style={{
+                // Sampled from the same colour function the markers use,
+                // rather than a second copy of the ramp — the legend cannot
+                // drift from what is actually plotted.
+                background: `linear-gradient(to right, ${gradientStops.join(", ")})`,
+              }}
+            />
+            <span className="font-numeric text-2xs text-text-muted">
+              {metric.format(metric.domain[1])}
+            </span>
+            {metric.diverging && (
+              <span className="text-2xs text-text-muted">(0 at centre)</span>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-text-muted">
+            <span className="font-numeric text-text-secondary">{loaded}</span>{" "}
+            cities charted across the archipelago
+          </p>
+        )}
       </ChartHeader>
 
       <div
@@ -119,6 +168,21 @@ export default function IndonesiaMap({
             const { x, y } = project(r.longitude, r.latitude);
             const active = r.has_data;
             const focused = tip?.region.id === r.id;
+            const metricValue = metric ? metric.getValue(r) : null;
+            const markerFill = metric
+              ? metricValue !== null
+                ? metric.color(metricValue)
+                : "var(--null-cell)"
+              : active
+                ? "var(--rain-blue)"
+                : "var(--drought-amber)";
+            const markerOpacity = metric
+              ? metricValue !== null
+                ? 0.9
+                : 0.5
+              : active
+                ? 0.9
+                : 0.55;
             return (
               // A real <a>, not a click handler on a <circle>. That gives
               // keyboard focus, Enter activation and link semantics from the
@@ -162,15 +226,17 @@ export default function IndonesiaMap({
                     special-cases <title> and silently renders nothing when it
                     has more than one child — which left all 94 links unnamed
                     on the first attempt at this fix. */}
-                <title>{`${r.name}, ${r.province}${
-                  active ? "" : " — no climate data loaded yet"
-                }`}</title>
+                <title>
+                  {metric
+                    ? `${r.name}, ${r.province}${metricValue !== null ? ` — ${metric.format(metricValue)}` : " — no data for this metric"}`
+                    : `${r.name}, ${r.province}${active ? "" : " — no climate data loaded yet"}`}
+                </title>
                 <circle
                   cx={x}
                   cy={y}
                   r={focused ? 8 : active ? 6 : 4.5}
-                  fill={active ? "var(--rain-blue)" : "var(--drought-amber)"}
-                  fillOpacity={active ? 0.9 : 0.55}
+                  fill={markerFill}
+                  fillOpacity={markerOpacity}
                   stroke={focused ? "var(--text-primary)" : "none"}
                   strokeWidth={focused ? 1.5 : 0}
                   className="cursor-pointer transition-[r] duration-100"
@@ -201,12 +267,22 @@ export default function IndonesiaMap({
             <div
               className="font-numeric mt-1.5 text-2xs"
               style={{
-                color: tip.region.has_data
-                  ? "var(--rain-blue)"
-                  : "var(--drought-amber)",
+                color: metric
+                  ? (metric.getValue(tip.region) !== null
+                      ? metric.color(metric.getValue(tip.region) as number)
+                      : "var(--text-muted)")
+                  : tip.region.has_data
+                    ? "var(--rain-blue)"
+                    : "var(--drought-amber)",
               }}
             >
-              {tip.region.has_data ? "Data loaded" : "Not loaded yet"}
+              {metric
+                ? metric.getValue(tip.region) !== null
+                  ? metric.format(metric.getValue(tip.region) as number)
+                  : "No data for this metric"
+                : tip.region.has_data
+                  ? "Data loaded"
+                  : "Not loaded yet"}
             </div>
           </div>
         )}
