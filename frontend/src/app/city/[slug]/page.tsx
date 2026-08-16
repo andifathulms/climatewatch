@@ -215,6 +215,12 @@ export default async function CityPage({
         </div>
       </header>
 
+      {/* The page's opening claim — DESIGN.md §3.3. Directly under the
+          masthead, ahead of the forecast strip: "is today unusual" is a
+          smaller, different question than "has the climate changed," and it
+          should not sit between the headline and the evidence for it. */}
+      {movers && <WhatMovedMost data={movers} />}
+
       <ForecastContextLoader region={region} />
 
       {/* Three groups, not eight identical slabs. Every panel used to be a
@@ -223,7 +229,6 @@ export default async function CityPage({
           a driver. Spacing carries the grouping — tighter within a group than
           between — with no new chrome and no new colour. */}
       <PageGroup id="g-record" label="What the record shows">
-        {movers && <WhatMovedMost data={movers} />}
         {/* Before the grid, not after: learn to read one square before
             meeting 924 of them. */}
         {workedExample && <WorkedExample data={workedExample} />}
