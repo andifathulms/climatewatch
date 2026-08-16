@@ -6,6 +6,7 @@ import PersonalBaseline from "@/components/charts/PersonalBaseline";
 import { BASELINE_FROM, BASELINE_TO, MIN_YEARS_AFTER_BASELINE } from "./baseline";
 import type {
   ENSOEvent,
+  EnsoImpactResponse,
   FingerprintResponse,
   Region,
   SeasonResponse,
@@ -34,6 +35,7 @@ export default function FingerprintRecordSection({
   initialFingerprint,
   ensoEvents,
   season,
+  ensoImpact,
   tempMaxByYear,
   regionName,
   yearFrom,
@@ -43,6 +45,7 @@ export default function FingerprintRecordSection({
   initialFingerprint: FingerprintResponse;
   ensoEvents: ENSOEvent[];
   season: SeasonResponse | null;
+  ensoImpact: EnsoImpactResponse | null;
   tempMaxByYear: YearlyAggregate[] | null;
   regionName: string;
   yearFrom: number;
@@ -88,6 +91,7 @@ export default function FingerprintRecordSection({
         initial={initialFingerprint}
         ensoEvents={ensoEvents}
         season={season}
+        ensoImpact={ensoImpact}
         baselineFrom={baselineFrom}
         baselineTo={baselineTo}
       />

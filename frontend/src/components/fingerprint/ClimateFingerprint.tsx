@@ -279,7 +279,6 @@ export function AnomalyLegend({
 export default function ClimateFingerprint({
   data,
   ensoEvents,
-  showEnso,
   zoom = "record",
   windowStart = 0,
   layers = EMPTY_LAYERS,
@@ -293,7 +292,6 @@ export default function ClimateFingerprint({
    *  fetched once per page instead of being embedded in all five fingerprint
    *  variants of all 90 cities. */
   ensoEvents: ENSOEvent[];
-  showEnso: boolean;
   /** "record" fits every year on screen at once (default). "decade"/"year"
    *  trade coverage for row height, per DESIGN.md §5.1 — never the data or
    *  the active layers, only how many rows are drawn and how tall each is. */
@@ -301,8 +299,10 @@ export default function ClimateFingerprint({
   /** Index into the newest-first year list where a "decade"/"year" window
    *  starts. Ignored at "record" zoom, where every year renders. */
   windowStart?: number;
-  /** Active layers (DESIGN.md §5.6/§10 step 3). "baseline" (§10 step 4) and
-   *  "season" (§10 step 5) draw; the rest are only read for sr-only notes. */
+  /** Active layers (DESIGN.md §5.6/§10 step 3). "baseline" (§10 step 4),
+   *  "season" (§10 step 5) and "enso" (§10 step 6) draw; "extremes" is only
+   *  read for its sr-only note so far. The standalone `showEnso` boolean this
+   *  prop replaced is gone — ENSO is a layer like any other now. */
   layers?: Set<FingerprintLayer>;
   /** The Baseline layer's climatology window — DESIGN.md §5.4: "the baseline
    *  window is ... stated in the UI, not buried." Defaults to the stated
@@ -411,6 +411,11 @@ export default function ClimateFingerprint({
   // the same convention `anomalyMax` above follows.
   const seasonActive =
     layers.has("season") && season !== null && !season.onset_saturated;
+
+  // ENSO layer (DESIGN.md §5.3). Formerly a standalone `showEnso` toggle;
+  // now just another entry in `layers`.
+  const ensoActive = layers.has("enso");
+
   const yearToRow = useMemo(() => {
     const m = new Map<number, number>();
     years.forEach((y, i) => m.set(y, i));
@@ -485,6 +490,8 @@ export default function ClimateFingerprint({
     }
   }
 
+  const enso = useMemo(() => ensoByYear(ensoEvents), [ensoEvents]);
+
   const layerNotes = useMemo(() => {
     const notes: string[] = [];
     if (baselineActive) {
@@ -509,8 +516,24 @@ export default function ClimateFingerprint({
         );
       }
     }
+    if (ensoActive) {
+      const ninoYears = Array.from(enso.values()).filter(
+        (p) => p === "EL_NINO",
+      ).length;
+      const ninaYears = enso.size - ninoYears;
+      notes.push(
+        `ENSO layer active: the year gutter marks El Niño years with a solid bar and La Niña years with a dashed bar — ` +
+          `${ninoYears} El Niño year${ninoYears === 1 ? "" : "s"}, ${ninaYears} La Niña year${ninaYears === 1 ? "" : "s"} in this record.`,
+      );
+    }
     for (const key of LAYER_KEYS) {
-      if (key === "baseline" || key === "season" || !layers.has(key)) continue;
+      if (
+        key === "baseline" ||
+        key === "season" ||
+        key === "enso" ||
+        !layers.has(key)
+      )
+        continue;
       const note = LAYER_TABLE_NOTE[key];
       if (note) notes.push(note);
     }
@@ -524,9 +547,10 @@ export default function ClimateFingerprint({
     layers,
     season,
     seasonCounts,
+    ensoActive,
+    enso,
   ]);
 
-  const enso = useMemo(() => ensoByYear(ensoEvents), [ensoEvents]);
   const cellMap = useMemo(() => {
     const m = new Map<string, number | null>();
     for (const d of data.data) m.set(`${d.year}-${d.month}`, d.value);
@@ -684,20 +708,34 @@ export default function ClimateFingerprint({
                 {year}
               </text>
 
-              {/* ENSO left border */}
-              {showEnso && phase && (
-                <rect
-                  x={LEFT - GUTTER - BORDER}
-                  y={y}
-                  width={BORDER}
-                  height={rowHeight}
-                  rx={1.5}
-                  fill={
-                    phase === "EL_NINO"
-                      ? "var(--enso-nino)"
-                      : "var(--enso-nina)"
-                  }
-                />
+              {/* ENSO left border. Both phases share the amber-adjacent
+                  --enso-nino/--enso-nina hues, so El Niño is a solid fill and
+                  La Niña a dashed one — hue alone is insufficient per
+                  CLAUDE.md, and DESIGN.md §5.3 asks for exactly this dash
+                  distinction. ENSOBadge in the sidebar carries a third cue
+                  (a dot) for the same pair when named in text. */}
+              {ensoActive && phase && (
+                phase === "EL_NINO" ? (
+                  <rect
+                    x={LEFT - GUTTER - BORDER}
+                    y={y}
+                    width={BORDER}
+                    height={rowHeight}
+                    rx={1.5}
+                    fill="var(--enso-nino)"
+                  />
+                ) : (
+                  <line
+                    x1={LEFT - GUTTER - BORDER / 2}
+                    x2={LEFT - GUTTER - BORDER / 2}
+                    y1={y}
+                    y2={y + rowHeight}
+                    stroke="var(--enso-nina)"
+                    strokeWidth={BORDER}
+                    strokeDasharray="3 2.5"
+                    strokeLinecap="round"
+                  />
+                )
               )}
 
               {/* Month cells */}
@@ -845,7 +883,7 @@ export default function ClimateFingerprint({
                 </div>
               );
             })()}
-          {showEnso && tip.enso && (
+          {ensoActive && tip.enso && (
             <div className="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 text-2xs text-text-secondary">
               <span
                 aria-hidden

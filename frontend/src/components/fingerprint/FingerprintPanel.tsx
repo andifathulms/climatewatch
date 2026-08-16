@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   ENSOEvent,
+  EnsoImpactResponse,
   FingerprintResponse,
   FingerprintVariable,
   Region,
@@ -32,6 +33,8 @@ import {
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 import SeasonRuleNote from "@/components/charts/SeasonRuleNote";
+import ENSOBadge from "@/components/ui/ENSOBadge";
+import { ensoCaption } from "./enso";
 
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "precipitation", label: "Rainfall" },
@@ -75,6 +78,7 @@ export default function FingerprintPanel({
   initial,
   ensoEvents,
   season = null,
+  ensoImpact = null,
   baselineFrom = BASELINE_FROM,
   baselineTo = BASELINE_TO,
 }: {
@@ -85,6 +89,9 @@ export default function FingerprintPanel({
    *  wet-season data — the layer's toggle still renders, it just has nothing
    *  to draw and says so via the sr-only table note. */
   season?: SeasonResponse | null;
+  /** Powers the ENSO layer's caption (DESIGN.md §5.3) — the same phase-delta
+   *  numbers `ENSOImpactCard` used to show in its own section. */
+  ensoImpact?: EnsoImpactResponse | null;
   /** The Baseline layer's climatology window. Defaults to the stated
    *  1951-1980 default (DESIGN.md §5.4); `FingerprintRecordSection` passes
    *  the reader's PersonalBaseline choice once one is picked, per "wire them
@@ -94,7 +101,6 @@ export default function FingerprintPanel({
 }) {
   const [variable, setVariable] = useState<FingerprintVariable>("precipitation");
   const [data, setData] = useState<FingerprintResponse>(initial);
-  const [showEnso, setShowEnso] = useState(false);
   const [hoverYear, setHoverYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [zoom, setZoom] = useState<FingerprintZoom>("record");
@@ -156,6 +162,13 @@ export default function FingerprintPanel({
     [data, climatology],
   );
   const seasonActive = layers.has("season");
+  const ensoActive = layers.has("enso");
+  // DESIGN.md §5.3: "ENSOImpactCard's prose finding ... survives as a
+  // caption beneath the fingerprint when this layer is on."
+  const ensoNote = useMemo(
+    () => (ensoActive && ensoImpact ? ensoCaption(ensoImpact) : null),
+    [ensoActive, ensoImpact],
+  );
 
   useEffect(() => {
     if (variable === initial.variable && data.variable === variable) return;
@@ -306,9 +319,9 @@ export default function FingerprintPanel({
             )}
           </div>
 
-          {/* Layers. Baseline and Season exist (DESIGN.md §10 steps 4-5) —
-              ENSO overlay/Extremes are still standalone (the switch below,
-              ExtremeDaysChart) until steps 6-7 fold them in here too. */}
+          {/* Layers. Baseline, Season and ENSO exist (DESIGN.md §10 steps
+              4-6) — Extremes is still standalone (ExtremeDaysChart) until
+              step 7 folds it in too. */}
           <div className="flex flex-col items-start gap-1.5 lg:items-end">
             <button
               type="button"
@@ -365,30 +378,29 @@ export default function FingerprintPanel({
                 No detectable dry season here — nothing to draw.
               </span>
             )}
-          </div>
 
-          {/* ENSO switch */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={showEnso}
-            onClick={() => setShowEnso((v) => !v)}
-            className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
-          >
-            <span
-              aria-hidden
-              className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
-                showEnso ? "bg-rain-blue" : "bg-border-strong"
-              }`}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={ensoActive}
+              onClick={() => handleToggleLayer("enso")}
+              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
             >
               <span
-                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
-                  showEnso ? "translate-x-3.5" : "translate-x-0.5"
+                aria-hidden
+                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
+                  ensoActive ? "bg-rain-blue" : "bg-border-strong"
                 }`}
-              />
-            </span>
-            ENSO overlay
-          </button>
+              >
+                <span
+                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
+                    ensoActive ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              ENSO layer
+            </button>
+          </div>
         </div>
       </div>
 
@@ -423,7 +435,6 @@ export default function FingerprintPanel({
           <ClimateFingerprint
             data={data}
             ensoEvents={ensoEvents}
-            showEnso={showEnso}
             zoom={zoom}
             windowStart={clampedWindowStart}
             layers={layers}
@@ -511,29 +522,39 @@ export default function FingerprintPanel({
             </div>
           )}
 
-          {showEnso && (
-            <div className="space-y-2 border-t border-border pt-4">
+          {ensoActive && (
+            <div className="space-y-2.5 border-t border-border pt-4">
               <p className="eyebrow">ENSO</p>
+              {/* DESIGN.md §5.3: "ENSOBadge is reused in the legend." Each
+                  row still pairs a gutter-matching swatch (solid vs dashed)
+                  with the badge's own dot — three cues on a two-hue pair. */}
               <div className="flex items-center gap-2.5 text-xs text-text-secondary">
-                <span
-                  aria-hidden
-                  className="inline-block h-3.5 w-1 rounded-full"
-                  style={{ background: "var(--enso-nino)" }}
-                />
-                El Niño — tends drier
+                <svg width="14" height="3" aria-hidden className="shrink-0">
+                  <line x1="0" y1="1.5" x2="14" y2="1.5" stroke="var(--enso-nino)" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <ENSOBadge phase="EL_NINO" />
+                <span>tends drier</span>
               </div>
               <div className="flex items-center gap-2.5 text-xs text-text-secondary">
-                <span
-                  aria-hidden
-                  className="inline-block h-3.5 w-1 rounded-full"
-                  style={{ background: "var(--enso-nina)" }}
-                />
-                La Niña — tends wetter
+                <svg width="14" height="3" aria-hidden className="shrink-0">
+                  <line x1="0" y1="1.5" x2="14" y2="1.5" stroke="var(--enso-nina)" strokeWidth="3" strokeDasharray="3 2.5" strokeLinecap="round" />
+                </svg>
+                <ENSOBadge phase="LA_NINA" />
+                <span>tends wetter</span>
               </div>
             </div>
           )}
         </aside>
       </div>
+
+      {/* DESIGN.md §5.3: the caption ENSOImpactCard used to run 800px away
+          in its own section, now directly under the grid it describes. */}
+      {ensoNote && (
+        <p className="border-t border-border px-6 py-4 text-sm leading-relaxed text-text-secondary">
+          <span className="eyebrow mb-1.5 block">ENSO impact here</span>
+          {ensoNote}
+        </p>
+      )}
     </section>
   );
 }

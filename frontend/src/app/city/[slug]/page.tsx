@@ -8,7 +8,6 @@ import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import FingerprintRecordSection from "@/components/fingerprint/FingerprintRecordSection";
 import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
-import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
 import WhatMovedMost from "@/components/charts/WhatMovedMost";
 import WorkedExample from "@/components/fingerprint/WorkedExample";
 
@@ -237,6 +236,7 @@ export default async function CityPage({
             initialFingerprint={fingerprint}
             ensoEvents={ensoEvents}
             season={season}
+            ensoImpact={ensoImpact}
             tempMaxByYear={tempMaxByYear}
             regionName={region.name}
             yearFrom={year_from}
@@ -251,22 +251,18 @@ export default async function CityPage({
             initial={fingerprint}
             ensoEvents={ensoEvents}
             season={season}
+            ensoImpact={ensoImpact}
           />
         )}
       </PageGroup>
 
-      {/* Season shift and season length used to be their own charts here —
-          both are now the fingerprint's Season layer (DESIGN.md §5.2/§10
-          step 5), which is why this group is down to one chart. */}
+      {/* Season shift/length and the ENSO impact card used to be their own
+          sections here — all three are now fingerprint layers (DESIGN.md
+          §5.2/§5.3, §10 steps 5-6), which is why this group is down to one
+          chart and "What drives the swings" is gone entirely. */}
       <PageGroup id="g-trends" label="Trends over time">
         {extremes && <ExtremeDaysChart data={extremes} headingLevel="h3" />}
       </PageGroup>
-
-      {ensoImpact && (
-        <PageGroup id="g-drivers" label="What drives the swings">
-          <ENSOImpactCard data={ensoImpact} headingLevel="h3" />
-        </PageGroup>
-      )}
 
       {/* Compare CTA — the natural next step from a single city. */}
       <section className="card flex flex-wrap items-center justify-between gap-4 p-6">
