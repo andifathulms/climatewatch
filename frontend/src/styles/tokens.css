@@ -46,6 +46,19 @@
      "no data" can never be mistaken for "zero". */
   --null-cell: #2a251e;
 
+  /* Midpoint of the diverging "anomaly_diverging" ramp in ramps.json
+     (DESIGN.md §3.2/§10 step 4) — the one new colour this pass adds. Exposed
+     as its own token because the Baseline layer's legend swatches it
+     directly to mark the zero point, and it must never be confused with
+     --null-cell: "exactly average" and "no data" are opposite claims. Built
+     radially in Lab space at low, near-constant chroma outward from this
+     point (not by hand-tuning a picked hex) so the ramp's monotonic-chroma
+     property holds by construction on both halves; this token is that
+     construction's centre. Verified ΔE76 vs --null-cell = 40.1 — well past
+     the 13–26 range the five sequential ramps' own zero ends measure, so the
+     two read as clearly different colours, not close approximations. */
+  --anomaly-zero: #8a827f;
+
   /* ── Series slots — color follows the entity, never its rank ───────────── */
   --series-1: var(--rain-blue);
   --series-2: var(--heat-orange);

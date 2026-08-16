@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { YearlyAggregate } from "@/lib/types";
 import BaselineYearPicker from "@/components/ui/BaselineYearPicker";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
+import { MIN_YEARS_AFTER_BASELINE } from "@/components/fingerprint/baseline";
 
 /**
  * Re-anchors the warming figure to a year the reader chooses.
@@ -13,18 +14,15 @@ import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
  * 1950, so the site's headline number describes a world they have no memory
  * of and cannot check against.
  *
- * The default baseline renders on the server, so the figure is in the HTML
- * before any JavaScript runs. `?since` is read on mount instead of through
- * useSearchParams, which in a static export would force this whole panel to
- * render client-only and ship an empty card to anyone without JS. The
- * arithmetic is a mean of monthly values already in the fingerprint payload —
- * no extra request, no new rule.
+ * `since` is owned by `FingerprintRecordSection`, not this component — per
+ * DESIGN.md §5.4, this is now "the control that changes [the Baseline
+ * layer's] window," so the year has to live somewhere both it and the
+ * fingerprint can read. The default baseline still renders on the server
+ * (the parent's `since` starts `null`, resolving to the stated 1951-1980
+ * default), so the figure is in the HTML before any JavaScript runs. The
+ * arithmetic here is a mean of monthly values already in the fingerprint
+ * payload — no extra request, no new rule.
  */
-
-// A baseline needs enough years after it before a comparison means anything.
-// Below this the figure is dominated by whichever ENSO phase happened to sit
-// at each end, and it would be the most screenshotted number on the page.
-const MIN_WINDOW = 20;
 
 // Both ends are averaged over a decade so a single strong El Niño at either
 // end cannot masquerade as a trend.
@@ -60,30 +58,25 @@ export default function PersonalBaseline({
   regionName,
   yearFrom,
   yearTo,
+  since,
+  onChangeSince,
 }: {
   series: YearlyAggregate[];
   regionName: string;
   yearFrom: number;
   yearTo: number;
+  /** Owned by `FingerprintRecordSection` — `null` means the stated default. */
+  since: number | null;
+  /** Also updates the fingerprint's Baseline layer window and the URL; see
+   *  `FingerprintRecordSection`. */
+  onChangeSince: (next: number | null) => void;
 }) {
-  const latestAllowed = yearTo - MIN_WINDOW;
-  const [since, setSince] = useState<number | null>(null);
+  const latestAllowed = yearTo - MIN_YEARS_AFTER_BASELINE;
   // Empty until the reader changes something, so nothing is announced on load.
   const [announcement, setAnnouncement] = useState("");
 
-  // Deep links still work: read the URL once on mount, after the server HTML
-  // (which always shows the full-record baseline) has already painted.
-  useEffect(() => {
-    const raw = new URLSearchParams(window.location.search).get("since");
-    if (!raw) return;
-    const n = Number(raw);
-    if (Number.isInteger(n) && n >= yearFrom && n <= latestAllowed) setSince(n);
-  }, [yearFrom, latestAllowed]);
-
-  // Keep the URL in step so the view stays shareable and citable — a figure in
-  // a screenshot can always be traced back to the baseline that produced it.
   function apply(next: number | null) {
-    setSince(next);
+    onChangeSince(next);
     // Announced from here, not from an effect on `since`: an effect would also
     // fire for the deep-link read on mount, announcing a figure the reader
     // never asked to change.
@@ -95,13 +88,6 @@ export default function PersonalBaseline({
         : `Since ${year}, ${regionName}'s average daily high has moved ` +
           `${d >= 0 ? "up" : "down"} ${Math.abs(d).toFixed(1)} degrees Celsius.`,
     );
-    const url = new URL(window.location.href);
-    if (next === null) {
-      url.searchParams.delete("since");
-    } else {
-      url.searchParams.set("since", String(next));
-    }
-    window.history.replaceState(null, "", url);
   }
 
   const baselineYear = since ?? yearFrom;

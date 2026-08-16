@@ -10,18 +10,24 @@ import type {
 } from "@/lib/types";
 import ClimateFingerprint, {
   FingerprintLegend,
+  AnomalyLegend,
   ZOOM_WINDOW,
   fingerprintYears,
+  UNIT,
   type FingerprintZoom,
 } from "./ClimateFingerprint";
 import {
-  LAYER_KEYS,
-  LAYER_TABLE_NOTE,
   parseLayersParam,
   serializeLayersParam,
   toggleLayer,
   type FingerprintLayer,
 } from "./layers";
+import {
+  BASELINE_FROM,
+  BASELINE_TO,
+  monthlyClimatology,
+  anomalyDomain,
+} from "./baseline";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
@@ -66,10 +72,18 @@ export default function FingerprintPanel({
   region,
   initial,
   ensoEvents,
+  baselineFrom = BASELINE_FROM,
+  baselineTo = BASELINE_TO,
 }: {
   region: Pick<Region, "id" | "slug">;
   initial: FingerprintResponse;
   ensoEvents: ENSOEvent[];
+  /** The Baseline layer's climatology window. Defaults to the stated
+   *  1951-1980 default (DESIGN.md §5.4); `FingerprintRecordSection` passes
+   *  the reader's PersonalBaseline choice once one is picked, per "wire them
+   *  together." */
+  baselineFrom?: number;
+  baselineTo?: number;
 }) {
   const [variable, setVariable] = useState<FingerprintVariable>("precipitation");
   const [data, setData] = useState<FingerprintResponse>(initial);
@@ -116,9 +130,24 @@ export default function FingerprintPanel({
     });
   }
 
-  const layerNotes = LAYER_KEYS.filter((k) => layers.has(k))
-    .map((k) => LAYER_TABLE_NOTE[k])
-    .filter((note): note is string => Boolean(note));
+  // For the legend swap below only — ClimateFingerprint computes this same
+  // thing again internally for the cell fills themselves (see its own
+  // `climatology`/`anomalyMax`). Recomputing here from the same `data` state
+  // rather than plumbing a callback up keeps the two components' props
+  // one-directional (data down), at the cost of the pure-function call
+  // running twice; both are O(cells), not worth a ref/callback to avoid.
+  const baselineActive = layers.has("baseline");
+  const climatology = useMemo(
+    () =>
+      baselineActive
+        ? monthlyClimatology(data.data, baselineFrom, baselineTo)
+        : null,
+    [data, baselineActive, baselineFrom, baselineTo],
+  );
+  const anomalyMax = useMemo(
+    () => (climatology ? anomalyDomain(data.data, climatology) : null),
+    [data, climatology],
+  );
 
   useEffect(() => {
     if (variable === initial.variable && data.variable === variable) return;
@@ -269,6 +298,40 @@ export default function FingerprintPanel({
             )}
           </div>
 
+          {/* Layers. Only Baseline exists yet (DESIGN.md §10 step 4) — Season/
+              ENSO overlay/Extremes are still standalone (the switch below,
+              ExtremeDaysChart, etc.) until steps 5-7 fold them in here too. */}
+          <div className="flex flex-col items-start gap-1.5 lg:items-end">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={baselineActive}
+              onClick={() => handleToggleLayer("baseline")}
+              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <span
+                aria-hidden
+                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
+                  baselineActive ? "bg-heat-orange" : "bg-border-strong"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
+                    baselineActive ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              Baseline layer
+            </button>
+            {/* DESIGN.md §5.4: "the baseline window is ... stated in the UI,
+                not buried." */}
+            {baselineActive && (
+              <span className="font-numeric text-2xs text-text-muted">
+                vs {baselineFrom}–{baselineTo} average
+              </span>
+            )}
+          </div>
+
           {/* ENSO switch */}
           <button
             type="button"
@@ -328,7 +391,9 @@ export default function FingerprintPanel({
             showEnso={showEnso}
             zoom={zoom}
             windowStart={clampedWindowStart}
-            layerNotes={layerNotes}
+            layers={layers}
+            baselineFrom={baselineFrom}
+            baselineTo={baselineTo}
             onHoverYear={setHoverYear}
           />
         </div>
@@ -362,7 +427,19 @@ export default function FingerprintPanel({
             )}
           </div>
 
-          <FingerprintLegend variable={data.variable} stats={data.stats} />
+          {/* DESIGN.md §5.4: "When this layer is on, the sequential legend is
+              replaced by the diverging one with its zero marked. Two ramps
+              must never be on screen at once." */}
+          {baselineActive ? (
+            <AnomalyLegend
+              domainMax={anomalyMax}
+              unit={UNIT[data.variable]}
+              from={baselineFrom}
+              to={baselineTo}
+            />
+          ) : (
+            <FingerprintLegend variable={data.variable} stats={data.stats} />
+          )}
 
           {showEnso && (
             <div className="space-y-2 border-t border-border pt-4">

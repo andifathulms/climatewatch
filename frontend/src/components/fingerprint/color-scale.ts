@@ -35,6 +35,29 @@ import rampsJson from "./ramps.json";
  */
 export const RAMPS = rampsJson as Record<FingerprintVariable, string[]>;
 
+/**
+ * The Baseline layer's ramp (DESIGN.md §3.2) — the one genuinely new colour
+ * asset here, not a variation on the five sequential ramps above. Diverging,
+ * not sequential: built radially in Lab space outward from a fixed,
+ * near-zero-chroma centre (`--anomaly-zero` in tokens.css) toward a vivid
+ * blue on one side and a vivid orange on the other, so chroma is monotonic
+ * by construction on each half rather than emerging from a hand-tuned blend.
+ * Hue-anchored to --rain-blue (Δhue ≈ 11°) and --heat-orange (Δhue ≈ 2°) so
+ * it reads as family. Centre stop measures ΔE76 = 40.1 against --null-cell —
+ * "exactly average" cannot be mistaken for "no data."
+ */
+export const ANOMALY_RAMP = (rampsJson as Record<string, string[]>)
+  .anomaly_diverging;
+
+/** Symmetric sequential-into-diverging scale: `domainMax` must already be
+ *  `max(|min|, |max|)` of the actual departures (see `anomalyDomain` in
+ *  ./baseline.ts) — this function does not derive or clamp it, per
+ *  DESIGN.md §5.4's "never let the renderer derive an asymmetric domain." */
+export function buildAnomalyColorScale(domainMax: number) {
+  const interp = d3.interpolateRgbBasis(ANOMALY_RAMP);
+  return d3.scaleSequential(interp).domain([-domainMax, domainMax]);
+}
+
 /** Build the D3 sequential color scale for a variable (domains per CLAUDE.md). */
 export function buildColorScale(
   variable: FingerprintVariable,

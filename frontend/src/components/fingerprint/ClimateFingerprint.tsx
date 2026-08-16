@@ -8,7 +8,15 @@ import type {
   FingerprintVariable,
 } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
-import { RAMPS, buildColorScale } from "./color-scale";
+import { RAMPS, buildColorScale, buildAnomalyColorScale, ANOMALY_RAMP } from "./color-scale";
+import {
+  BASELINE_FROM,
+  BASELINE_TO,
+  monthlyClimatology,
+  anomalyFor,
+  anomalyDomain,
+} from "./baseline";
+import { LAYER_KEYS, LAYER_TABLE_NOTE, type FingerprintLayer } from "./layers";
 
 const CELL_H_MAX = 22; // row height ceiling — legible even at a handful of rows
 const CELL_H_MIN = 4; // row height floor — a coloured hairline, still a mark
@@ -44,7 +52,11 @@ export function fingerprintYears(data: FingerprintResponse): number[] {
   return Array.from(set).sort((a, b) => b - a);
 }
 
-const UNIT: Record<FingerprintVariable, string> = {
+// Stable reference so an omitted `layers` prop doesn't invalidate memos on
+// every render the way a fresh `new Set()` default literal would.
+const EMPTY_LAYERS: Set<FingerprintLayer> = new Set();
+
+export const UNIT: Record<FingerprintVariable, string> = {
   precipitation: " mm",
   temp_max: "°C",
   hot_days: " days",
@@ -167,13 +179,103 @@ export function FingerprintLegend({
   );
 }
 
+/** The diverging legend for the Baseline layer (DESIGN.md §3.2/§5.4). Unlike
+ *  `FingerprintLegend`, the midpoint carries meaning here, so it gets its own
+ *  marked tick rather than reusing the two-ends layout. Never rendered
+ *  alongside `FingerprintLegend` — DESIGN.md §5.4: "Two ramps must never be
+ *  on screen at once." */
+export function AnomalyLegend({
+  domainMax,
+  unit,
+  from,
+  to,
+}: {
+  /** `null` when no departure could be computed at all (e.g. the baseline
+   *  window has no overlap with this variable's coverage) — the legend
+   *  states that rather than rendering a scale with nothing behind it. */
+  domainMax: number | null;
+  unit: string;
+  from: number;
+  to: number;
+}) {
+  const gradient = `linear-gradient(to right, ${ANOMALY_RAMP.join(", ")})`;
+
+  if (domainMax === null) {
+    return (
+      <p className="max-w-prose text-2xs leading-relaxed text-text-muted">
+        No {from}–{to} reference average is available to compare against for
+        this variable.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
+        <div className="relative flex items-center gap-2.5">
+          <span className="font-numeric text-2xs text-text-muted">
+            −{domainMax.toFixed(1)}
+            {unit}
+          </span>
+          <span className="relative h-2 w-28">
+            <span
+              className="block h-full w-full rounded-full ring-1 ring-inset ring-border"
+              style={{ background: gradient }}
+              role="img"
+              aria-label={`Diverging color scale from ${domainMax.toFixed(1)}${unit} below the ${from}–${to} average to ${domainMax.toFixed(1)}${unit} above it, midpoint at zero departure`}
+            />
+            {/* The zero tick — the one thing this legend has that the
+                sequential one does not need. */}
+            <span
+              aria-hidden
+              className="absolute -top-1 left-1/2 h-4 w-px -translate-x-1/2 bg-text-primary"
+            />
+          </span>
+          <span className="font-numeric text-2xs text-text-muted">
+            +{domainMax.toFixed(1)}
+            {unit}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
+            style={{ background: "var(--anomaly-zero)" }}
+          />
+          <span className="text-2xs text-text-muted">
+            {from}–{to} average
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
+            style={{ background: "var(--null-cell)" }}
+          />
+          <span className="text-2xs text-text-muted">no data</span>
+        </div>
+      </div>
+
+      <p className="max-w-prose text-2xs leading-relaxed text-text-muted">
+        Departure from that calendar month&rsquo;s {from}–{to} average, not
+        the raw value — a cell can be the same colour in two different cities
+        for entirely different absolute numbers.
+      </p>
+    </div>
+  );
+}
+
 export default function ClimateFingerprint({
   data,
   ensoEvents,
   showEnso,
   zoom = "record",
   windowStart = 0,
-  layerNotes = [],
+  layers = EMPTY_LAYERS,
+  baselineFrom = BASELINE_FROM,
+  baselineTo = BASELINE_TO,
   onHoverYear,
 }: {
   data: FingerprintResponse;
@@ -189,9 +291,15 @@ export default function ClimateFingerprint({
   /** Index into the newest-first year list where a "decade"/"year" window
    *  starts. Ignored at "record" zoom, where every year renders. */
   windowStart?: number;
-  /** Sentences the active layers contribute to the sr-only table's caption.
-   *  Always empty today — see DESIGN.md §5.6 and §10 step 3. */
-  layerNotes?: string[];
+  /** Active layers (DESIGN.md §5.6/§10 step 3). Only "baseline" (§10 step 4)
+   *  draws anything yet; the rest are read for their sr-only table notes. */
+  layers?: Set<FingerprintLayer>;
+  /** The Baseline layer's climatology window — DESIGN.md §5.4: "the baseline
+   *  window is ... stated in the UI, not buried." Defaults to the stated
+   *  1951-1980 default; `FingerprintPanel` passes the reader's chosen year
+   *  (via PersonalBaseline) once one is picked. */
+  baselineFrom?: number;
+  baselineTo?: number;
   onHoverYear?: (year: number | null) => void;
 }) {
   const [tip, setTip] = useState<Tooltip | null>(null);
@@ -259,6 +367,48 @@ export default function ClimateFingerprint({
     () => buildColorScale(data.variable, data.stats),
     [data],
   );
+
+  // Baseline layer (DESIGN.md §5.4). Computed from `data.data` — the full,
+  // unwindowed record already fetched for the current variable — never from
+  // `years`/the zoomed subset, so the domain (and therefore every cell's
+  // colour) stays identical regardless of zoom stop.
+  const baselineActive = layers.has("baseline");
+  const climatology = useMemo(
+    () =>
+      baselineActive
+        ? monthlyClimatology(data.data, baselineFrom, baselineTo)
+        : null,
+    [data, baselineActive, baselineFrom, baselineTo],
+  );
+  const anomalyMax = useMemo(
+    () => (climatology ? anomalyDomain(data.data, climatology) : null),
+    [data, climatology],
+  );
+  // DESIGN.md §5.4: "never let the renderer derive an asymmetric domain from
+  // the data" — buildAnomalyColorScale takes the already-symmetric max and
+  // does not touch it further.
+  const anomalyColor = useMemo(
+    () => (anomalyMax !== null ? buildAnomalyColorScale(anomalyMax) : null),
+    [anomalyMax],
+  );
+
+  const layerNotes = useMemo(() => {
+    const notes: string[] = [];
+    if (baselineActive) {
+      notes.push(
+        anomalyMax === null
+          ? `Baseline layer: no ${baselineFrom}–${baselineTo} reference average is available for this variable, so no departures could be computed.`
+          : `Baseline layer active: colours show each month's departure from its own ${baselineFrom}–${baselineTo} average, not the ${data.variable.replace(/_/g, " ")} value itself.`,
+      );
+    }
+    for (const key of LAYER_KEYS) {
+      if (key === "baseline" || !layers.has(key)) continue;
+      const note = LAYER_TABLE_NOTE[key];
+      if (note) notes.push(note);
+    }
+    return notes;
+  }, [baselineActive, anomalyMax, baselineFrom, baselineTo, data.variable, layers]);
+
   const enso = useMemo(() => ensoByYear(ensoEvents), [ensoEvents]);
   const cellMap = useMemo(() => {
     const m = new Map<string, number | null>();
@@ -438,9 +588,22 @@ export default function ClimateFingerprint({
                 const month = mi + 1;
                 const value = cellMap.get(`${year}-${month}`) ?? null;
                 const x = LEFT + mi * (cellW + PAD);
-                const isNull = value === null || value === undefined;
                 const focused =
                   tip !== null && tip.year === year && tip.month === month;
+                // Baseline mutually excludes the plain variable ramp per
+                // DESIGN.md §5.4/§5.6 — one fill, never a blend of the two.
+                const anomaly =
+                  baselineActive && climatology
+                    ? anomalyFor(value, month, climatology)
+                    : null;
+                const isNull = baselineActive
+                  ? anomaly === null
+                  : value === null || value === undefined;
+                const fill = isNull
+                  ? "var(--null-cell)"
+                  : baselineActive && anomalyColor
+                    ? (anomalyColor(anomaly as number) as string)
+                    : (color(value as number) as string);
                 return (
                   <rect
                     key={month}
@@ -449,9 +612,7 @@ export default function ClimateFingerprint({
                     width={cellW}
                     height={rowHeight}
                     rx={3}
-                    fill={
-                      isNull ? "var(--null-cell)" : (color(value) as string)
-                    }
+                    fill={fill}
                     stroke={focused ? "var(--text-primary)" : "none"}
                     strokeWidth={focused ? 1.5 : 0}
                     opacity={hoverRow !== null && !rowActive ? 0.55 : 1}
@@ -497,6 +658,24 @@ export default function ClimateFingerprint({
               ? "no data"
               : `${tip.value.toFixed(1)}${UNIT[data.variable]}`}
           </div>
+          {baselineActive &&
+            (() => {
+              // Computed here rather than carried on `tip`: the tooltip must
+              // show the same number the cell's colour encodes, and deriving
+              // it from the same `climatology` the fill above reads keeps the
+              // two from ever quietly disagreeing.
+              const a =
+                tip.value !== null && climatology
+                  ? anomalyFor(tip.value, tip.month, climatology)
+                  : null;
+              return (
+                <div className="font-numeric mt-1 border-t border-border pt-1.5 text-2xs text-text-secondary">
+                  {a === null
+                    ? `no ${baselineFrom}–${baselineTo} average to compare`
+                    : `${a >= 0 ? "+" : "−"}${Math.abs(a).toFixed(1)}${UNIT[data.variable]} vs ${baselineFrom}–${baselineTo} avg`}
+                </div>
+              );
+            })()}
           {showEnso && tip.enso && (
             <div className="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 text-2xs text-text-secondary">
               <span

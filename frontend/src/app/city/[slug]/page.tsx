@@ -5,13 +5,13 @@ import { api } from "@/lib/api";
 import { routeMetadata } from "@/lib/metadata";
 import { CityStructuredData } from "@/components/ui/StructuredData";
 import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
+import FingerprintRecordSection from "@/components/fingerprint/FingerprintRecordSection";
 import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import SeasonShiftScatter from "@/components/charts/SeasonShiftScatter";
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
 import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
 import SeasonLengthChart from "@/components/charts/SeasonLengthChart";
 import WhatMovedMost from "@/components/charts/WhatMovedMost";
-import PersonalBaseline from "@/components/charts/PersonalBaseline";
 import WorkedExample from "@/components/fingerprint/WorkedExample";
 
 // Required for `output: 'export'` (static mode) — every dynamic segment must
@@ -233,17 +233,24 @@ export default async function CityPage({
             meeting 924 of them. */}
         {workedExample && <WorkedExample data={workedExample} />}
 
-        <FingerprintPanel
-          region={region}
-          initial={fingerprint}
-          ensoEvents={ensoEvents}
-        />
-        {tempMaxByYear && year_from !== null && year_to !== null && (
-          <PersonalBaseline
-            series={tempMaxByYear}
+        {year_from !== null && year_to !== null ? (
+          <FingerprintRecordSection
+            region={region}
+            initialFingerprint={fingerprint}
+            ensoEvents={ensoEvents}
+            tempMaxByYear={tempMaxByYear}
             regionName={region.name}
             yearFrom={year_from}
             yearTo={year_to}
+          />
+        ) : (
+          // No PersonalBaseline sharing to wire up without a year range —
+          // the fingerprint alone still works fine at the stated 1951-1980
+          // default, it just can't offer a reader-chosen one.
+          <FingerprintPanel
+            region={region}
+            initial={fingerprint}
+            ensoEvents={ensoEvents}
           />
         )}
       </PageGroup>
