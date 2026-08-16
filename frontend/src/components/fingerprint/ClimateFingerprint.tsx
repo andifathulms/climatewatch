@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
+  AnnualRow,
   ENSOEvent,
+  ExtremesResponse,
   FingerprintResponse,
   FingerprintStats,
   FingerprintVariable,
@@ -25,6 +27,7 @@ import {
   doyToMonthDay,
   type SeasonPoint,
 } from "./season";
+import { EXTREME_METRICS, outlinedYears } from "./extremes";
 import { LAYER_KEYS, LAYER_TABLE_NOTE, type FingerprintLayer } from "./layers";
 
 const CELL_H_MAX = 22; // row height ceiling — legible even at a handful of rows
@@ -285,6 +288,8 @@ export default function ClimateFingerprint({
   baselineFrom = BASELINE_FROM,
   baselineTo = BASELINE_TO,
   season = null,
+  extremes = null,
+  extremeMetric = "hot_days_local",
   onHoverYear,
 }: {
   data: FingerprintResponse;
@@ -299,10 +304,9 @@ export default function ClimateFingerprint({
   /** Index into the newest-first year list where a "decade"/"year" window
    *  starts. Ignored at "record" zoom, where every year renders. */
   windowStart?: number;
-  /** Active layers (DESIGN.md §5.6/§10 step 3). "baseline" (§10 step 4),
-   *  "season" (§10 step 5) and "enso" (§10 step 6) draw; "extremes" is only
-   *  read for its sr-only note so far. The standalone `showEnso` boolean this
-   *  prop replaced is gone — ENSO is a layer like any other now. */
+  /** Active layers (DESIGN.md §5.6/§10 step 3). All four now draw: "baseline"
+   *  (§10 step 4), "season" (§10 step 5), "enso" (§10 step 6), "extremes"
+   *  (§10 step 7). */
   layers?: Set<FingerprintLayer>;
   /** The Baseline layer's climatology window — DESIGN.md §5.4: "the baseline
    *  window is ... stated in the UI, not buried." Defaults to the stated
@@ -313,6 +317,12 @@ export default function ClimateFingerprint({
   /** Required for the Season layer; `null` if it wasn't fetched (e.g. the
    *  region has no year range yet) — the layer simply draws nothing then. */
   season?: SeasonResponse | null;
+  /** Required for the Extremes layer; `null` if it wasn't fetched. */
+  extremes?: ExtremesResponse | null;
+  /** Which `AnnualRow` field the Extremes layer outlines by — DESIGN.md
+   *  §5.5: "The metric dropdown from ExtremeDaysChart becomes this layer's
+   *  sub-control." `FingerprintPanel` owns the actual dropdown. */
+  extremeMetric?: keyof AnnualRow;
   onHoverYear?: (year: number | null) => void;
 }) {
   const [tip, setTip] = useState<Tooltip | null>(null);
@@ -415,6 +425,19 @@ export default function ClimateFingerprint({
   // ENSO layer (DESIGN.md §5.3). Formerly a standalone `showEnso` toggle;
   // now just another entry in `layers`.
   const ensoActive = layers.has("enso");
+
+  // Extremes layer (DESIGN.md §5.5). Computed from the full record, like
+  // every other layer's domain/threshold above — the outlined-years set
+  // does not change with zoom, only which of those years happen to be
+  // scrolled into view.
+  const extremesActive = layers.has("extremes") && extremes !== null;
+  const outlinedExtremeYears = useMemo(
+    () =>
+      extremesActive
+        ? outlinedYears(extremes.results, extremeMetric)
+        : new Set<number>(),
+    [extremesActive, extremes, extremeMetric],
+  );
 
   const yearToRow = useMemo(() => {
     const m = new Map<number, number>();
@@ -526,11 +549,27 @@ export default function ClimateFingerprint({
           `${ninoYears} El Niño year${ninoYears === 1 ? "" : "s"}, ${ninaYears} La Niña year${ninaYears === 1 ? "" : "s"} in this record.`,
       );
     }
+    if (layers.has("extremes")) {
+      if (extremes === null) {
+        notes.push("Extremes layer: no extreme-day data is available for this city.");
+      } else {
+        const metricLabel =
+          EXTREME_METRICS.find((m) => m.key === extremeMetric)?.label ??
+          extremeMetric;
+        notes.push(
+          `Extremes layer active, metric: ${metricLabel}. A whole year's row is outlined — not a single cell — ` +
+            `because the underlying count is annual, not monthly. ${outlinedExtremeYears.size} year` +
+            `${outlinedExtremeYears.size === 1 ? "" : "s"} ${outlinedExtremeYears.size === 1 ? "is" : "are"} outlined: ` +
+            `in the top 10% for this metric across the record, and above zero.`,
+        );
+      }
+    }
     for (const key of LAYER_KEYS) {
       if (
         key === "baseline" ||
         key === "season" ||
         key === "enso" ||
+        key === "extremes" ||
         !layers.has(key)
       )
         continue;
@@ -549,6 +588,9 @@ export default function ClimateFingerprint({
     seasonCounts,
     ensoActive,
     enso,
+    extremes,
+    extremeMetric,
+    outlinedExtremeYears,
   ]);
 
   const cellMap = useMemo(() => {
@@ -687,6 +729,23 @@ export default function ClimateFingerprint({
                   fill="none"
                   stroke="var(--border-strong)"
                   strokeWidth={1}
+                />
+              )}
+
+              {/* Extremes layer (DESIGN.md §5.5): "cells outlined, not
+                  filled ... outline, because fill is taken." The underlying
+                  count is annual, not monthly, so the whole row is outlined
+                  rather than implying a single cell caused it. */}
+              {extremesActive && outlinedExtremeYears.has(year) && (
+                <rect
+                  x={LEFT - 2}
+                  y={y - 1.5}
+                  width={12 * (cellW + PAD) - PAD + 4}
+                  height={rowHeight + 3}
+                  rx={4}
+                  fill="none"
+                  stroke="var(--heat-orange)"
+                  strokeWidth={1.5}
                 />
               )}
 

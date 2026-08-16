@@ -6,7 +6,6 @@ import { routeMetadata } from "@/lib/metadata";
 import { CityStructuredData } from "@/components/ui/StructuredData";
 import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import FingerprintRecordSection from "@/components/fingerprint/FingerprintRecordSection";
-import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
 import WhatMovedMost from "@/components/charts/WhatMovedMost";
 import WorkedExample from "@/components/fingerprint/WorkedExample";
@@ -237,6 +236,7 @@ export default async function CityPage({
             ensoEvents={ensoEvents}
             season={season}
             ensoImpact={ensoImpact}
+            extremes={extremes}
             tempMaxByYear={tempMaxByYear}
             regionName={region.name}
             yearFrom={year_from}
@@ -252,17 +252,15 @@ export default async function CityPage({
             ensoEvents={ensoEvents}
             season={season}
             ensoImpact={ensoImpact}
+            extremes={extremes}
           />
         )}
       </PageGroup>
 
-      {/* Season shift/length and the ENSO impact card used to be their own
-          sections here — all three are now fingerprint layers (DESIGN.md
-          §5.2/§5.3, §10 steps 5-6), which is why this group is down to one
-          chart and "What drives the swings" is gone entirely. */}
-      <PageGroup id="g-trends" label="Trends over time">
-        {extremes && <ExtremeDaysChart data={extremes} headingLevel="h3" />}
-      </PageGroup>
+      {/* Season shift/length, the ENSO impact card and extreme-day counts
+          used to each have their own section here — all four (with Baseline)
+          are now fingerprint layers (DESIGN.md §5.2-§5.5, §10 steps 4-7), so
+          "Trends over time" and "What drives the swings" are both gone. */}
 
       {/* Compare CTA — the natural next step from a single city. */}
       <section className="card flex flex-wrap items-center justify-between gap-4 p-6">

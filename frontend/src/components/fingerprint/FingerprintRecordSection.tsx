@@ -7,6 +7,7 @@ import { BASELINE_FROM, BASELINE_TO, MIN_YEARS_AFTER_BASELINE } from "./baseline
 import type {
   ENSOEvent,
   EnsoImpactResponse,
+  ExtremesResponse,
   FingerprintResponse,
   Region,
   SeasonResponse,
@@ -36,6 +37,7 @@ export default function FingerprintRecordSection({
   ensoEvents,
   season,
   ensoImpact,
+  extremes,
   tempMaxByYear,
   regionName,
   yearFrom,
@@ -46,6 +48,7 @@ export default function FingerprintRecordSection({
   ensoEvents: ENSOEvent[];
   season: SeasonResponse | null;
   ensoImpact: EnsoImpactResponse | null;
+  extremes: ExtremesResponse | null;
   tempMaxByYear: YearlyAggregate[] | null;
   regionName: string;
   yearFrom: number;
@@ -92,6 +95,7 @@ export default function FingerprintRecordSection({
         ensoEvents={ensoEvents}
         season={season}
         ensoImpact={ensoImpact}
+        extremes={extremes}
         baselineFrom={baselineFrom}
         baselineTo={baselineTo}
       />

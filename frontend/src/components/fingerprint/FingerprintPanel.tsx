@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type {
+  AnnualRow,
   ENSOEvent,
   EnsoImpactResponse,
+  ExtremesResponse,
   FingerprintResponse,
   FingerprintVariable,
   Region,
@@ -35,6 +37,7 @@ import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 import SeasonRuleNote from "@/components/charts/SeasonRuleNote";
 import ENSOBadge from "@/components/ui/ENSOBadge";
 import { ensoCaption } from "./enso";
+import { EXTREME_METRICS, extremeMetricValue } from "./extremes";
 
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "precipitation", label: "Rainfall" },
@@ -79,6 +82,7 @@ export default function FingerprintPanel({
   ensoEvents,
   season = null,
   ensoImpact = null,
+  extremes = null,
   baselineFrom = BASELINE_FROM,
   baselineTo = BASELINE_TO,
 }: {
@@ -92,6 +96,9 @@ export default function FingerprintPanel({
   /** Powers the ENSO layer's caption (DESIGN.md §5.3) — the same phase-delta
    *  numbers `ENSOImpactCard` used to show in its own section. */
   ensoImpact?: EnsoImpactResponse | null;
+  /** Powers the Extremes layer (DESIGN.md §5.5) — the same per-year metrics
+   *  `ExtremeDaysChart` used to plot. */
+  extremes?: ExtremesResponse | null;
   /** The Baseline layer's climatology window. Defaults to the stated
    *  1951-1980 default (DESIGN.md §5.4); `FingerprintRecordSection` passes
    *  the reader's PersonalBaseline choice once one is picked, per "wire them
@@ -169,6 +176,13 @@ export default function FingerprintPanel({
     () => (ensoActive && ensoImpact ? ensoCaption(ensoImpact) : null),
     [ensoActive, ensoImpact],
   );
+  const extremesActive = layers.has("extremes");
+  // Same default ExtremeDaysChart used to open on — see extremes.ts.
+  const [extremeMetric, setExtremeMetric] = useState<keyof AnnualRow>(
+    "hot_days_local",
+  );
+  const extremeMetricInfo =
+    EXTREME_METRICS.find((m) => m.key === extremeMetric) ?? EXTREME_METRICS[0];
 
   useEffect(() => {
     if (variable === initial.variable && data.variable === variable) return;
@@ -319,9 +333,7 @@ export default function FingerprintPanel({
             )}
           </div>
 
-          {/* Layers. Baseline, Season and ENSO exist (DESIGN.md §10 steps
-              4-6) — Extremes is still standalone (ExtremeDaysChart) until
-              step 7 folds it in too. */}
+          {/* Layers. All four exist now (DESIGN.md §10 steps 4-7). */}
           <div className="flex flex-col items-start gap-1.5 lg:items-end">
             <button
               type="button"
@@ -400,6 +412,48 @@ export default function FingerprintPanel({
               </span>
               ENSO layer
             </button>
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={extremesActive}
+              onClick={() => handleToggleLayer("extremes")}
+              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <span
+                aria-hidden
+                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
+                  extremesActive ? "bg-heat-orange" : "bg-border-strong"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
+                    extremesActive ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              Extremes layer
+            </button>
+            {/* DESIGN.md §5.5: "The metric dropdown from ExtremeDaysChart
+                becomes this layer's sub-control." */}
+            {extremesActive && (
+              <label className="flex flex-col items-end gap-1">
+                <span className="sr-only">Extremes metric</span>
+                <select
+                  value={extremeMetric}
+                  onChange={(e) =>
+                    setExtremeMetric(e.target.value as keyof AnnualRow)
+                  }
+                  className="field px-2.5 py-1 text-2xs"
+                >
+                  {EXTREME_METRICS.map((m) => (
+                    <option key={m.key as string} value={m.key as string}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
         </div>
       </div>
@@ -441,6 +495,8 @@ export default function FingerprintPanel({
             baselineFrom={baselineFrom}
             baselineTo={baselineTo}
             season={season}
+            extremes={extremes}
+            extremeMetric={extremeMetric}
             onHoverYear={setHoverYear}
           />
         </div>
@@ -462,6 +518,27 @@ export default function FingerprintPanel({
                     ? `${yearValue.toFixed(1)}${rollup.unit}`
                     : "—"}
                 </div>
+                {/* DESIGN.md §5.5: "The annual counts that chart plotted stay
+                    recoverable by hovering a year row, which already drives
+                    an annual readout in the sidebar." */}
+                {extremesActive && extremes && (
+                  <>
+                    <div className="mt-2 text-xs text-text-muted">
+                      {extremeMetricInfo.short}
+                    </div>
+                    <div className="font-numeric mt-0.5 text-lg text-heat-light">
+                      {(() => {
+                        const row = extremes.results.find(
+                          (r) => r.year === hoverYear,
+                        );
+                        const v = row
+                          ? extremeMetricValue(row, extremeMetric)
+                          : null;
+                        return v !== null ? v : "—";
+                      })()}
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <p className="text-xs leading-relaxed text-text-muted">
