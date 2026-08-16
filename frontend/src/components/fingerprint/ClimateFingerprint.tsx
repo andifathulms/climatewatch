@@ -6,6 +6,7 @@ import type {
   FingerprintResponse,
   FingerprintStats,
   FingerprintVariable,
+  SeasonResponse,
 } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
 import { RAMPS, buildColorScale, buildAnomalyColorScale, ANOMALY_RAMP } from "./color-scale";
@@ -16,6 +17,14 @@ import {
   anomalyFor,
   anomalyDomain,
 } from "./baseline";
+import {
+  breakIntoRuns,
+  endPoints,
+  onsetPoints,
+  seasonBreakCounts,
+  doyToMonthDay,
+  type SeasonPoint,
+} from "./season";
 import { LAYER_KEYS, LAYER_TABLE_NOTE, type FingerprintLayer } from "./layers";
 
 const CELL_H_MAX = 22; // row height ceiling — legible even at a handful of rows
@@ -276,6 +285,7 @@ export default function ClimateFingerprint({
   layers = EMPTY_LAYERS,
   baselineFrom = BASELINE_FROM,
   baselineTo = BASELINE_TO,
+  season = null,
   onHoverYear,
 }: {
   data: FingerprintResponse;
@@ -291,8 +301,8 @@ export default function ClimateFingerprint({
   /** Index into the newest-first year list where a "decade"/"year" window
    *  starts. Ignored at "record" zoom, where every year renders. */
   windowStart?: number;
-  /** Active layers (DESIGN.md §5.6/§10 step 3). Only "baseline" (§10 step 4)
-   *  draws anything yet; the rest are read for their sr-only table notes. */
+  /** Active layers (DESIGN.md §5.6/§10 step 3). "baseline" (§10 step 4) and
+   *  "season" (§10 step 5) draw; the rest are only read for sr-only notes. */
   layers?: Set<FingerprintLayer>;
   /** The Baseline layer's climatology window — DESIGN.md §5.4: "the baseline
    *  window is ... stated in the UI, not buried." Defaults to the stated
@@ -300,6 +310,9 @@ export default function ClimateFingerprint({
    *  (via PersonalBaseline) once one is picked. */
   baselineFrom?: number;
   baselineTo?: number;
+  /** Required for the Season layer; `null` if it wasn't fetched (e.g. the
+   *  region has no year range yet) — the layer simply draws nothing then. */
+  season?: SeasonResponse | null;
   onHoverYear?: (year: number | null) => void;
 }) {
   const [tip, setTip] = useState<Tooltip | null>(null);
@@ -392,6 +405,86 @@ export default function ClimateFingerprint({
     [anomalyMax],
   );
 
+  // Season layer (DESIGN.md §5.2). Runs are built from the *visible* `years`
+  // — a decade/year zoom draws just that window's segment — but the break
+  // count in the caption always reflects the full record (`seasonCounts`),
+  // the same convention `anomalyMax` above follows.
+  const seasonActive =
+    layers.has("season") && season !== null && !season.onset_saturated;
+  const yearToRow = useMemo(() => {
+    const m = new Map<number, number>();
+    years.forEach((y, i) => m.set(y, i));
+    return m;
+  }, [years]);
+  const onsetByYear = useMemo(
+    () =>
+      season
+        ? new Map(onsetPoints(season.results).map((p) => [p.year, p]))
+        : new Map<number, SeasonPoint>(),
+    [season],
+  );
+  const endByYear = useMemo(
+    () =>
+      season
+        ? new Map(endPoints(season.results).map((p) => [p.year, p]))
+        : new Map<number, SeasonPoint>(),
+    [season],
+  );
+  const onsetRuns = useMemo(
+    () => (seasonActive ? breakIntoRuns(years, onsetByYear) : []),
+    [seasonActive, years, onsetByYear],
+  );
+  const endRuns = useMemo(
+    () => (seasonActive ? breakIntoRuns(years, endByYear) : []),
+    [seasonActive, years, endByYear],
+  );
+  const seasonCounts = useMemo(
+    () => (season ? seasonBreakCounts(season) : null),
+    [season],
+  );
+
+  /** A run's points to pixels, in grid-row order — `null` per point if its
+   *  year has scrolled outside the current zoom window (drops it, per
+   *  DESIGN.md §5.2: never interpolate across a gap). */
+  function seasonPointXY(p: SeasonPoint): { x: number; y: number } | null {
+    const row = yearToRow.get(p.year);
+    if (row === undefined) return null;
+    const daysInMonth = new Date(2001, p.month, 0).getDate();
+    const frac = (p.day - 0.5) / daysInMonth;
+    return {
+      x: LEFT + (p.month - 1) * (cellW + PAD) + frac * cellW,
+      y: TOP + row * (rowHeight + PAD) + rowHeight / 2,
+    };
+  }
+
+  function runToPath(run: SeasonPoint[]): string | null {
+    const coords = run
+      .map(seasonPointXY)
+      .filter((c): c is { x: number; y: number } => c !== null);
+    if (coords.length < 2) return null;
+    return coords
+      .map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(1)},${c.y.toFixed(1)}`)
+      .join(" ");
+  }
+
+  // The regression line has no gaps to break across — a fitted line has a
+  // value for every year — so it is one continuous path over the visible
+  // window rather than a set of runs.
+  let onsetTrendPath: string | null = null;
+  if (seasonActive && season) {
+    const { slope, intercept } = season.onset_trend;
+    if (slope !== null && intercept !== null) {
+      onsetTrendPath = runToPath(
+        years.map((year) => {
+          const { month, day } = doyToMonthDay(
+            Math.round(slope * year + intercept),
+          );
+          return { year, month, day };
+        }),
+      );
+    }
+  }
+
   const layerNotes = useMemo(() => {
     const notes: string[] = [];
     if (baselineActive) {
@@ -401,13 +494,37 @@ export default function ClimateFingerprint({
           : `Baseline layer active: colours show each month's departure from its own ${baselineFrom}–${baselineTo} average, not the ${data.variable.replace(/_/g, " ")} value itself.`,
       );
     }
+    if (layers.has("season")) {
+      if (season === null) {
+        notes.push("Season layer: no wet-season data is available for this city.");
+      } else if (season.onset_saturated) {
+        notes.push(
+          "Season layer: this city has no detectable dry season by the onset rule, so onset/end lines are not drawn.",
+        );
+      } else if (seasonCounts) {
+        notes.push(
+          `Season layer active: amber lines connect each year's wet-season onset and end; dashed shows the smoothed onset trend. ` +
+            `${seasonCounts.onsetMissing} year${seasonCounts.onsetMissing === 1 ? "" : "s"} had no detectable onset and break the onset line; ` +
+            `${seasonCounts.endMissing} year${seasonCounts.endMissing === 1 ? "" : "s"} had no detectable end.`,
+        );
+      }
+    }
     for (const key of LAYER_KEYS) {
-      if (key === "baseline" || !layers.has(key)) continue;
+      if (key === "baseline" || key === "season" || !layers.has(key)) continue;
       const note = LAYER_TABLE_NOTE[key];
       if (note) notes.push(note);
     }
     return notes;
-  }, [baselineActive, anomalyMax, baselineFrom, baselineTo, data.variable, layers]);
+  }, [
+    baselineActive,
+    anomalyMax,
+    baselineFrom,
+    baselineTo,
+    data.variable,
+    layers,
+    season,
+    seasonCounts,
+  ]);
 
   const enso = useMemo(() => ensoByYear(ensoEvents), [ensoEvents]);
   const cellMap = useMemo(() => {
@@ -633,6 +750,58 @@ export default function ClimateFingerprint({
             </g>
           );
         })}
+
+        {/* Season layer (DESIGN.md §5.2), drawn after every cell so the
+            lines sit on top. Onset solid, end dotted — both amber, so the
+            dash pattern is the distinguishing cue per the hue-alone rule
+            (CLAUDE.md). Trend dashed, matching the app-wide "trend lines are
+            always amber" convention. */}
+        {seasonActive && (
+          <g aria-hidden>
+            {onsetRuns.map((run, i) => {
+              const d = runToPath(run);
+              return (
+                d && (
+                  <path
+                    key={`onset-${i}`}
+                    d={d}
+                    fill="none"
+                    stroke="var(--drought-amber)"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )
+              );
+            })}
+            {endRuns.map((run, i) => {
+              const d = runToPath(run);
+              return (
+                d && (
+                  <path
+                    key={`end-${i}`}
+                    d={d}
+                    fill="none"
+                    stroke="var(--drought-amber)"
+                    strokeWidth={1.5}
+                    strokeDasharray="1 3"
+                    strokeLinecap="round"
+                  />
+                )
+              );
+            })}
+            {onsetTrendPath && (
+              <path
+                d={onsetTrendPath}
+                fill="none"
+                stroke="var(--drought-amber)"
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+                opacity={0.7}
+              />
+            )}
+          </g>
+        )}
       </svg>
 
       {tip && (

@@ -8,6 +8,7 @@ import type {
   ENSOEvent,
   FingerprintResponse,
   Region,
+  SeasonResponse,
   YearlyAggregate,
 } from "@/lib/types";
 
@@ -32,6 +33,7 @@ export default function FingerprintRecordSection({
   region,
   initialFingerprint,
   ensoEvents,
+  season,
   tempMaxByYear,
   regionName,
   yearFrom,
@@ -40,6 +42,7 @@ export default function FingerprintRecordSection({
   region: Pick<Region, "id" | "slug">;
   initialFingerprint: FingerprintResponse;
   ensoEvents: ENSOEvent[];
+  season: SeasonResponse | null;
   tempMaxByYear: YearlyAggregate[] | null;
   regionName: string;
   yearFrom: number;
@@ -84,6 +87,7 @@ export default function FingerprintRecordSection({
         region={region}
         initial={initialFingerprint}
         ensoEvents={ensoEvents}
+        season={season}
         baselineFrom={baselineFrom}
         baselineTo={baselineTo}
       />

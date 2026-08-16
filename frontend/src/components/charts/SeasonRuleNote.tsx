@@ -11,11 +11,17 @@ import Link from "next/link";
  */
 export default function SeasonRuleNote({
   saturatedShare,
+  bordered = true,
 }: {
   saturatedShare?: number;
+  /** False when a caller already draws its own separator above this note
+   *  (e.g. FingerprintPanel's Season layer sidebar) — avoids stacking two. */
+  bordered?: boolean;
 }) {
   return (
-    <p className="mt-4 border-t border-border pt-3 text-2xs leading-relaxed text-text-muted">
+    <p
+      className={`text-2xs leading-relaxed text-text-muted ${bordered ? "mt-4 border-t border-border pt-3" : ""}`}
+    >
       Onset: first 5-day spell totalling ≥40 mm after Aug 1 — the threshold
       BMKG uses, because 40 mm over five days is roughly the point where soil
       holds enough water to plant into, and a five-day window is long enough

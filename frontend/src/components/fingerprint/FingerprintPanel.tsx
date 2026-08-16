@@ -7,6 +7,7 @@ import type {
   FingerprintResponse,
   FingerprintVariable,
   Region,
+  SeasonResponse,
 } from "@/lib/types";
 import ClimateFingerprint, {
   FingerprintLegend,
@@ -30,6 +31,7 @@ import {
 } from "./baseline";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
+import SeasonRuleNote from "@/components/charts/SeasonRuleNote";
 
 const VARIABLES: { key: FingerprintVariable; label: string }[] = [
   { key: "precipitation", label: "Rainfall" },
@@ -72,12 +74,17 @@ export default function FingerprintPanel({
   region,
   initial,
   ensoEvents,
+  season = null,
   baselineFrom = BASELINE_FROM,
   baselineTo = BASELINE_TO,
 }: {
   region: Pick<Region, "id" | "slug">;
   initial: FingerprintResponse;
   ensoEvents: ENSOEvent[];
+  /** Powers the Season layer (DESIGN.md §5.2). `null` if the region has no
+   *  wet-season data — the layer's toggle still renders, it just has nothing
+   *  to draw and says so via the sr-only table note. */
+  season?: SeasonResponse | null;
   /** The Baseline layer's climatology window. Defaults to the stated
    *  1951-1980 default (DESIGN.md §5.4); `FingerprintRecordSection` passes
    *  the reader's PersonalBaseline choice once one is picked, per "wire them
@@ -148,6 +155,7 @@ export default function FingerprintPanel({
     () => (climatology ? anomalyDomain(data.data, climatology) : null),
     [data, climatology],
   );
+  const seasonActive = layers.has("season");
 
   useEffect(() => {
     if (variable === initial.variable && data.variable === variable) return;
@@ -298,9 +306,9 @@ export default function FingerprintPanel({
             )}
           </div>
 
-          {/* Layers. Only Baseline exists yet (DESIGN.md §10 step 4) — Season/
+          {/* Layers. Baseline and Season exist (DESIGN.md §10 steps 4-5) —
               ENSO overlay/Extremes are still standalone (the switch below,
-              ExtremeDaysChart, etc.) until steps 5-7 fold them in here too. */}
+              ExtremeDaysChart) until steps 6-7 fold them in here too. */}
           <div className="flex flex-col items-start gap-1.5 lg:items-end">
             <button
               type="button"
@@ -328,6 +336,33 @@ export default function FingerprintPanel({
             {baselineActive && (
               <span className="font-numeric text-2xs text-text-muted">
                 vs {baselineFrom}–{baselineTo} average
+              </span>
+            )}
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={seasonActive}
+              onClick={() => handleToggleLayer("season")}
+              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <span
+                aria-hidden
+                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
+                  seasonActive ? "bg-drought-amber" : "bg-border-strong"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
+                    seasonActive ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              Season layer
+            </button>
+            {seasonActive && season?.onset_saturated && (
+              <span className="max-w-[14rem] text-right text-2xs text-text-muted">
+                No detectable dry season here — nothing to draw.
               </span>
             )}
           </div>
@@ -394,6 +429,7 @@ export default function FingerprintPanel({
             layers={layers}
             baselineFrom={baselineFrom}
             baselineTo={baselineTo}
+            season={season}
             onHoverYear={setHoverYear}
           />
         </div>
@@ -439,6 +475,40 @@ export default function FingerprintPanel({
             />
           ) : (
             <FingerprintLegend variable={data.variable} stats={data.stats} />
+          )}
+
+          {seasonActive && season && (
+            <div className="space-y-2 border-t border-border pt-4">
+              <p className="eyebrow">Season</p>
+              {!season.onset_saturated && (
+                <>
+                  <div className="flex items-center gap-2.5 text-xs text-text-secondary">
+                    <svg width="16" height="2" aria-hidden className="shrink-0">
+                      <line x1="0" y1="1" x2="16" y2="1" stroke="var(--drought-amber)" strokeWidth="2" />
+                    </svg>
+                    Onset, year to year
+                  </div>
+                  <div className="flex items-center gap-2.5 text-xs text-text-secondary">
+                    <svg width="16" height="2" aria-hidden className="shrink-0">
+                      <line x1="0" y1="1" x2="16" y2="1" stroke="var(--drought-amber)" strokeWidth="2" strokeDasharray="1 2.5" />
+                    </svg>
+                    End, year to year
+                  </div>
+                  <div className="flex items-center gap-2.5 text-xs text-text-secondary">
+                    <svg width="16" height="2" aria-hidden className="shrink-0">
+                      <line x1="0" y1="1" x2="16" y2="1" stroke="var(--drought-amber)" strokeWidth="2" strokeDasharray="5 4" opacity={0.7} />
+                    </svg>
+                    Smoothed onset trend
+                  </div>
+                </>
+              )}
+              <SeasonRuleNote
+                bordered={false}
+                saturatedShare={
+                  season.onset_saturated ? season.onset_saturated_share : undefined
+                }
+              />
+            </div>
           )}
 
           {showEnso && (

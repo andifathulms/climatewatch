@@ -7,10 +7,8 @@ import { CityStructuredData } from "@/components/ui/StructuredData";
 import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import FingerprintRecordSection from "@/components/fingerprint/FingerprintRecordSection";
 import ExtremeDaysChart from "@/components/charts/ExtremeDaysChart";
-import SeasonShiftScatter from "@/components/charts/SeasonShiftScatter";
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
 import ENSOImpactCard from "@/components/charts/ENSOImpactCard";
-import SeasonLengthChart from "@/components/charts/SeasonLengthChart";
 import WhatMovedMost from "@/components/charts/WhatMovedMost";
 import WorkedExample from "@/components/fingerprint/WorkedExample";
 
@@ -238,6 +236,7 @@ export default async function CityPage({
             region={region}
             initialFingerprint={fingerprint}
             ensoEvents={ensoEvents}
+            season={season}
             tempMaxByYear={tempMaxByYear}
             regionName={region.name}
             yearFrom={year_from}
@@ -251,16 +250,16 @@ export default async function CityPage({
             region={region}
             initial={fingerprint}
             ensoEvents={ensoEvents}
+            season={season}
           />
         )}
       </PageGroup>
 
+      {/* Season shift and season length used to be their own charts here —
+          both are now the fingerprint's Season layer (DESIGN.md §5.2/§10
+          step 5), which is why this group is down to one chart. */}
       <PageGroup id="g-trends" label="Trends over time">
-        <div className="grid gap-5 lg:grid-cols-2">
-          {extremes && <ExtremeDaysChart data={extremes} headingLevel="h3" />}
-          {season && <SeasonShiftScatter data={season} headingLevel="h3" />}
-        </div>
-        {season && <SeasonLengthChart data={season} headingLevel="h3" />}
+        {extremes && <ExtremeDaysChart data={extremes} headingLevel="h3" />}
       </PageGroup>
 
       {ensoImpact && (
