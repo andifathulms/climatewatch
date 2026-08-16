@@ -1,4 +1,8 @@
 import { routeMetadata } from "@/lib/metadata";
+import { api } from "@/lib/api";
+import WorkedExample from "@/components/fingerprint/WorkedExample";
+import { buildColorScale } from "@/components/fingerprint/color-scale";
+
 export const metadata = routeMetadata({
   title: "About & methodology",
   cardTitle: "How ClimateWatch knows what it knows",
@@ -77,7 +81,38 @@ function Section({
   );
 }
 
-export default function AboutPage() {
+// DESIGN.md §10 step 10: "Give it one thing: a worked trace of a single
+// cell — this coordinate, this ERA5 grid point, this month, these daily
+// values, this aggregate, this colour." Jakarta, matching the homepage's own
+// lead-city convention (LEAD_CITY in app/page.tsx) — one city readers have
+// already met by the time they reach this page.
+const TRACE_CITY = "jakarta";
+
+export default async function AboutPage() {
+  const region = await api.region(TRACE_CITY).catch(() => null);
+  const [workedExample, fingerprint] = region
+    ? await Promise.all([
+        api.workedExample(region).catch(() => null),
+        api.fingerprint(region, "precipitation").catch(() => null),
+      ])
+    : [null, null];
+
+  // The exact cell WorkedExample's day-by-day total rolls up into — read off
+  // the real fingerprint response, never recomputed, so this trace cannot
+  // agree with itself while disagreeing with the grid it is tracing.
+  const tracedCell =
+    workedExample && fingerprint
+      ? fingerprint.data.find(
+          (d) => d.year === workedExample.year && d.month === workedExample.month,
+        )
+      : null;
+  const tracedColor =
+    tracedCell?.value != null && fingerprint
+      ? (buildColorScale("precipitation", fingerprint.stats)(
+          tracedCell.value,
+        ) as string)
+      : null;
+
   return (
     <article>
       <header className="relative -mx-5 overflow-hidden px-5 pb-8 pt-14 sm:-mx-8 sm:px-8">
@@ -120,6 +155,47 @@ export default function AboutPage() {
           meaningful.
         </p>
       </Section>
+
+      {workedExample && region && (
+        <Section eyebrow="Trace" title="One cell, followed end to end">
+          <p className="max-w-prose leading-relaxed text-text-secondary">
+            Every number on this page comes from the same chain: a{" "}
+            <span className="text-text-primary">coordinate</span> —{" "}
+            <span className="font-numeric text-text-primary">
+              {region.latitude.toFixed(3)}°, {region.longitude.toFixed(3)}°
+            </span>{" "}
+            for {region.name} — resolves to the nearest{" "}
+            <span className="text-text-primary">ERA5 grid point</span>,
+            roughly a 30km square the model treats as one place. Open-Meteo
+            returns one modelled value per day for that square; this site
+            never reads a value finer than that square, and never claims to.
+            Here is what happens to one month of it, in full.
+          </p>
+
+          <WorkedExample data={workedExample} />
+
+          {tracedCell?.value != null && tracedColor && (
+            <div className="flex items-center gap-4 rounded-lg border border-border bg-surface-inset p-4">
+              <span
+                aria-hidden
+                className="h-10 w-10 shrink-0 rounded"
+                style={{ background: tracedColor }}
+              />
+              <p className="text-sm leading-relaxed text-text-secondary">
+                That month&rsquo;s total —{" "}
+                <span className="font-numeric text-text-primary">
+                  {tracedCell.value.toFixed(1)} mm
+                </span>{" "}
+                — is one cell in {region.name}&rsquo;s Rainfall fingerprint,
+                the exact colour shown here. Every cell on every Climate
+                Fingerprint on this site is this same chain, once per month,
+                repeated {fingerprint?.data.length ?? "hundreds of"} times per
+                city.
+              </p>
+            </div>
+          )}
+        </Section>
+      )}
 
       <Section eyebrow="Definitions" title="How we define things">
         <dl className="space-y-0">
