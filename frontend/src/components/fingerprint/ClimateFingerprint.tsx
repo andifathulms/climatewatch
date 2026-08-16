@@ -173,6 +173,7 @@ export default function ClimateFingerprint({
   showEnso,
   zoom = "record",
   windowStart = 0,
+  layerNotes = [],
   onHoverYear,
 }: {
   data: FingerprintResponse;
@@ -188,6 +189,9 @@ export default function ClimateFingerprint({
   /** Index into the newest-first year list where a "decade"/"year" window
    *  starts. Ignored at "record" zoom, where every year renders. */
   windowStart?: number;
+  /** Sentences the active layers contribute to the sr-only table's caption.
+   *  Always empty today — see DESIGN.md §5.6 and §10 step 3. */
+  layerNotes?: string[];
   onHoverYear?: (year: number | null) => void;
 }) {
   const [tip, setTip] = useState<Tooltip | null>(null);
@@ -301,6 +305,13 @@ export default function ClimateFingerprint({
       <table className="sr-only">
         <caption>
           {`Monthly ${data.variable.replace(/_/g, " ")} for ${data.region.name}, ${data.year_from} to ${data.year_to}${UNIT[data.variable] ? `, in ${UNIT[data.variable].trim() || "degrees"}` : ""}`}
+          {/* DESIGN.md §5.6: "Every layer extends the sr-only table with its
+              own column or note. A layer that exists only visually is not
+              finished." No layer contributes one yet (§10 step 3 is
+              infrastructure only), but the caption is where a future layer's
+              note is meant to land, so it reaches every table-reading screen
+              reader user without a bespoke announcement path per layer. */}
+          {layerNotes.length > 0 ? ` ${layerNotes.join(" ")}` : ""}
         </caption>
         <thead>
           <tr>

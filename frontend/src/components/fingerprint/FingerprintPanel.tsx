@@ -14,6 +14,14 @@ import ClimateFingerprint, {
   fingerprintYears,
   type FingerprintZoom,
 } from "./ClimateFingerprint";
+import {
+  LAYER_KEYS,
+  LAYER_TABLE_NOTE,
+  parseLayersParam,
+  serializeLayersParam,
+  toggleLayer,
+  type FingerprintLayer,
+} from "./layers";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 
@@ -76,6 +84,41 @@ export default function FingerprintPanel({
   // ships with content in the prerendered HTML risks being read out on load,
   // which is not what "the result changed" means.
   const [touched, setTouched] = useState(false);
+
+  // DESIGN.md §5.6 / §10 step 3: layer state lives in the URL so a finding
+  // is shareable. No layer has a visual yet (§10 steps 4-7) — this hydrates
+  // and stays in sync regardless, so the URL contract is already correct
+  // once the first real layer lands. Server HTML always renders zero layers
+  // active, the same deferred-hydration shape `?since=`/`?t=` use elsewhere
+  // on this page, so a static export never ships a client-only-looking gap.
+  const [layers, setLayers] = useState<Set<FingerprintLayer>>(new Set());
+
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("layers");
+    const parsed = parseLayersParam(raw);
+    if (parsed.size > 0) setLayers(parsed);
+  }, []);
+
+  // Not called from anywhere yet — the first layer's toggle button (DESIGN.md
+  // §10 step 4) is what wires this to the UI. Kept here rather than added
+  // alongside that button so the cap/URL-sync behaviour is exercised by
+  // steps 4-7 as pure addition, not written and debugged four times.
+  function handleToggleLayer(key: FingerprintLayer) {
+    setLayers((prev) => {
+      const next = toggleLayer(prev, key);
+      if (next === prev) return prev; // refused: at the cap, nothing to sync
+      const url = new URL(window.location.href);
+      const encoded = serializeLayersParam(next);
+      if (encoded) url.searchParams.set("layers", encoded);
+      else url.searchParams.delete("layers");
+      window.history.replaceState(null, "", url);
+      return next;
+    });
+  }
+
+  const layerNotes = LAYER_KEYS.filter((k) => layers.has(k))
+    .map((k) => LAYER_TABLE_NOTE[k])
+    .filter((note): note is string => Boolean(note));
 
   useEffect(() => {
     if (variable === initial.variable && data.variable === variable) return;
@@ -285,6 +328,7 @@ export default function FingerprintPanel({
             showEnso={showEnso}
             zoom={zoom}
             windowStart={clampedWindowStart}
+            layerNotes={layerNotes}
             onHoverYear={setHoverYear}
           />
         </div>
