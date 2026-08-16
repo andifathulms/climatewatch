@@ -1,8 +1,8 @@
-# CLAUDE.md — Iklim
+# CLAUDE.md — ClimateWatch
 
 ## What You Are Building
 
-Iklim is a climate intelligence platform for Indonesia built on Open-Meteo's free
+ClimateWatch is a climate intelligence platform for Indonesia built on Open-Meteo's free
 ERA5 historical weather reanalysis API (1950–present, no key required). It lets
 users explore how temperature, rainfall, and extreme weather patterns in any
 Indonesian city have changed over decades. The signature feature is the Climate
@@ -16,7 +16,7 @@ Read PRD.md first. This file contains build conventions and exact build order.
 ## Repository Structure
 
 ```
-iklim/
+climatewatch/
 ├── backend/
 │   ├── config/
 │   │   ├── settings/
@@ -274,7 +274,9 @@ Client needs nulls to render empty cells correctly.
 
 - Next.js 14 App Router, TypeScript
 - D3.js exclusively for ClimateFingerprint heatmap — complex enough to justify raw D3
-- Recharts for all other charts (line, scatter, bar)
+- Recharts narrowed to `MonthlyBarChart` and the compare panels (see DESIGN.md
+  §11.2). Any time-series across the full record is a fingerprint layer, not a
+  Recharts chart — Recharts is no longer the default for "all other charts."
 - All climate numbers formatted to 1 decimal place
 - Temperature always shown in Celsius
 - Rainfall always shown in mm
@@ -319,7 +321,9 @@ earth-toned Musim identity survives the inversion. Tokens live in
 //   (orange border = El Niño, green border = La Niña)
 // null cells: render as --null-cell (#2A251E) — a warm neutral kept off every
 //   ramp, so "no data" can never be mistaken for "zero"
-// Cell width is responsive (fills the panel, 26–64px); height is fixed at 22px.
+// Cell width is responsive (fills the panel, 26–64px); row height is adaptive,
+//   clamped 4–22px against the year count and available height, defaulting to
+//   a whole-record fit (see DESIGN.md §5.1 — supersedes the old fixed 22px).
 //   Cells are deliberately non-square — a month is wider than it is tall.
 
 The **domains** below are the spec. The **interpolators** are NOT `d3.interpolateBlues`
@@ -360,15 +364,14 @@ Use `simple-statistics` npm package for the regression calculation.
 Color the trend line differently from the data series (use `--drought-amber`
 for trend lines universally to distinguish from data).
 
-### SeasonShiftScatter Component
-```tsx
-// Each point = one year
-// X-axis = year (1950–present)
-// Y-axis = day of year (1–365, labeled as month names)
-// Color: single accent color (rain-blue)
-// Null years: omit (don't plot, note in subtitle how many years had no wet season)
-// Trend line: linear regression overlay
-```
+### Season Shift — now a fingerprint layer, not a component
+
+`SeasonShiftScatter` as a standalone Recharts component is superseded. Wet
+season onset/end drift is drawn as a layer on the fingerprint itself — see
+DESIGN.md §5.2 for the full spec (onset/end lines through the grid, breaks
+instead of interpolation across years with no detectable wet season, the
+regression drawn as a second dashed line). The onset/end computation in
+`compute_wet_season_onset` above is unchanged; only its presentation moved.
 
 ### Component Naming
 ```
@@ -492,7 +495,9 @@ volumes:
   show loading state, don't block
 - **CC BY 4.0 attribution is legally required** — `DataAttribution` renders in the
   root layout's footer so it is on every page by construction, this is non-optional
-- **D3 for fingerprint only** — all other charts use Recharts
+- **D3 for fingerprint only** — Recharts is narrowed to `MonthlyBarChart` and the
+  compare panels; record-spanning time series render as fingerprint layers
+  instead (see DESIGN.md §11.2)
 
 ---
 

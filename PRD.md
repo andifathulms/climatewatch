@@ -1,4 +1,4 @@
-# PRD — Iklim
+# PRD — ClimateWatch
 
 > A climate intelligence platform for Indonesia. Turns 75+ years of weather
 > reanalysis data into visual stories about how Indonesian cities, regions, and
@@ -8,7 +8,7 @@
 
 ## Vision
 
-Climate change is abstract until you look at your own city's data. Iklim makes
+Climate change is abstract until you look at your own city's data. ClimateWatch makes
 it concrete: pick any kabupaten, and see how its rainfall, temperature, and
 extreme weather days have actually shifted over the last 30–75 years. The
 platform answers the question most Indonesians never get to ask: **"Is my city
@@ -335,7 +335,7 @@ GET /api/enso/                            → full ENSO event list for overlay
 ## Frontend Pages (Next.js App Router)
 
 ```
-/                          → Home: search bar, featured cities, what is Iklim
+/                          → Home: search bar, featured cities, what is ClimateWatch
 /city/[slug]               → City climate page (all 7 features)
 /compare                   → City vs City selector
 /compare/[a]-vs-[b]        → Side-by-side comparison page
@@ -345,7 +345,7 @@ GET /api/enso/                            → full ENSO event list for overlay
 ### City Page Layout
 ```
 ┌─────────────────────────────────────────────┐
-│  IKLIM    [Search any Indonesian city...]   │
+│ CLIMATEWATCH [Search any Indonesian city...]│
 ├─────────────────────────────────────────────┤
 │  📍 Balikpapan, Kalimantan Timur            │
 │  Today: 34°C | Forecast context: ↑2° above │
