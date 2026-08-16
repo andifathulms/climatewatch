@@ -7,7 +7,20 @@ import { api } from "@/lib/api";
 import type { CompareProfile, CompareResponse, Region } from "@/lib/types";
 import { diurnalSwing } from "@/lib/format";
 import ComparePanel from "./ComparePanel";
+import CompareFingerprints from "./CompareFingerprints";
 import MonthlyBarChart from "@/components/charts/MonthlyBarChart";
+import NullDataWarning from "@/components/ui/NullDataWarning";
+
+/** DESIGN.md §7: "any ranking row built on a thin region" generalises here to
+ *  either compare side. `annual` rows exist per year already loaded, so a
+ *  null `avg_temp_max` within one is the signal — the coverage figure this
+ *  page can actually verify, same reasoning as the city page's own. */
+function annualCoverage(p: CompareProfile): number {
+  if (p.annual.length === 0) return 1;
+  return (
+    p.annual.filter((r) => r.avg_temp_max !== null).length / p.annual.length
+  );
+}
 
 type ClimField = "avg_temp_max" | "avg_temp_min" | "avg_temp_mean";
 
@@ -238,6 +251,27 @@ export default function CompareResult({ regions }: { regions: Region[] }) {
         <ComparePanel profile={compare.a} slot={1} />
         <ComparePanel profile={compare.b} slot={2} />
       </div>
+
+      {(annualCoverage(compare.a) < 0.9 || annualCoverage(compare.b) < 0.9) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            {annualCoverage(compare.a) < 0.9 && (
+              <NullDataWarning coverage={annualCoverage(compare.a)} unit="years" />
+            )}
+          </div>
+          <div>
+            {annualCoverage(compare.b) < 0.9 && (
+              <NullDataWarning coverage={annualCoverage(compare.b)} unit="years" />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* DESIGN.md §9: "two fingerprints, same variable, same layers, same
+          zoom, side by side" — the fingerprint's own record-spanning ramps,
+          not the entity colours above, so it goes before the smaller
+          day/night and monthly-shape insights below it. */}
+      <CompareFingerprints regionA={regionA} regionB={regionB} />
 
       <DayNightInsight a={compare.a} b={compare.b} />
 
