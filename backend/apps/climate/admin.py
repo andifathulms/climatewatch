@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import ClimateAnnual, ClimateDaily, ClimateMonthly, ENSOEvent
+from .models import (
+    ClimateAnnual,
+    ClimateDaily,
+    ClimateMonthly,
+    ClimateProjection,
+    ENSOEvent,
+)
 
 
 @admin.register(ClimateDaily)
@@ -35,3 +41,10 @@ class ClimateAnnualAdmin(admin.ModelAdmin):
 class ENSOEventAdmin(admin.ModelAdmin):
     list_display = ("year", "month", "oni_index", "phase", "strength")
     list_filter = ("phase", "strength", "year")
+
+
+@admin.register(ClimateProjection)
+class ClimateProjectionAdmin(admin.ModelAdmin):
+    list_display = ("region", "model", "year", "avg_temp_max", "total_precipitation")
+    list_filter = ("model", "region")
+    raw_id_fields = ("region",)

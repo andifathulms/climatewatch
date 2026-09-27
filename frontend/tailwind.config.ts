@@ -1,5 +1,22 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * A token colour that also honours Tailwind's opacity modifier.
+ *
+ * Every colour here is a CSS variable, and Tailwind cannot split a var() into
+ * channels, so `bg-canvas/80` or `border-heat-light/60` used to generate
+ * nothing at all: the header lost its translucency and several accents fell
+ * back to the preflight grey. With a function, Tailwind passes the modifier
+ * in and color-mix() applies it to the token itself.
+ */
+// Tailwind accepts colour functions at runtime; its published types only
+// admit strings, hence the cast.
+const token = (name: string) =>
+  (({ opacityValue }: { opacityValue?: string }) =>
+    opacityValue === undefined || opacityValue === "1"
+      ? `var(--${name})`
+      : `color-mix(in srgb, var(--${name}) calc(${opacityValue} * 100%), transparent)`) as unknown as string;
+
 const config: Config = {
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,27 +26,27 @@ const config: Config = {
     extend: {
       colors: {
         // Musim Nokturnal — mapped to CSS variables in tokens.css
-        canvas: "var(--canvas)",
-        "canvas-deep": "var(--canvas-deep)",
-        surface: "var(--surface)",
-        "surface-raised": "var(--surface-raised)",
-        "surface-muted": "var(--surface-muted)",
-        "surface-inset": "var(--surface-inset)",
-        border: "var(--border)",
-        "border-strong": "var(--border-strong)",
+        canvas: token("canvas"),
+        "canvas-deep": token("canvas-deep"),
+        surface: token("surface"),
+        "surface-raised": token("surface-raised"),
+        "surface-muted": token("surface-muted"),
+        "surface-inset": token("surface-inset"),
+        border: token("border"),
+        "border-strong": token("border-strong"),
 
-        "rain-blue": "var(--rain-blue)",
-        "rain-light": "var(--rain-light)",
-        "heat-orange": "var(--heat-orange)",
-        "heat-light": "var(--heat-light)",
-        "drought-amber": "var(--drought-amber)",
-        "enso-nino": "var(--enso-nino)",
-        "enso-nina": "var(--enso-nina)",
-        "null-cell": "var(--null-cell)",
+        "rain-blue": token("rain-blue"),
+        "rain-light": token("rain-light"),
+        "heat-orange": token("heat-orange"),
+        "heat-light": token("heat-light"),
+        "drought-amber": token("drought-amber"),
+        "enso-nino": token("enso-nino"),
+        "enso-nina": token("enso-nina"),
+        "null-cell": token("null-cell"),
 
-        "text-primary": "var(--text-primary)",
-        "text-secondary": "var(--text-secondary)",
-        "text-muted": "var(--text-muted)",
+        "text-primary": token("text-primary"),
+        "text-secondary": token("text-secondary"),
+        "text-muted": token("text-muted"),
       },
       fontFamily: {
         display: ["var(--font-display)", "Fraunces", "Georgia", "serif"],
@@ -81,16 +98,16 @@ const config: Config = {
         gutter: "var(--space-5)",
       },
       boxShadow: {
-        rim: "var(--rim)",
-        card: "var(--shadow)",
-        float: "var(--shadow-lg)",
+        rim: token("rim"),
+        card: token("shadow"),
+        float: token("shadow-lg"),
       },
       maxWidth: {
         prose: "68ch",
         shell: "76rem",
       },
       transitionTimingFunction: {
-        ease: "var(--ease)",
+        ease: token("ease"),
       },
     },
   },

@@ -311,3 +311,30 @@ export interface StripesResponse {
   national: { year_from: number; anomalies: number[] };
   results: StripeSeries[];
 }
+
+export interface ProjectionRange {
+  median: number;
+  min: number;
+  max: number;
+}
+
+/** CMIP6 HighResMIP projection by the delta method: every value is a change
+ *  against the same model's own 1995–2014 mean, never an absolute. */
+export interface ProjectionResponse {
+  region: { id: number; name: string; slug: string };
+  source: string;
+  scenario: string;
+  baseline: { from: number; to: number };
+  window: { from: number; to: number };
+  observed_baseline_c: number | null;
+  /** [year, departure from the observed 1995–2014 mean]. */
+  observed_anomaly: [number, number][];
+  temp_delta_c: ProjectionRange | null;
+  precip_delta_pct: ProjectionRange | null;
+  models: {
+    model: string;
+    temp_delta_c: number | null;
+    precip_delta_pct: number | null;
+    temp_anomaly: [number, number][];
+  }[];
+}

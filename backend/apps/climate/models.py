@@ -183,3 +183,35 @@ class ENSOEvent(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.year}-{self.month:02d} {self.phase} ({self.oni_index})"
+
+
+class ClimateProjection(BaseModel):
+    """
+    Annual values from one CMIP6 HighResMIP model for one region, via the
+    Open-Meteo Climate API. Stored per model so the spread between models —
+    the honest uncertainty — survives to the page, instead of being averaged
+    away into one confident-looking line.
+
+    Model output is only ever used as a *change* against the same model's own
+    1995-2014 mean (the delta method): absolute model temperatures carry
+    biases of a degree or more at city scale.
+    """
+
+    region = models.ForeignKey(
+        IndonesiaRegion, on_delete=models.CASCADE, related_name="projections"
+    )
+    model = models.CharField(max_length=32)
+    year = models.IntegerField()
+    avg_temp_max = models.FloatField(null=True, blank=True)
+    total_precipitation = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["model", "year"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["region", "model", "year"], name="uniq_projection"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.region_id} {self.model} {self.year}"

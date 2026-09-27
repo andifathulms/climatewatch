@@ -6,6 +6,7 @@ import { L } from "@/lib/i18n";
 const SECTIONS = [
   { id: "fingerprint", en: "Fingerprint", idn: "Sidik iklim" },
   { id: "lifetime", en: "Your lifetime", idn: "Seumur hidupmu" },
+  { id: "future", en: "Looking ahead", idn: "Ke depan" },
   { id: "week", en: "This week", idn: "Minggu ini" },
   { id: "how", en: "How to read it", idn: "Cara membaca" },
   { id: "nearby", en: "Nearby cities", idn: "Kota terdekat" },

@@ -15,6 +15,7 @@ import CityHeadline from "@/components/city/CityHeadline";
 import SectionTabs from "@/components/city/SectionTabs";
 import ShareMenu from "@/components/city/ShareMenu";
 import NearbyCities from "@/components/city/NearbyCities";
+import FutureOutlook from "@/components/city/FutureOutlook";
 
 // Required for `output: 'export'` (static mode) — every dynamic segment must
 // be enumerated at build time since there's no server to resolve one on
@@ -92,6 +93,7 @@ export default async function CityPage({
     ensoEvents,
     stripes,
     regions,
+    projection,
   ] =
     await Promise.all([
       api.fingerprint(region, "precipitation"),
@@ -107,6 +109,7 @@ export default async function CityPage({
       api.ensoEvents().catch(() => []),
       api.stripes().catch(() => null),
       api.allRegions().catch(() => []),
+      api.projection(region).catch(() => null),
     ]);
   const stripeMap = new Map((stripes?.results ?? []).map((r) => [r.slug, r]));
   const ownStripes = stripeMap.get(region.slug) ?? null;
@@ -237,6 +240,8 @@ export default async function CityPage({
           />
         )}
       </div>
+
+      {projection && <FutureOutlook data={projection} name={region.name} />}
 
       <ForecastContextLoader region={region} />
 

@@ -14,6 +14,7 @@ import type {
   Region,
   RegionDetail,
   SeasonResponse,
+  ProjectionResponse,
   StripesResponse,
   WorkedExampleResponse,
 } from "./types";
@@ -221,6 +222,13 @@ export const api = {
       return getStatic("monthly-records.json");
     }
     return get("/climate/records/");
+  },
+  /** CMIP6 projection to the 2040s; rejects when none is loaded. */
+  projection(region: RegionRef): Promise<ProjectionResponse> {
+    if (DATA_MODE === "static") {
+      return getStatic(`projection/${region.slug}.json`);
+    }
+    return get(`/climate/${region.id}/projection/`);
   },
   /** Every city's warming stripes in one payload. */
   stripes(): Promise<StripesResponse> {

@@ -26,7 +26,9 @@ export default function CityError({
   return (
     <div className="relative flex min-h-[50vh] flex-col items-center justify-center text-center">
       <div className="relative">
-        <p className="eyebrow">Error · something broke</p>
+        <p className="eyebrow">
+          <L en="Error · something broke" id="Galat · ada yang rusak" />
+        </p>
         <h1 className="mt-4 text-title font-semibold">
           <L en="This city's page hit a snag" id="Halaman kota ini tersandung" />
         </h1>

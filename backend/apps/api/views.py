@@ -9,7 +9,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.climate.models import ClimateAnnual, ClimateDaily, ClimateMonthly, ENSOEvent
+from apps.climate.models import (
+    ClimateAnnual,
+    ClimateDaily,
+    ClimateMonthly,
+    ClimateProjection,
+    ENSOEvent,
+)
 from apps.regions.models import IndonesiaRegion
 
 from .fingerprint import VARIABLE_FIELDS, build_fingerprint
@@ -964,3 +970,109 @@ class StripesView(APIView):
 
     def get(self, request):
         return Response(build_stripes())
+
+
+PROJ_BASELINE = (1995, 2014)
+PROJ_WINDOW = (2040, 2049)
+
+
+def _median(vals):
+    s = sorted(vals)
+    n = len(s)
+    return (s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2) if n else None
+
+
+def build_projection(region):
+    """
+    Projected change by the 2040s, per model, by the delta method: each
+    model's 2040-2049 mean minus that same model's 1995-2014 mean. Absolute
+    model temperatures are never shown. The observed (ERA5) 1995-2014 mean is
+    included so the page can say "a typical day would peak around X °C",
+    i.e. observed baseline + modelled change.
+
+    Returns None when the region has no projection rows.
+    """
+    rows = list(
+        ClimateProjection.objects.filter(region=region).values(
+            "model", "year", "avg_temp_max", "total_precipitation"
+        )
+    )
+    if not rows:
+        return None
+    b0, b1 = PROJ_BASELINE
+    w0, w1 = PROJ_WINDOW
+    by_model: dict[str, list] = {}
+    for r in rows:
+        by_model.setdefault(r["model"], []).append(r)
+
+    models_out = []
+    for model, series in sorted(by_model.items()):
+        t_base = [r["avg_temp_max"] for r in series if b0 <= r["year"] <= b1 and r["avg_temp_max"] is not None]
+        p_base = [r["total_precipitation"] for r in series if b0 <= r["year"] <= b1 and r["total_precipitation"] is not None]
+        if len(t_base) < 15:
+            continue
+        tb = sum(t_base) / len(t_base)
+        pb = sum(p_base) / len(p_base) if p_base else None
+        t_win = [r["avg_temp_max"] for r in series if w0 <= r["year"] <= w1 and r["avg_temp_max"] is not None]
+        p_win = [r["total_precipitation"] for r in series if w0 <= r["year"] <= w1 and r["total_precipitation"] is not None]
+        models_out.append({
+            "model": model,
+            "temp_delta_c": round(sum(t_win) / len(t_win) - tb, 2) if len(t_win) >= 8 else None,
+            "precip_delta_pct": (
+                round((sum(p_win) / len(p_win) - pb) / pb * 100, 1)
+                if pb and len(p_win) >= 8 else None
+            ),
+            # Yearly departure from the model's own baseline, for plotting.
+            "temp_anomaly": [
+                [r["year"], round(r["avg_temp_max"] - tb, 2)]
+                for r in sorted(series, key=lambda r: r["year"])
+                if r["avg_temp_max"] is not None
+            ],
+        })
+
+    temps = [m["temp_delta_c"] for m in models_out if m["temp_delta_c"] is not None]
+    precs = [m["precip_delta_pct"] for m in models_out if m["precip_delta_pct"] is not None]
+
+    observed = list(
+        ClimateAnnual.objects.filter(region=region, year__lt=date.today().year)
+        .order_by("year")
+        .values("year", "avg_temp_max")
+    )
+    obs_base = [r["avg_temp_max"] for r in observed if b0 <= r["year"] <= b1 and r["avg_temp_max"] is not None]
+    obs_base_c = sum(obs_base) / len(obs_base) if obs_base else None
+
+    def summary(vals, digits):
+        if not vals:
+            return None
+        return {
+            "median": round(_median(vals), digits),
+            "min": round(min(vals), digits),
+            "max": round(max(vals), digits),
+        }
+
+    return {
+        "region": {"id": region.id, "name": region.name, "slug": region.slug},
+        "source": "CMIP6 HighResMIP via Open-Meteo Climate API",
+        "scenario": "high emissions (HighResMIP future, SSP5-8.5-like forcing)",
+        "baseline": {"from": b0, "to": b1},
+        "window": {"from": w0, "to": w1},
+        "observed_baseline_c": round(obs_base_c, 2) if obs_base_c is not None else None,
+        "observed_anomaly": [
+            [r["year"], round(r["avg_temp_max"] - obs_base_c, 2)]
+            for r in observed
+            if r["avg_temp_max"] is not None and obs_base_c is not None
+        ],
+        "temp_delta_c": summary(temps, 2),
+        "precip_delta_pct": summary(precs, 1),
+        "models": models_out,
+    }
+
+
+class ProjectionView(ClimateEndpoint):
+    """Projected change by the 2040s, per model (delta method)."""
+
+    def get(self, request, region_id):
+        data = build_projection(self.get_region(region_id))
+        if data is None:
+            return Response({"detail": "No projection loaded for this region."}, status=404)
+        return Response(data)

@@ -25,6 +25,7 @@ static-mode fetcher needs no response reshaping):
     <out>/monthly-records.json
     <out>/leaders-over-time.json
     <out>/stripes.json
+    <out>/projection/<slug>.json
 """
 import json
 from datetime import date
@@ -49,6 +50,7 @@ from ...views import (
     build_movers,
     build_doy_climatology,
     build_stripes,
+    build_projection,
 )
 
 
@@ -118,6 +120,9 @@ class Command(BaseCommand):
                 out / "movers" / f"{region.slug}.json",
                 build_movers(region),
             )
+            projection = build_projection(region)
+            if projection is not None:
+                self._write(out / "projection" / f"{region.slug}.json", projection)
             example = build_worked_example(region)
             if example is not None:
                 self._write(
