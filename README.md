@@ -1,35 +1,40 @@
-# Iklim — Climate Intelligence for Indonesia
+# ClimateWatch — Climate Intelligence for Indonesia
 
-Iklim turns 75+ years of ERA5 weather reanalysis data into visual stories about
-how Indonesian cities, regions, and seasons are actually changing. The signature
-feature is the **Climate Fingerprint** — a calendar heatmap showing decades of
-monthly climate data at a glance.
+ClimateWatch turns 77 years of ERA5 weather reanalysis into one picture per
+Indonesian city, so anyone can see how rainfall, heat and extreme weather have
+actually changed. Bahasa Indonesia by default, English one tap away.
 
-Built on [Open-Meteo](https://open-meteo.com)'s free ERA5 historical API
-(1950–present, no key required).
+Built on [Open-Meteo](https://open-meteo.com)'s free ERA5 / ERA5-Land archive
+(1950–present, `models=era5_seamless`) and its CMIP6 Climate API.
 
-**🔴 Live demo:** [andifathulms.github.io/climatewatch](https://andifathulms.github.io/climatewatch/)
-— a static export, some cities running on real ERA5 data and the rest
-pending a refresh (see [Static export / GitHub Pages](#static-export--github-pages-demo) below).
+**🔴 Live:** [andifathulms.github.io/climatewatch](https://andifathulms.github.io/climatewatch/)
+— a static export of the full dataset (see [Static export / GitHub Pages](#static-export--github-pages-demo)).
 
 ---
 
 ## Features
 
-- **Climate Fingerprint** — a GitHub-style calendar heatmap (years × months) of
-  rainfall, max temperature, hot days, or dry days for any city, 1950–present
-- **Extreme weather tracker** — heat days, heavy/extreme rain days, and
-  longest heatwave streak per year, each with a linear regression trend
-- **Season shift scatter** — when wet season actually starts each year, and
-  whether that's drifting earlier or later
-- **City vs. city compare** — side-by-side climate profiles for any two
-  Indonesian cities
-- **ENSO impact overlay** — how El Niño / La Niña phases shift a city's
-  rainfall and temperature relative to neutral years
-- **Cross-city rankings** — hottest, wettest, driest, fastest-warming,
-  longest heatwave streak, computed across every seeded region
-- **Live forecast context** — today's 7-day forecast plotted against the
-  historical range for this week of the year
+- **Warming stripes** for every city — one band per year against its own
+  1951–1980 normal. The site's signature: logo, city header, cards, rankings,
+  share images, and a wall of all 90+ cities on `/stories`.
+- **Climate Fingerprint** — years × months heatmap of rainfall, max
+  temperature, feels-like heat, hot days or dry days, with layers for the
+  1951–1980 baseline, wet-season onset, El Niño / La Niña and extreme years.
+- **An answer first** — every city page opens with a computed sentence
+  ("Jakarta's afternoons are X °C hotter than in the 1950s") and a ranked list
+  of what changed most.
+- **Your lifetime** — enter your birth year, see how much hotter your city has
+  become since.
+- **Looking ahead** — CMIP6 HighResMIP projections to the 2040s (five models,
+  delta method, model spread shown).
+- **This week** — live 7-day forecast against the historical range.
+- **Rankings** — linked map, list and dot plot: warming rate, heat, feels-like
+  heat, rain, extreme rain, heatwaves.
+- **Compare** — two cities: a verdict sentence, paired stripes, side-by-side
+  fingerprints.
+- **Stories** — findings computed from the data, rewritten on every refresh.
+- **Share** — per-city 1200×630 link cards and 1080×1350 story cards.
+- **Search anywhere** — ⌘K / `/` from any page; bottom tab bar on phones.
 
 ## Stack
 
@@ -44,7 +49,7 @@ pending a refresh (see [Static export / GitHub Pages](#static-export--github-pag
 
 ## Architecture
 
-Iklim ships two ways, from one codebase:
+ClimateWatch ships two ways, from one codebase:
 
 1. **Live** — the full stack above, a real REST API backed by a database.
    Precomputed monthly/annual aggregates, a daily Celery Beat refresh, live

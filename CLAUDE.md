@@ -287,22 +287,32 @@ Client needs nulls to render empty cells correctly.
 - Recharts narrowed to `MonthlyBarChart` and the compare panels (see DESIGN.md
   §11.2). Any time-series across the full record is a fingerprint layer, not a
   Recharts chart — Recharts is no longer the default for "all other charts."
-- All climate numbers formatted to 1 decimal place
+- All climate numbers formatted to 1 decimal place (trends per decade: 2)
 - Temperature always shown in Celsius
 - Rainfall always shown in mm
 - Data attribution: `DataAttribution` is rendered once by `SiteFooter` in the root
   layout, so the CC BY 4.0 credit is on every page structurally. Do not re-add it
   per page, and do not remove it from the footer.
 
-### Design system — "Musim Nokturnal"
+### Design system — "Musim Nokturnal 2" (see DESIGN.md §v2)
 
 Dark editorial system on a *warm* volcanic-ink canvas (not blue-slate), so the
 earth-toned Musim identity survives the inversion. Tokens live in
 `styles/tokens.css`; there is one theme, not a light/dark toggle.
 
-- Type: **Fraunces** (display, `--font-display`), **Inter** (UI), **JetBrains
-  Mono** (every number, tabular). Loaded via `next/font` — do not reintroduce a
-  Google Fonts `<link>`.
+- Type: **Fraunces** (display and headline numerals via `.num-display`),
+  **Plus Jakarta Sans** (UI/body), **JetBrains Mono** (axis ticks, tables,
+  readouts, eyebrows — never inside a sentence). Loaded via `next/font` — do
+  not reintroduce a Google Fonts `<link>`.
+- Surfaces are flat: canvas / surface / raised. No card gradients, shadows or
+  glow backdrops; saturated colour is reserved for data.
+- Every user-visible string is bilingual, Bahasa Indonesia first: `<L en id>`
+  from `lib/i18n.tsx` for text, `useT()` (`lib/use-lang.ts`) for attributes
+  and SVG text, `N`/`formatNumber` for numbers (29,3 in ID, 29.3 in EN).
+- Warming stripes (`components/ui/Stripes.tsx`, `stripes.json`) are the brand
+  motif; fixed ±2 °C domain on the anomaly ramp, never per-city.
+- Tailwind colours are functions over CSS variables so opacity modifiers
+  (`bg-canvas/80`) work; keep new colours in that form.
 - Every data-encoding color was validated against the real surfaces
   (canvas `#12100C` / card `#1B1813`): series pair and ENSO pair pass the
   categorical checks; all ink clears WCAG 4.5:1. **Re-run the validator rather

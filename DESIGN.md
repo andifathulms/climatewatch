@@ -13,6 +13,68 @@ stop disagreeing.
 
 ---
 
+## v2 — "Musim Nokturnal 2" (September 2026)
+
+v2 supersedes the lines of this document listed below; everything else
+stands. The reason for each change is recorded so it is not re-litigated
+blind.
+
+**Unfrozen and changed (§3.1 exceptions, approved by the owner):**
+
+- **Body typeface: Inter → Plus Jakarta Sans.** Tokotype, a Jakarta foundry,
+  drew it for the city's own identity. It is warmer than Inter and has good
+  tabular figures. Fraunces and JetBrains Mono keep their roles, with one
+  narrowing below.
+- **Headline numbers: JetBrains Mono → Fraunces lining figures**
+  (`.num-display`). §3.3 put mono inside a display sentence, where it read as
+  code pasted into prose. Mono is now for axis ticks, tables, readouts and
+  eyebrows only, never inside a sentence.
+- **Surfaces: six → three.** `.card` is flat (surface fill + hairline, no
+  gradient, shadow or `--rim`). The aurora/grid backdrops are gone.
+  `--surface-muted` aliases `--surface-raised`. No data colour changed, so no
+  re-validation was needed. Every saturated colour on screen now encodes
+  climate; chrome is neutral ink.
+
+**New:**
+
+- **Warming stripes** are the visual signature: one band per year, departure
+  of the average daily high from the city's own 1951–1980 mean, on the
+  existing `anomaly_diverging` ramp with a *fixed* ±2 °C domain so cities
+  compare. They appear as the logo (national median), the city identity bar,
+  card art, ranking rows, search results, the Stories wall and share cards.
+  Source: `stripes.json` (one file for all cities). Component: `Stripes`.
+- **Bilingual, Bahasa Indonesia first.** Supersedes §1.6. Both languages are
+  rendered into the static HTML (`L` in `lib/i18n.tsx`) and
+  `<html data-lang>` shows one; a boot script sets it before paint. Use
+  `useT()` only for attributes and SVG text. Local number formats
+  (`formatNumber`, `N`).
+- **Navigation:** Explore · Rankings · Compare · Stories · About the data,
+  plus a ⌘K city search on every page and an ID/EN switch. Phones get a
+  bottom tab bar (`MobileTabBar`).
+- **City page order:** masthead + share → identity stripes → headline
+  (first vs last decade) + ranked changes → section tabs → fingerprint →
+  Your lifetime → Looking ahead → This week → How to read it (folded) →
+  Nearby cities. Supersedes the §4 diagram.
+- **Fingerprint:** layer switches are chips that picture what they draw;
+  whole-record zoom labels decades only and uses 1px row gaps; new
+  Feels-like variable (reuses the temp_max ramp and domain).
+- **Rankings:** map, list and a dot plot share one metric and one hover.
+  The dot plot replaces bars that all looked ~full.
+- **Compare:** opens with a computed verdict sentence and paired stripes.
+- **Stories** (`/stories`, `lib/stories.ts`): findings computed from the
+  export, never hand-written.
+- **Looking ahead:** CMIP6 HighResMIP projections to the 2040s, delta method
+  only (never absolute model temperatures), model spread always shown,
+  scenario named.
+- **Share cards:** 1200×630 link card and 1080×1350 story card per city,
+  both built at `prebuild` from the same data.
+
+**Data integrity fix (outranks all of the above):** every archive request
+pins `models=era5_seamless`. The default blend switched model in 2017 and
+faked a ~1.5 °C step in coastal cities. See CLAUDE.md, "Always pin the model".
+
+---
+
 ## 0. The thesis
 
 **The craft here is already good. The argument is missing.**
