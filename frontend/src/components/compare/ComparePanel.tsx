@@ -1,5 +1,9 @@
+"use client";
+
+import { useLang } from "@/lib/use-lang";
 import type { CompareProfile } from "@/lib/types";
-import { diurnalSwing, fmt } from "@/lib/format";
+import { diurnalSwing } from "@/lib/format";
+import { formatNumber } from "@/lib/i18n";
 import TrendArrow from "@/components/ui/TrendArrow";
 
 /**
@@ -13,8 +17,14 @@ export default function ComparePanel({
   profile: CompareProfile;
   slot: 1 | 2;
 }) {
+  const lang = useLang();
+  const en = lang === "en";
   const annual = profile.annual;
-  const latest = annual[annual.length - 1];
+  // The last *complete* year. The current year is still accumulating, so its
+  // rainfall total and hot-day count would read as a dramatic drop.
+  const thisYear = new Date().getFullYear();
+  const complete = annual.filter((r) => r.year < thisYear);
+  const latest = complete[complete.length - 1];
   const years =
     annual.length > 1 ? annual[annual.length - 1].year - annual[0].year : 0;
   const slope = profile.warming_trend.slope;
@@ -24,7 +34,7 @@ export default function ComparePanel({
 
   const rows: { label: string; value: React.ReactNode }[] = [
     {
-      label: `Warming over ${years} yrs`,
+      label: en ? `Warming over ${years} yrs` : `Pemanasan dalam ${years} thn`,
       value:
         warming !== null ? (
           <TrendArrow
@@ -41,29 +51,29 @@ export default function ComparePanel({
           {
             // "high", not "max", and paired with the day-night swing below, so
             // it can't be misread against the daily-mean chart underneath.
-            label: `Avg daily high (${latest.year})`,
+            label: en ? `Avg daily high (${latest.year})` : `Rata-rata suhu maks (${latest.year})`,
             value: (
-              <span className="font-numeric">{fmt(latest.avg_temp_max, "°C")}</span>
+              <span className="font-numeric">{latest.avg_temp_max != null ? `${formatNumber(latest.avg_temp_max, lang)}°C` : "—"}</span>
             ),
           },
           {
-            label: "Day–night swing",
+            label: en ? "Day–night swing" : "Selisih siang–malam",
             value: (
               <span className="font-numeric">
-                {swing !== null ? fmt(swing, "°C") : "—"}
+                {swing !== null ? `${formatNumber(swing, lang)}°C` : "—"}
               </span>
             ),
           },
           {
-            label: `Annual rainfall (${latest.year})`,
+            label: en ? `Annual rainfall (${latest.year})` : `Curah hujan (${latest.year})`,
             value: (
               <span className="font-numeric">
-                {fmt(latest.total_precipitation, " mm")}
+                {latest.total_precipitation != null ? `${Math.round(latest.total_precipitation).toLocaleString(en ? "en-US" : "id-ID")} mm` : "—"}
               </span>
             ),
           },
           {
-            label: `Hot days (${latest.year})`,
+            label: en ? `Days above 35 °C (${latest.year})` : `Hari di atas 35 °C (${latest.year})`,
             value: <span className="font-numeric">{latest.hot_days}</span>,
           },
         ]

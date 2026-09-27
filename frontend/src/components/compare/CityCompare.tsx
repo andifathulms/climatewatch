@@ -1,5 +1,7 @@
 "use client";
 
+import { L } from "@/lib/i18n";
+import { useT } from "@/lib/use-lang";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Region } from "@/lib/types";
@@ -15,6 +17,7 @@ const PRESETS: [string, string][] = [
 /** Two-city selector that routes to /compare/[a]-vs-[b]. */
 export default function CityCompare({ regions }: { regions: Region[] }) {
   const router = useRouter();
+  const t = useT();
   const [a, setA] = useState<string>(regions[0]?.slug ?? "");
   const [b, setB] = useState<string>(regions[1]?.slug ?? "");
 
@@ -64,7 +67,7 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
           (the card doesn't set overflow). */}
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
         <CityPicker
-          label="City A"
+          label={t("City A", "Kota A")}
           value={a}
           onChange={setA}
           color="var(--series-1)"
@@ -78,15 +81,15 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
             setA(b);
             setB(a);
           }}
-          aria-label="Swap cities"
-          title="Swap cities"
+          aria-label={t("Swap cities", "Tukar kota")}
+          title={t("Swap cities", "Tukar kota")}
           className="btn-ghost h-[42px] w-full shrink-0 px-3 text-sm sm:w-[42px]"
         >
           <span aria-hidden>⇄</span>
         </button>
 
         <CityPicker
-          label="City B"
+          label={t("City B", "Kota B")}
           value={b}
           onChange={setB}
           color="var(--series-2)"
@@ -99,25 +102,27 @@ export default function CityCompare({ regions }: { regions: Region[] }) {
           disabled={!ready}
           className="btn-primary h-[42px] shrink-0 px-6 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Compare
+          <L en="Compare" id="Bandingkan" />
         </button>
       </div>
 
       {same && (
         <p className="mt-3 text-xs text-drought-amber">
-          Pick two different cities to compare.
+          <L en="Pick two different cities to compare." id="Pilih dua kota yang berbeda." />
         </p>
       )}
 
       <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-5">
-        <span className="eyebrow mr-1">Presets</span>
+        <span className="eyebrow mr-1">
+          <L en="Try" id="Coba" />
+        </span>
         {PRESETS.map(([pa, pb]) => (
           <button
             key={`${pa}-${pb}`}
             onClick={() => go(pa, pb)}
             className="rounded-full border border-border bg-surface-inset px-3 py-1.5 text-xs capitalize text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
           >
-            {pa} <span className="text-text-muted">vs</span> {pb}
+            {pa.replace(/-/g, " ")} <span className="text-text-muted">vs</span> {pb.replace(/-/g, " ")}
           </button>
         ))}
       </div>

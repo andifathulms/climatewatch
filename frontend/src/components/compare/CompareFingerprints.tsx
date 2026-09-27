@@ -1,5 +1,7 @@
 "use client";
 
+import { L } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import ClimateFingerprint, {
@@ -32,24 +34,25 @@ import type {
   SeasonResponse,
 } from "@/lib/types";
 
-const VARIABLES: { key: FingerprintVariable; label: string }[] = [
-  { key: "precipitation", label: "Rainfall" },
-  { key: "temp_max", label: "Temperature" },
-  { key: "hot_days_local", label: "Hot Days" },
-  { key: "dry_days", label: "Dry Days" },
+const VARIABLES: { key: FingerprintVariable; label: string; id: string }[] = [
+  { key: "precipitation", label: "Rainfall", id: "Hujan" },
+  { key: "temp_max", label: "Max temp", id: "Suhu maks" },
+  { key: "feels_like", label: "Feels like", id: "Terasa" },
+  { key: "hot_days_local", label: "Hot days", id: "Hari panas" },
+  { key: "dry_days", label: "Dry days", id: "Hari kering" },
 ];
 
-const ZOOMS: { key: FingerprintZoom; label: string }[] = [
-  { key: "record", label: "Whole record" },
-  { key: "decade", label: "Decade" },
-  { key: "year", label: "Year" },
+const ZOOMS: { key: FingerprintZoom; label: string; id: string }[] = [
+  { key: "record", label: "Whole record", id: "Semua tahun" },
+  { key: "decade", label: "Decade", id: "Dekade" },
+  { key: "year", label: "Year", id: "Tahun" },
 ];
 
-const LAYER_TOGGLES: { key: FingerprintLayer; label: string }[] = [
-  { key: "baseline", label: "Baseline" },
-  { key: "season", label: "Season" },
-  { key: "enso", label: "ENSO" },
-  { key: "extremes", label: "Extremes" },
+const LAYER_TOGGLES: { key: FingerprintLayer; label: string; id: string }[] = [
+  { key: "baseline", label: "vs 1951–1980", id: "vs 1951–1980" },
+  { key: "season", label: "Wet season", id: "Musim hujan" },
+  { key: "enso", label: "El Niño / La Niña", id: "El Niño / La Niña" },
+  { key: "extremes", label: "Extreme years", id: "Tahun ekstrem" },
 ];
 
 interface CitySlice {
@@ -79,6 +82,7 @@ export default function CompareFingerprints({
   regionA: Region;
   regionB: Region;
 }) {
+  const lang = useLang();
   const [variable, setVariable] = useState<FingerprintVariable>("precipitation");
   const [zoom, setZoom] = useState<FingerprintZoom>("record");
   const [windowStart, setWindowStart] = useState(0);
@@ -179,21 +183,25 @@ export default function CompareFingerprints({
     <section className="card overflow-hidden">
       <div className="flex flex-col gap-4 border-b border-border p-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="eyebrow">Side by side</p>
+          <p className="eyebrow">
+            <L en="Side by side" id="Berdampingan" />
+          </p>
           <h2 className="mt-2 font-display text-2xl font-semibold">
-            Climate Fingerprint
+            <L en="Climate Fingerprint" id="Sidik Iklim" />
           </h2>
           <p className="mt-1.5 max-w-prose text-sm text-text-secondary">
-            Same variable, same layers, same zoom, both cities — one control
-            row drives both grids below.
+            <L
+              en="Same variable, same layers, same zoom for both cities. One row of controls drives both grids."
+              id="Variabel, lapisan dan zoom yang sama untuk kedua kota. Satu baris kontrol menggerakkan kedua grid."
+            />
           </p>
         </div>
 
         <div className="flex flex-col items-start gap-3 lg:items-end">
           <SegmentedControl
             name="compare-fingerprint-variable"
-            label="Climate variable"
-            options={VARIABLES.map((v) => ({ value: v.key, label: v.label }))}
+            label={lang === "en" ? "Climate variable" : "Variabel iklim"}
+            options={VARIABLES.map((v) => ({ value: v.key, label: lang === "en" ? v.label : v.id }))}
             value={variable}
             onChange={setVariable}
           />
@@ -203,7 +211,7 @@ export default function CompareFingerprints({
               name="compare-fingerprint-zoom"
               label="Zoom"
               variant="ghost"
-              options={ZOOMS.map((z) => ({ value: z.key, label: z.label }))}
+              options={ZOOMS.map((z) => ({ value: z.key, label: lang === "en" ? z.label : z.id }))}
               value={zoom}
               onChange={(next) => {
                 setZoom(next);
@@ -215,7 +223,7 @@ export default function CompareFingerprints({
                 <button
                   type="button"
                   onClick={() => stepWindow(1)}
-                  aria-label="Earlier"
+                  aria-label={lang === "en" ? "Earlier" : "Lebih awal"}
                   className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary"
                 >
                   ←
@@ -224,7 +232,7 @@ export default function CompareFingerprints({
                   type="button"
                   onClick={() => stepWindow(-1)}
                   disabled={windowStart <= 0}
-                  aria-label="Later"
+                  aria-label={lang === "en" ? "Later" : "Lebih baru"}
                   className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30"
                 >
                   →
@@ -233,31 +241,18 @@ export default function CompareFingerprints({
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             {LAYER_TOGGLES.map((l) => {
               const active = layers.has(l.key);
               return (
                 <button
                   key={l.key}
                   type="button"
-                  role="switch"
-                  aria-checked={active}
+                  className="chip"
+                  aria-pressed={active}
                   onClick={() => handleToggleLayer(l.key)}
-                  className="group flex items-center gap-2 text-xs text-text-secondary transition-colors hover:text-text-primary"
                 >
-                  <span
-                    aria-hidden
-                    className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
-                      active ? "bg-heat-orange" : "bg-border-strong"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
-                        active ? "translate-x-3.5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </span>
-                  {l.label}
+                  {lang === "en" ? l.label : l.id}
                 </button>
               );
             })}

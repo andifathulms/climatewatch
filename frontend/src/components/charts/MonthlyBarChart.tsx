@@ -14,6 +14,8 @@ import {
 } from "recharts";
 import type { CompareProfile } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
+import { MONTHS_ID } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 import {
   AXIS,
   CHART_MARGIN,
@@ -58,7 +60,8 @@ export default function MonthlyBarChart({
   unit: string;
 }) {
   const reducedMotion = usePrefersReducedMotion();
-  const data = MONTHS.map((m, i) => ({
+  const lang = useLang();
+  const data = (lang === "en" ? MONTHS : MONTHS_ID).map((m, i) => ({
     month: m,
     [a.region.name]: a.climatology[i]?.[metric] ?? null,
     [b.region.name]: b.climatology[i]?.[metric] ?? null,
@@ -71,7 +74,7 @@ export default function MonthlyBarChart({
   return (
     <div className="card p-6">
       <ChartHeader
-        eyebrow={metric === "avg_precipitation" ? "Rainfall" : "Temperature"}
+        eyebrow={metric === "avg_precipitation" ? (lang === "en" ? "Rainfall" : "Hujan") : lang === "en" ? "Temperature" : "Suhu"}
         title={title}
       >
         <span className="font-numeric rounded-full border border-border bg-surface-inset px-2.5 py-1 text-2xs text-text-muted">

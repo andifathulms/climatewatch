@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/use-lang";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Region } from "@/lib/types";
 
@@ -93,6 +94,7 @@ export default function CityPicker({
   /** The city chosen on the other side — shown but not selectable here. */
   disabledSlug?: string;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -221,7 +223,7 @@ export default function CityPicker({
       >
         <span className="min-w-0">
           <span className="block truncate font-medium text-text-primary">
-            {selected ? selected.name : "Select a city"}
+            {selected ? selected.name : t("Select a city", "Pilih kota")}
           </span>
           {selected && (
             <span className="block truncate text-xs text-text-muted">
@@ -256,8 +258,8 @@ export default function CityPicker({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Search city or province…"
-              aria-label="Search cities"
+              placeholder={t("Search city or province…", "Cari kota atau provinsi…")}
+              aria-label={t("Search cities", "Cari kota")}
               aria-controls={listboxId}
               aria-activedescendant={
                 flat[active] ? `${listboxId}-${active}` : undefined
