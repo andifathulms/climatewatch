@@ -1,5 +1,6 @@
 import type { FingerprintResponse } from "@/lib/types";
 import { buildColorScale } from "./color-scale";
+import { L } from "@/lib/i18n";
 
 const MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
@@ -38,6 +39,10 @@ export default function FingerprintPreview({
   );
   const shown = populated.slice(0, years);
 
+  // A whole record (~77 rows) packs into short rows; a few decades keep the
+  // taller cells the preview started with.
+  const dense = shown.length > 40;
+
   const valueAt = new Map(
     fingerprint.data.map((d) => [`${d.year}-${d.month}`, d.value]),
   );
@@ -46,17 +51,17 @@ export default function FingerprintPreview({
     <figure className="card overflow-hidden p-5 sm:p-6">
       <figcaption className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="font-display text-lg font-semibold text-text-primary">
-          {fingerprint.region.name}&rsquo;s rainfall, {shown[shown.length - 1]}–
-          {shown[0]}
+          <L en={`${fingerprint.region.name}'s rainfall`} id={`Curah hujan ${fingerprint.region.name}`} />
+          , {shown[shown.length - 1]}–{shown[0]}
         </span>
         <span className="text-xs text-text-muted">
-          One row per year · one square per month
+          <L en="one row per year · one square per month" id="satu baris per tahun · satu kotak per bulan" />
         </span>
       </figcaption>
 
       <div>
         <div
-          className="grid gap-[2px]"
+          className={`grid gap-x-[2px] ${dense ? "gap-y-px" : "gap-y-[2px]"}`}
           style={{ gridTemplateColumns: `repeat(12, minmax(0, 1fr))` }}
           role="img"
           aria-label={`Monthly rainfall for ${fingerprint.region.name} from ${
@@ -69,8 +74,9 @@ export default function FingerprintPreview({
               return (
                 <div
                   key={`${year}-${i}`}
-                  className="h-[13px] rounded-[2px]"
+                  className={dense ? "rounded-[1px]" : "rounded-[2px]"}
                   style={{
+                    height: dense ? 5 : 13,
                     background: v === null ? "var(--null-cell)" : scale(v),
                   }}
                 />
@@ -93,10 +99,10 @@ export default function FingerprintPreview({
       </div>
 
       <p className="mt-4 text-sm text-text-secondary">
-        Dark is a dry month, bright is a wet one. Read down a column to see one
-        month drift across {shown.length} years — that drift is the story this
-        site tells, for{" "}
-        <span className="text-text-primary">every city in Indonesia</span>.
+        <L
+          en="Dark is a dry month, bright is a wet one."
+          id="Gelap berarti bulan kering, terang berarti bulan basah."
+        />
       </p>
     </figure>
   );

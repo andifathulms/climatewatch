@@ -1,307 +1,194 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
-import CitySearch from "@/components/ui/CitySearch";
-import IndonesiaMap from "@/components/map/IndonesiaMap";
+import { L, N } from "@/lib/i18n";
+import { buildStories } from "@/lib/stories";
 import FingerprintPreview from "@/components/fingerprint/FingerprintPreview";
+import HomeExplorer from "@/components/home/HomeExplorer";
+import StoryCard from "@/components/home/StoryCard";
+import Stripes from "@/components/ui/Stripes";
+import { decadeChange } from "@/components/city/stripe-stats";
 import { getIndonesiaGeometry } from "@/lib/indonesia-geo";
 import { SiteStructuredData } from "@/components/ui/StructuredData";
-import type { FingerprintResponse, Region } from "@/lib/types";
 
-/** The city the hero speaks for when nothing has been searched yet. */
+/** The city the hero speaks for until the reader picks another. */
 const LEAD_CITY = "jakarta";
 
-/**
- * Mean of a fingerprint variable across an inclusive year range, ignoring
- * null months. Used to answer the headline's question with a real number
- * instead of restating the question.
- */
-function meanOverYears(
-  fp: FingerprintResponse,
-  from: number,
-  to: number,
-): number | null {
-  const values = fp.data
-    .filter((d) => d.year >= from && d.year <= to && d.value !== null)
-    .map((d) => d.value as number);
-  if (!values.length) return null;
-  return values.reduce((a, b) => a + b, 0) / values.length;
-}
+/** One per major island group, so the grid reads as the whole country. */
+const POPULAR = [
+  "jakarta",
+  "surabaya",
+  "bandung",
+  "medan",
+  "denpasar",
+  "makassar",
+  "balikpapan",
+  "jayapura",
+];
 
 export default async function HomePage() {
-  const regions = await api.allRegions().catch(() => []);
-  const indonesiaGeometry = getIndonesiaGeometry();
-
-  // Every seeded region currently ships with is_featured=true, so this section
-  // would otherwise render as a 45-card wall. Cap it at two rows and send the
-  // long tail to the search box, which already covers all of them.
-  const FEATURED_LIMIT = 8;
-  const allFeatured = regions.filter((r) => r.is_featured);
-  const featured = allFeatured.slice(0, FEATURED_LIMIT);
-  const remaining = allFeatured.length - featured.length;
-
-  const withData = regions.filter((r) => r.has_data);
-  const lead: Region | undefined =
-    withData.find((r) => r.slug === LEAD_CITY) ?? withData[0];
-
-  // The hero shows the product, not a description of it: one real city's
-  // rainfall fingerprint, and one real warming figure derived from the same
-  // dataset. Both are read at build time from the static export — nothing here
-  // is a hard-coded headline number.
-  const [leadRain, leadHeat] = lead
-    ? await Promise.all([
-        api.fingerprint(lead, "precipitation").catch(() => null),
-        api.fingerprint(lead, "temp_max").catch(() => null),
-      ])
-    : [null, null];
-
-  const yearFrom = 1950;
-  const yearTo = new Date().getFullYear();
-
-  // Inclusive span: 1950–2026 is 77 years of record, not 76. The old
-  // subtraction silently under-reported the archive by one year.
-  const yearsOfRecord = yearTo - yearFrom + 1;
-
-  // First full decade of the record against the most recent complete one.
-  const baseline = leadHeat ? meanOverYears(leadHeat, 1950, 1959) : null;
-  const recent = leadHeat
-    ? meanOverYears(leadHeat, yearTo - 10, yearTo - 1)
+  const [regions, stripes, rankings, records] = await Promise.all([
+    api.allRegions().catch(() => []),
+    api.stripes().catch(() => null),
+    api.rankings().catch(() => null),
+    api.records().catch(() => null),
+  ]);
+  const geometry = getIndonesiaGeometry();
+  const series = stripes?.results ?? [];
+  const bySlug = new Map(series.map((s) => [s.slug, s]));
+  const lead = bySlug.has(LEAD_CITY) ? LEAD_CITY : series[0]?.slug;
+  const leadRegion = regions.find((r) => r.slug === lead);
+  const leadRain = leadRegion
+    ? await api.fingerprint(leadRegion, "precipitation").catch(() => null)
     : null;
-  const warming =
-    baseline !== null && recent !== null ? recent - baseline : null;
 
-  const stats = [
-    {
-      value: `${yearsOfRecord}`,
-      label: "years of daily records",
-      suffix: "yr",
-    },
-    {
-      value: `${withData.length || "—"}`,
-      label: "Indonesian cities loaded",
-    },
-    {
-      // The grid size, not a count of populated months — the current year is
-      // still filling in, so "mapped" would overclaim.
-      value: `${(yearsOfRecord * 12).toLocaleString("en-US")}`,
-      label: "months per fingerprint",
-    },
-  ];
+  const warming: Record<string, number | null> = {};
+  for (const r of rankings?.results ?? []) warming[r.region.slug] = r.warming_c_per_decade;
+
+  const stories = buildStories({ stripes, rankings, records });
+  const popular = POPULAR.map((s) => bySlug.get(s)).filter(
+    (s): s is NonNullable<typeof s> => Boolean(s),
+  );
+  const loadedCount = regions.filter((r) => r.has_data).length;
 
   return (
     <>
       <SiteStructuredData />
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="relative -mx-5 overflow-hidden px-5 pb-16 pt-16 sm:-mx-8 sm:px-8 sm:pt-24">
-
-        <div className="relative mx-auto max-w-4xl text-center">
-          <p className="eyebrow animate-rise">
-            {yearFrom}–{yearTo} · ERA5 Reanalysis
-          </p>
-
-          <h1 className="animate-rise mt-6 text-display font-semibold">
-            Is your city actually
-            <br className="hidden sm:block" />{" "}
-            <span className="text-gradient">getting hotter?</span>
+      {lead && series.length > 0 ? (
+        <HomeExplorer
+          initial={lead}
+          stripes={series}
+          warming={warming}
+          regions={regions}
+          geometry={geometry}
+        />
+      ) : (
+        <section className="py-24 text-center">
+          <h1 className="font-display text-display font-semibold">
+            <L en="Is your city getting hotter?" id="Apakah kotamu makin panas?" />
           </h1>
-
-          {/* Answer the question — and show the arithmetic that produced the
-              answer. A bare "+2.1 °C" asks to be trusted; the two decade means
-              either side of it can be checked against the city page. */}
-          {/* One measure for the whole hero body. The answer, the caveat and
-              the pitch previously ran at max-w-2xl, max-w-prose and max-w-xl —
-              three widths stacked and centred, which tapered the block into a
-              pyramid with ragged gaps down both sides. */}
-          {lead && warming !== null && baseline !== null && recent !== null && (
-            <div className="animate-rise mx-auto mt-6 max-w-2xl">
-              <p className="text-balance text-xl text-text-primary">
-                Yes. In the 1950s an average day in {lead.name} peaked at{" "}
-                <span className="font-numeric whitespace-nowrap">
-                  {baseline.toFixed(1)} °C
-                </span>
-                . Over {yearTo - 10}–{yearTo - 1} it peaked at{" "}
-                <span className="font-numeric whitespace-nowrap">
-                  {recent.toFixed(1)} °C
-                </span>
-                .
-              </p>
-              <p className="mt-3 text-balance text-xl text-text-primary">
-                That is{" "}
-                <span className="font-numeric whitespace-nowrap font-medium text-heat-light">
-                  {warming.toFixed(1)} °C
-                </span>{" "}
-                of warming, inside one lifetime.
-              </p>
-              <p className="mt-4 text-sm leading-relaxed text-text-muted">
-                Both figures are ten-year averages of the daily maximum, so one
-                hot year cannot swing them. Subtracting two endpoints is not the
-                same as fitting a line through all 77 years — {lead.name}&rsquo;s
-                page reports that separately, and the two will not match. Neither
-                is wrong; they answer different questions.
-              </p>
-            </div>
-          )}
-
-          <p className="animate-rise mx-auto mt-5 max-w-2xl text-balance text-lg text-text-secondary">
-            ClimateWatch turns {yearsOfRecord} years of daily weather records
-            into one picture per city, so you can see how rainfall, temperature
-            and extreme weather have{" "}
-            <em className="not-italic text-text-primary">actually</em> changed —
-            not how they feel.
-          </p>
-
-          {/* Two ways in, because most first-time visitors will not type.
-
-              relative z-20 is load-bearing: .animate-rise animates a transform,
-              which gives this div and the stat strip below it each their own
-              stacking context. The search results' z-30 is then trapped inside
-              this one, and the stat strip — a later sibling — painted over the
-              dropdown. Raising this whole context fixes it; bumping the
-              dropdown's own z-index could not. */}
-          <div className="animate-rise relative z-20 mx-auto mt-10 flex max-w-xl flex-col gap-3">
-            <CitySearch regions={regions} />
-            {lead && (
-              <p className="text-sm text-text-muted">
-                or jump straight to{" "}
-                <Link
-                  href={`/city/${lead.slug}`}
-                  className="font-medium text-rain-light underline decoration-rain-blue/40 underline-offset-4 transition-colors hover:decoration-rain-light"
-                >
-                  {lead.name}&rsquo;s full climate record →
-                </Link>
-              </p>
-            )}
-          </div>
-
-          {/* Stat strip */}
-          <dl className="animate-rise mx-auto mt-14 flex max-w-2xl items-stretch justify-center divide-x divide-border">
-            {stats.map((s) => (
-              <div key={s.label} className="flex-1 px-4 sm:px-8">
-                <dd className="font-numeric text-2xl font-medium text-text-primary sm:text-3xl">
-                  {s.value}
-                  {s.suffix && (
-                    <span className="ml-0.5 text-base text-text-muted">
-                      {s.suffix}
-                    </span>
-                  )}
-                </dd>
-                <dt className="mt-1.5 text-xs leading-tight text-text-muted">
-                  {s.label}
-                </dt>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      {/* ── The artifact itself ─────────────────────────────────────────── */}
-      {/* Showing one real fingerprint beats describing it. This is the first
-          thing below the headline for a reason: it is the fastest available
-          explanation of what the product produces. */}
-      {leadRain && (
-        <section className="animate-rise mt-2">
-          <div className="mb-5">
-            <p className="eyebrow">The Climate Fingerprint</p>
-            <h2 className="mt-2 text-title font-semibold">
-              Every city gets one of these
-            </h2>
-          </div>
-          <FingerprintPreview fingerprint={leadRain} />
-
-          {/* "ERA5 Reanalysis" is in the eyebrow at the top of this page and
-              nowhere is it explained. It is the single biggest assumed word on
-              the site, and what it means changes how much weight a reader
-              should put on any number here. */}
-          <p className="mt-4 max-w-prose text-sm leading-relaxed text-text-muted">
-            Where this comes from:{" "}
-            <span className="text-text-secondary">ERA5 reanalysis</span> is not
-            a thermometer archive. It is a weather model re-run over every
-            historical observation available — satellites, ships, balloons,
-            stations — to produce one gap-free record with the same method
-            applied to 1950 as to today. That consistency is what makes a
-            77-year comparison possible, and it is also the catch: a value is a
-            modelled estimate for a ~30km grid square, not a reading from your
-            street. Local effects like an urban heat island or a narrow valley
-            are smoothed away.
+          <p className="mx-auto mt-6 max-w-md text-text-secondary">
+            <L
+              en="The climate archive could not be reached. This is on our end. Please try again shortly."
+              id="Arsip iklim tidak dapat dijangkau. Masalahnya ada di pihak kami. Silakan coba lagi sebentar lagi."
+            />
           </p>
         </section>
       )}
 
-      {/* ── Featured cities ─────────────────────────────────────────────── */}
-      <section className="mt-10">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p className="eyebrow">Start here</p>
-            <h2 className="mt-2 text-title font-semibold">Featured cities</h2>
+      {/* ── Stories ─────────────────────────────────────────────────────── */}
+      {stories.length > 0 && (
+        <section className="mt-20">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">
+                <L en="Stories from the data" id="Cerita dari data" />
+              </p>
+              <h2 className="mt-2 font-display text-title font-semibold">
+                <L en="No city in mind? Start here." id="Belum punya kota? Mulai dari sini." />
+              </h2>
+            </div>
+            <Link href="/stories" className="text-sm text-text-secondary underline decoration-border-strong underline-offset-4 hover:text-text-primary">
+              <L en="All stories →" id="Semua cerita →" />
+            </Link>
           </div>
-          <p className="hidden max-w-xs text-right text-sm text-text-muted sm:block">
-            {remaining > 0 ? (
-              <>{remaining} more in the search box above.</>
-            ) : (
-              <>Each city opens on its Climate Fingerprint.</>
-            )}
-          </p>
-        </div>
-
-        {featured.length > 0 ? (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {featured.map((r) => (
-              <li key={r.slug}>
-                <Link
-                  href={`/city/${r.slug}`}
-                  className="group relative flex h-full flex-col justify-between overflow-hidden rounded-lg border border-border bg-surface p-5 transition duration-200 ease-ease hover:-translate-y-0.5 hover:border-border-strong hover:shadow-float"
-                >
-                  {/* Hover wash — warm, subtle, non-informational. */}
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-br from-rain-blue/0 to-heat-orange/0 opacity-0 transition-opacity duration-300 group-hover:from-rain-blue/[0.07] group-hover:to-heat-orange/[0.07] group-hover:opacity-100"
-                  />
-                  <div className="relative">
-                    <div className="font-display text-xl font-semibold leading-tight text-text-primary">
-                      {r.name}
-                    </div>
-                    {/* Province, not latitude. A visitor locates a city by the
-                        province it sits in; nobody recognises a city from its
-                        decimal coordinates, which is what used to occupy this
-                        slot in 10px type. */}
-                    <div className="mt-1.5 text-sm leading-snug text-text-secondary">
-                      {r.province}
-                    </div>
-                  </div>
-                  <div className="relative mt-6 flex items-center justify-between">
-                    <span className="text-2xs text-text-muted">
-                      {yearFrom}–{yearTo}
-                    </span>
-                    <span
-                      aria-hidden
-                      className="text-text-muted transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-text-primary"
-                    >
-                      →
-                    </span>
-                  </div>
-                </Link>
-              </li>
+          <div className="grid gap-4 md:grid-cols-3">
+            {stories.slice(0, 3).map((st) => (
+              <StoryCard
+                key={st.key}
+                story={st}
+                anomalies={st.slug ? bySlug.get(st.slug)?.anomalies ?? null : stripes?.national.anomalies ?? null}
+              />
             ))}
-          </ul>
-        ) : (
-          <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-10 text-center">
-            {/* User-facing wording only. The old copy printed a Django
-                management command at visitors, who can neither run it nor
-                read it as anything but a broken page. */}
-            <p className="text-base text-text-secondary">
-              No cities are available right now.
-            </p>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-text-muted">
-              The climate archive could not be reached. This is on our end —
-              please try again shortly.
+          </div>
+        </section>
+      )}
+
+      {/* ── Popular cities ──────────────────────────────────────────────── */}
+      {popular.length > 0 && (
+        <section className="mt-20">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">
+                <L en="Popular cities" id="Kota populer" />
+              </p>
+              <h2 className="mt-2 font-display text-title font-semibold">
+                <L en="Every city has its own stripes" id="Setiap kota punya garisnya sendiri" />
+              </h2>
+            </div>
+            <p className="text-sm text-text-muted">
+              <L
+                en={`${loadedCount} cities in total. Press ⌘K to search.`}
+                id={`Total ${loadedCount} kota. Tekan ⌘K untuk mencari.`}
+              />
             </p>
           </div>
-        )}
-      </section>
+          <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {popular.map((s) => {
+              const c = decadeChange(s);
+              return (
+                <li key={s.slug}>
+                  <Link
+                    href={`/city/${s.slug}`}
+                    className="group block h-full overflow-hidden rounded-lg border border-border bg-surface transition duration-200 ease-ease hover:-translate-y-0.5 hover:border-border-strong"
+                  >
+                    <Stripes anomalies={s.anomalies} rounded={false} className="h-14 w-full" />
+                    <div className="flex items-end justify-between gap-2 p-4">
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-xl font-semibold leading-tight text-text-primary">
+                          {s.name}
+                        </div>
+                        <div className="mt-1 truncate text-2xs text-text-muted">{s.province}</div>
+                      </div>
+                      {c && (
+                        <span className="num-display shrink-0 text-lg font-semibold text-heat-light">
+                          <N value={c.delta} signed unit="°" />
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-3 text-2xs text-text-muted">
+            <L
+              en="Number = change in the average daily high between the first and last ten years of the record."
+              id="Angka = perubahan rata-rata suhu tertinggi harian antara sepuluh tahun pertama dan terakhir."
+            />
+          </p>
+        </section>
+      )}
 
-      {regions.length > 0 && (
-        <section className="mt-4">
-          <IndonesiaMap regions={regions} geometry={indonesiaGeometry} />
+      {/* ── What a fingerprint is ───────────────────────────────────────── */}
+      {leadRain && leadRegion && (
+        <section className="mt-20 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center">
+          <div>
+            <p className="eyebrow">
+              <L en="The Climate Fingerprint" id="Sidik Iklim" />
+            </p>
+            <h2 className="mt-2 font-display text-title font-semibold">
+              <L en="Every month since 1950, in one picture" id="Setiap bulan sejak 1950, dalam satu gambar" />
+            </h2>
+            <p className="mt-4 max-w-prose leading-relaxed text-text-secondary">
+              <L
+                en={`Each row is a year, each column a month, each square that month's rainfall in ${leadRegion.name}. Read down a column to see one month change over the decades. Every city page opens on its own fingerprint, with switches for temperature, feels-like heat, hot days and dry days.`}
+                id={`Tiap baris satu tahun, tiap kolom satu bulan, tiap kotak curah hujan bulan itu di ${leadRegion.name}. Baca satu kolom ke bawah untuk melihat satu bulan berubah dari dekade ke dekade. Setiap halaman kota dibuka dengan sidik iklimnya sendiri, lengkap dengan pilihan suhu, suhu terasa, hari panas dan hari kering.`}
+              />
+            </p>
+            <p className="mt-4 max-w-prose text-sm leading-relaxed text-text-muted">
+              <L
+                en="The data is ERA5 reanalysis: a weather model re-run over every past observation to give one consistent record from 1950 to today. Each value covers a grid square of about 10–30 km, not a single street."
+                id="Datanya adalah reanalisis ERA5: model cuaca yang dijalankan ulang atas semua pengamatan masa lalu untuk menghasilkan satu catatan yang konsisten dari 1950 sampai sekarang. Tiap nilai mewakili kotak grid sekitar 10–30 km, bukan satu jalan."
+              />{" "}
+              <Link href="/about" className="text-text-secondary underline decoration-border-strong underline-offset-2 hover:text-text-primary">
+                <L en="About the data →" id="Tentang data →" />
+              </Link>
+            </p>
+          </div>
+          <Link href={`/city/${leadRegion.slug}`} className="block" aria-label={`${leadRegion.name}`}>
+            <FingerprintPreview fingerprint={leadRain} years={80} />
+          </Link>
         </section>
       )}
     </>

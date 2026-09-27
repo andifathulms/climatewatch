@@ -336,12 +336,18 @@ class RankingsView(APIView):
     def get(self, request):
         rows = ClimateAnnual.objects.select_related("region").values(
             "region_id", "region__name", "region__slug", "region__province",
-            "year", "avg_temp_max", "total_precipitation",
+            "year", "avg_temp_max", "avg_apparent_temp_max", "total_precipitation",
             "extreme_rain_days", "max_consecutive_hot_days",
         )
 
+        # The current year is still accumulating: its average covers only the
+        # months so far, which biases both the long-run means and the slope.
+        # Same exclusion build_movers applies.
+        current_year = date.today().year
         by_region = {}
         for r in rows:
+            if r["year"] >= current_year:
+                continue
             by_region.setdefault(r["region_id"], {
                 "region": {
                     "id": r["region_id"],
@@ -357,6 +363,7 @@ class RankingsView(APIView):
             years = data["years"]
             temp_pts = [(y["year"], y["avg_temp_max"]) for y in years if y["avg_temp_max"] is not None]
             temps = [y["avg_temp_max"] for y in years if y["avg_temp_max"] is not None]
+            feels = [y["avg_apparent_temp_max"] for y in years if y["avg_apparent_temp_max"] is not None]
             precs = [y["total_precipitation"] for y in years if y["total_precipitation"] is not None]
             extreme_rain = [y["extreme_rain_days"] for y in years if y["extreme_rain_days"] is not None]
             heat_streaks = [y["max_consecutive_hot_days"] for y in years if y["max_consecutive_hot_days"] is not None]
@@ -370,6 +377,12 @@ class RankingsView(APIView):
                 "region": data["region"],
                 "years_loaded": len(years),
                 "avg_temp_max": round(sum(temps) / len(temps), 2) if temps else None,
+                # Only meaningful once the feels-like backfill covers the
+                # whole record; a partial series would compare unlike eras.
+                "avg_apparent_temp_max": (
+                    round(sum(feels) / len(feels), 2)
+                    if feels and len(feels) >= len(temps) * 0.9 else None
+                ),
                 "avg_annual_precipitation": round(sum(precs) / len(precs), 1) if precs else None,
                 "avg_extreme_rain_days_per_year": round(sum(extreme_rain) / len(extreme_rain), 2) if extreme_rain else None,
                 "max_consecutive_hot_days": max(heat_streaks) if heat_streaks else None,

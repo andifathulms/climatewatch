@@ -244,6 +244,8 @@ export interface RankingEntry {
   region: { id: number; name: string; slug: string; province: string };
   years_loaded: number;
   avg_temp_max: number | null;
+  /** Feels-like daily high, long-run mean. Absent in exports that predate it. */
+  avg_apparent_temp_max?: number | null;
   avg_annual_precipitation: number | null;
   avg_extreme_rain_days_per_year: number | null;
   max_consecutive_hot_days: number | null;
