@@ -4,6 +4,7 @@ import RankingsSection from "@/components/rankings/RankingsSection";
 import RecordsBoard from "@/components/rankings/RecordsBoard";
 import LeadersOverTime from "@/components/rankings/LeadersOverTime";
 import { getIndonesiaGeometry } from "@/lib/indonesia-geo";
+import { L } from "@/lib/i18n";
 
 // Own canonical and share card. Without these the root layout's
 // `canonical: "/"` is inherited, which told search engines this page was a
@@ -18,29 +19,38 @@ export const metadata = routeMetadata({
 });
 
 export default async function RankingsPage() {
-  const [rankings, records, overTime, regions] = await Promise.all([
+  const [rankings, records, overTime, regions, stripes] = await Promise.all([
     api.rankings().catch(() => ({ results: [] })),
     api.records().catch(() => null),
     api.overTime().catch(() => null),
     api.allRegions().catch(() => []),
+    api.stripes().catch(() => null),
   ]);
   const geometry = getIndonesiaGeometry();
 
   return (
-    <div className="space-y-8">
-      <header className="relative -mx-5 overflow-hidden px-5 pb-6 pt-14 sm:-mx-8 sm:px-8">
-        <div className="relative max-w-2xl">
-          <p className="eyebrow">Leaderboard</p>
-          <h1 className="mt-4 text-hero font-semibold">City rankings</h1>
-          <p className="mt-4 text-lg leading-relaxed text-text-secondary">
-            Every bootstrapped city, compared head-to-head on temperature,
-            rainfall, warming trend, and extreme weather — all from the same
-            ERA5 record, every year since 1950.
-          </p>
-        </div>
+    <div className="space-y-12">
+      <header className="max-w-3xl pt-12 sm:pt-16">
+        <p className="eyebrow">
+          <L en="Rankings" id="Peringkat" />
+        </p>
+        <h1 className="mt-4 font-display text-hero font-semibold">
+          <L en="Where is it changing fastest?" id="Di mana perubahan paling cepat?" />
+        </h1>
+        <p className="mt-4 text-lg leading-relaxed text-text-secondary">
+          <L
+            en={`Every loaded city on the same ERA5 record since 1950, ranked on warming, heat, feels-like heat, rain and heatwaves. Hover a row to find it on the map.`}
+            id={`Semua kota yang dimuat, dari catatan ERA5 yang sama sejak 1950, diurutkan menurut pemanasan, panas, suhu terasa, hujan dan gelombang panas. Arahkan kursor ke baris untuk menemukannya di peta.`}
+          />
+        </p>
       </header>
 
-      <RankingsSection regions={regions} geometry={geometry} rankings={rankings} />
+      <RankingsSection
+        regions={regions}
+        geometry={geometry}
+        rankings={rankings}
+        stripes={stripes?.results ?? []}
+      />
 
       {overTime && <LeadersOverTime data={overTime} />}
 

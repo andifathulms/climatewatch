@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import type { RankingEntry, RankingsResponse, Region } from "@/lib/types";
 import { RAMPS, ANOMALY_RAMP } from "@/components/fingerprint/color-scale";
 import type { MetricKey } from "./RankingsTable";
+import type { Lang } from "@/lib/i18n";
 import { METRICS } from "./RankingsTable";
 
 /**
@@ -21,6 +22,7 @@ import { METRICS } from "./RankingsTable";
  */
 const SEQUENTIAL_RAMP_FOR: Record<Exclude<MetricKey, "warming">, string[]> = {
   hottest: RAMPS.temp_max,
+  feels: RAMPS.temp_max,
   wettest: RAMPS.precipitation,
   driest: RAMPS.precipitation,
   extreme_rain: RAMPS.precipitation,
@@ -49,6 +51,7 @@ export interface MapMetricConfig {
 export function buildMapMetricConfig(
   metricKey: MetricKey,
   data: RankingsResponse,
+  lang: Lang = "id",
 ): MapMetricConfig {
   const active = METRICS.find((m) => m.key === metricKey)!;
   const byRegionId = new Map<number, RankingEntry>(
@@ -70,10 +73,10 @@ export function buildMapMetricConfig(
     const interp = d3.interpolateRgbBasis(ANOMALY_RAMP);
     const scale = d3.scaleSequential(interp).domain([-maxAbs, maxAbs]);
     return {
-      label: active.label,
+      label: lang === "en" ? active.en : active.id,
       getValue,
       color: (v) => scale(v) as string,
-      format: active.format,
+      format: (v: number) => active.format(v, lang),
       domain: [-maxAbs, maxAbs],
       diverging: true,
     };
@@ -85,10 +88,10 @@ export function buildMapMetricConfig(
   const interp = d3.interpolateRgbBasis(ramp);
   const scale = d3.scaleSequential(interp).domain([lo, hi]);
   return {
-    label: active.label,
+    label: lang === "en" ? active.en : active.id,
     getValue,
     color: (v) => scale(v) as string,
-    format: active.format,
+    format: (v: number) => active.format(v, lang),
     domain: [lo, hi],
     diverging: false,
   };

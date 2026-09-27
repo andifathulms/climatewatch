@@ -8,61 +8,84 @@ import type {
   RecordMetric,
   RecordsResponse,
 } from "@/lib/types";
-import { MONTHS } from "@/lib/format";
+import { MONTHS_EN, MONTHS_ID, formatNumber } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 type Grain = "month" | "year";
 
+type Lg = "en" | "id";
+const unitWord = (g: Grain, lang: Lg) =>
+  lang === "en" ? g : g === "month" ? "bulan" : "tahun";
+
 const METRICS: {
   key: RecordMetric;
-  label: string;
+  label: Record<Lg, string>;
   color: string;
-  format: (v: number) => string;
-  eyebrow: (g: Grain) => string;
-  note: (g: Grain) => string;
+  format: (v: number, lang: Lg) => string;
+  eyebrow: (g: Grain, lang: Lg) => string;
+  note: (g: Grain, lang: Lg) => string;
 }[] = [
   {
     key: "hottest",
-    label: "Hottest",
+    label: { en: "Hottest", id: "Terpanas" },
     color: "var(--heat-orange)",
-    format: (v) => `${v.toFixed(1)}°C`,
-    eyebrow: (g) => `Highest ${g === "month" ? "monthly" : "yearly"} average daily high`,
-    note: (g) =>
-      `An average of the daily high across a whole ${g} — a hot ${g}, not a single scorching day.`,
+    format: (v, lang) => `${formatNumber(v, lang)}°C`,
+    eyebrow: (g, lang) =>
+      lang === "en"
+        ? `Highest ${g === "month" ? "monthly" : "yearly"} average daily high`
+        : `Rata-rata suhu tertinggi harian ${g === "month" ? "bulanan" : "tahunan"} tertinggi`,
+    note: (g, lang) =>
+      lang === "en"
+        ? `An average of the daily high across a whole ${g}: a hot ${g}, not a single scorching day.`
+        : `Rata-rata suhu tertinggi harian selama satu ${unitWord(g, lang)} penuh: ${unitWord(g, lang)} yang panas, bukan satu hari yang sangat terik.`,
   },
   {
     key: "coolest",
-    label: "Coolest",
+    label: { en: "Coolest", id: "Tersejuk" },
     color: "var(--rain-blue)",
-    format: (v) => `${v.toFixed(1)}°C`,
-    eyebrow: (g) => `Lowest ${g === "month" ? "monthly" : "yearly"} average daily high`,
-    note: () => "Highland cities dominate the cool end.",
+    format: (v, lang) => `${formatNumber(v, lang)}°C`,
+    eyebrow: (g, lang) =>
+      lang === "en"
+        ? `Lowest ${g === "month" ? "monthly" : "yearly"} average daily high`
+        : `Rata-rata suhu tertinggi harian ${g === "month" ? "bulanan" : "tahunan"} terendah`,
+    note: (_g, lang) =>
+      lang === "en" ? "Highland cities dominate the cool end." : "Kota dataran tinggi mendominasi ujung sejuk.",
   },
   {
     key: "wettest",
-    label: "Wettest",
+    label: { en: "Wettest", id: "Terbasah" },
     color: "var(--rain-blue)",
     format: (v) => `${v.toFixed(0)} mm`,
-    eyebrow: (g) => `Most rain in a single ${g}`,
-    note: () => "Total rainfall accumulated over the period.",
+    eyebrow: (g, lang) =>
+      lang === "en" ? `Most rain in a single ${g}` : `Hujan terbanyak dalam satu ${unitWord(g, lang)}`,
+    note: (_g, lang) =>
+      lang === "en" ? "Total rainfall accumulated over the period." : "Total curah hujan selama periode itu.",
   },
   {
     key: "driest",
-    label: "Driest",
+    label: { en: "Driest", id: "Terkering" },
     color: "var(--drought-amber)",
     format: (v) => `${v.toFixed(0)} mm`,
-    eyebrow: (g) => `Least rain in a single ${g}`,
-    note: (g) =>
+    eyebrow: (g, lang) =>
+      lang === "en" ? `Least rain in a single ${g}` : `Hujan paling sedikit dalam satu ${unitWord(g, lang)}`,
+    note: (g, lang) =>
       g === "month"
-        ? "Dry-season months near 0mm tie often."
-        : "Total rainfall accumulated over the year.",
+        ? lang === "en"
+          ? "Dry-season months near 0 mm often tie."
+          : "Bulan kemarau yang mendekati 0 mm sering seri."
+        : lang === "en"
+          ? "Total rainfall accumulated over the year."
+          : "Total curah hujan sepanjang tahun.",
   },
 ];
 
-function when(r: ClimateRecord): string {
-  return r.month ? `${MONTHS[r.month - 1]} ${r.year}` : `${r.year}`;
+function when(r: ClimateRecord, lang: "en" | "id"): string {
+  const m = lang === "en" ? MONTHS_EN : MONTHS_ID;
+  return r.month ? `${m[r.month - 1]} ${r.year}` : `${r.year}`;
 }
 
 export default function RecordsBoard({ data }: { data: RecordsResponse }) {
+  const lang = useLang();
   const [metric, setMetric] = useState<RecordMetric>("hottest");
   const [grain, setGrain] = useState<Grain>("month");
   const active = METRICS.find((m) => m.key === metric)!;
@@ -70,12 +93,16 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
 
   return (
     <section className="card p-6">
+      <p className="eyebrow">{lang === "en" ? "Record book" : "Buku rekor"}</p>
+      <h2 className="mb-5 mt-1.5 font-display text-2xl font-semibold">
+        {lang === "en" ? "The most extreme months and years" : "Bulan dan tahun paling ekstrem"}
+      </h2>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
           name="records-metric"
-          label="Record type"
+          label={lang === "en" ? "Record type" : "Jenis rekor"}
           variant="ghost"
-          options={METRICS.map((m) => ({ value: m.key, label: m.label }))}
+          options={METRICS.map((m) => ({ value: m.key, label: m.label[lang] }))}
           value={metric}
           onChange={setMetric}
         />
@@ -83,19 +110,21 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
         {/* Granularity toggle — the whole point of the section. */}
         <SegmentedControl
           name="records-grain"
-          label="Granularity"
+          label={lang === "en" ? "Granularity" : "Rentang"}
           options={[
-            { value: "month" as Grain, label: "Month" },
-            { value: "year" as Grain, label: "Year" },
+            { value: "month" as Grain, label: lang === "en" ? "Month" : "Bulan" },
+            { value: "year" as Grain, label: lang === "en" ? "Year" : "Tahun" },
           ]}
           value={grain}
           onChange={setGrain}
         />
       </div>
 
-      <p className="eyebrow">{active.eyebrow(grain)}</p>
+      <p className="eyebrow">{active.eyebrow(grain, lang)}</p>
       <p className="mt-1 text-xs text-text-muted">
-        The 15 most extreme single {grain}s across all cities, 1950–present.
+        {lang === "en"
+          ? `The 15 most extreme single ${grain}s across all cities, 1950–present.`
+          : `15 ${unitWord(grain, lang)} paling ekstrem di semua kota, 1950–sekarang.`}
       </p>
 
       {/* The rank column is dropped below sm rather than scrolled: it restates
@@ -110,7 +139,7 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
               that, a screen-reader user landing on the table by table-navigation
               has no idea what they are reading. */}
           <caption className="sr-only">
-            {active.label} records, by {grain === "month" ? "month" : "year"}
+            {active.label[lang]} · {unitWord(grain, lang)}
           </caption>
           <thead>
             <tr className="border-b border-border text-left">
@@ -118,16 +147,16 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
                 #
               </th>
               <th scope="col" className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
-                City
+                {lang === "en" ? "City" : "Kota"}
               </th>
               <th scope="col" className="hidden py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted sm:table-cell">
-                Province
+                {lang === "en" ? "Province" : "Provinsi"}
               </th>
               <th scope="col" className="py-2 pr-4 font-normal text-2xs uppercase tracking-wider text-text-muted">
-                {grain === "month" ? "Month" : "Year"}
+                {grain === "month" ? (lang === "en" ? "Month" : "Bulan") : lang === "en" ? "Year" : "Tahun"}
               </th>
               <th scope="col" className="py-2 pl-4 text-right font-normal text-2xs uppercase tracking-wider text-text-muted">
-                {metric === "wettest" || metric === "driest" ? "Rainfall" : "Avg high"}
+                {metric === "wettest" || metric === "driest" ? (lang === "en" ? "Rainfall" : "Hujan") : lang === "en" ? "Avg high" : "Rata-rata maks"}
               </th>
             </tr>
           </thead>
@@ -152,13 +181,13 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
                   {r.region.province}
                 </td>
                 <td className="font-numeric py-2.5 pr-4 text-text-secondary">
-                  {when(r)}
+                  {when(r, lang)}
                 </td>
                 <td
                   className="font-numeric py-2.5 pl-4 text-right font-semibold"
                   style={{ color: active.color }}
                 >
-                  {active.format(r.value)}
+                  {active.format(r.value, lang)}
                 </td>
               </tr>
             ))}
@@ -167,7 +196,7 @@ export default function RecordsBoard({ data }: { data: RecordsResponse }) {
       </div>
 
       <p className="mt-6 border-t border-border pt-4 text-xs leading-relaxed text-text-muted">
-        {active.note(grain)}
+        {active.note(grain, lang)}
       </p>
     </section>
   );

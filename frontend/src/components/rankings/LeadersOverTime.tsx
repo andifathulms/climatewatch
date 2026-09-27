@@ -1,5 +1,7 @@
 "use client";
 
+import { L } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import { useMemo, useState } from "react";
@@ -68,6 +70,7 @@ function buildReigns(
 
 export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
   const reducedMotion = usePrefersReducedMotion();
+  const lang = useLang();
   const [metricKey, setMetricKey] = useState<MetricKey>("temp");
   const metric = data[metricKey];
 
@@ -141,17 +144,22 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
     <section className="card p-6">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="eyebrow">Leaders over time</p>
-          <h2 className="mt-1.5 font-display text-xl font-semibold">
-            Who led each year
+          <p className="eyebrow">
+            <L en="Leaders over time" id="Pemimpin dari waktu ke waktu" />
+          </p>
+          <h2 className="mt-1.5 font-display text-2xl font-semibold">
+            <L en="Who led each year" id="Siapa memimpin tiap tahun" />
           </h2>
         </div>
         <SegmentedControl
           name="leaders-metric"
-          label="Metric"
+          label={lang === "en" ? "Metric" : "Ukuran"}
           options={(["temp", "rain"] as MetricKey[]).map((k) => ({
             value: k,
-            label: data[k].label,
+            label:
+              k === "temp"
+                ? lang === "en" ? "Hottest" : "Terpanas"
+                : lang === "en" ? "Wettest" : "Terbasah",
           }))}
           value={metricKey}
           onChange={setMetricKey}
@@ -159,17 +167,14 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
       </div>
 
       <p className="mb-4 max-w-prose text-sm leading-relaxed text-text-secondary">
-        Every city that ever reached the top 3, as a{" "}
-        <span className="text-text-primary">
-          {metric.smoothing_years}-year average
-        </span>{" "}
-        so eras reflect real shifts, not single-year noise.{" "}
-        <span className="text-text-primary">Coloured</span> lines led #1 at some
-        point; grey lines are the #2/#3 pack. Values in {metric.unit}.
+        <L
+          en={`Every city that ever reached the top 3, as a ${metric.smoothing_years}-year average so eras reflect real shifts, not single-year noise. Coloured lines led at some point; grey lines are the #2/#3 pack. Values in ${metric.unit}.`}
+          id={`Setiap kota yang pernah masuk 3 besar, dalam rata-rata ${metric.smoothing_years} tahun agar pergeseran era terlihat, bukan riak satu tahun. Garis berwarna pernah memimpin; garis abu-abu adalah peringkat 2–3. Nilai dalam ${metric.unit}.`}
+        />
       </p>
 
       <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={rows} margin={CHART_MARGIN}>
+        <LineChart data={rows} margin={{ ...CHART_MARGIN, left: 4 }}>
           <CartesianGrid {...GRID} />
           <XAxis dataKey="year" type="number" domain={["dataMin", "dataMax"]} minTickGap={32} {...AXIS} />
           <YAxis domain={[lo, hi]} width={46} tickFormatter={fmt} {...AXIS} />
@@ -286,7 +291,9 @@ export default function LeadersOverTime({ data }: { data: OverTimeResponse }) {
       {/* Podium over time — who sat 1st / 2nd / 3rd each year, to scale. The
           #1 row is the leader ribbon; #2 and #3 stack beneath it. */}
       <div className="mt-6">
-        <p className="eyebrow mb-2">Podium over time</p>
+        <p className="eyebrow mb-2">
+          <L en="Podium over time" id="Podium dari waktu ke waktu" />
+        </p>
 
         {/* The visual timeline encodes each reign as a proportional width and
             drops the label under ~10% — the years exist only as geometry, and
