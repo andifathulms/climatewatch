@@ -333,7 +333,7 @@ export default function CityPicker({
 
             {flat.length === 0 && (
               <li className="px-3 py-6 text-center text-sm text-text-muted">
-                No city matches “{query}”.
+                {t(`No city matches “${query}”.`, `Tidak ada kota yang cocok dengan “${query}”.`)}
               </li>
             )}
           </ul>

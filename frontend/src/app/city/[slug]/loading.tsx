@@ -1,7 +1,7 @@
 /** Skeleton mirroring the city page's real layout, so nothing jumps on load. */
 export default function Loading() {
   return (
-    <div className="animate-pulse space-y-6 pt-12" aria-busy aria-label="Loading city">
+    <div className="animate-pulse space-y-6 pt-12" aria-busy aria-label="Memuat kota">
       {/* Masthead */}
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="space-y-3">
