@@ -1,3 +1,5 @@
+import { L } from "@/lib/i18n";
+
 /**
  * Shown when data coverage for a region drops below 90% — DESIGN.md §7 /
  * §10 step 9: "Render NullDataWarning wherever coverage for the displayed
@@ -34,14 +36,12 @@ export default function NullDataWarning({
       </span>
       <p className="text-xs leading-relaxed text-text-secondary">
         <span className="font-medium text-drought-amber">
-          Incomplete coverage.
+          <L en="Incomplete coverage." id="Cakupan tidak lengkap." />
         </span>{" "}
-        Only{" "}
-        <strong className="font-numeric font-medium text-text-primary">
-          {Math.round(coverage * 100)}%
-        </strong>{" "}
-        of {unit} in this record have a value. Some periods may be partial —
-        read the trends with caution.
+        <L
+          en={`Only ${Math.round(coverage * 100)}% of ${unit} in this record have a value. Some periods may be partial, so read the trends with caution.`}
+          id={`Hanya ${Math.round(coverage * 100)}% ${unit === "months" ? "bulan" : "tahun"} dalam catatan ini yang punya nilai. Sebagian periode mungkin tidak lengkap, jadi baca trennya dengan hati-hati.`}
+        />
       </p>
     </div>
   );

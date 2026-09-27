@@ -1,5 +1,6 @@
 "use client";
 
+import { L } from "@/lib/i18n";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -27,11 +28,13 @@ export default function CityError({
       <div className="relative">
         <p className="eyebrow">Error · something broke</p>
         <h1 className="mt-4 text-title font-semibold">
-          This city&rsquo;s page hit a snag
+          <L en="This city's page hit a snag" id="Halaman kota ini tersandung" />
         </h1>
         <p className="mx-auto mt-4 max-w-md leading-relaxed text-text-secondary">
-          The data itself is likely fine — something in rendering it failed.
-          Reloading usually clears it.
+          <L
+            en="The data itself is likely fine; something in rendering it failed. Reloading usually clears it."
+            id="Datanya kemungkinan baik-baik saja; ada yang gagal saat ditampilkan. Memuat ulang biasanya menyelesaikannya."
+          />
         </p>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -40,10 +43,10 @@ export default function CityError({
             onClick={reset}
             className="btn-primary px-5 py-2.5 text-sm"
           >
-            Try again
+            <L en="Try again" id="Coba lagi" />
           </button>
           <Link href="/" className="btn-ghost px-5 py-2.5 text-sm">
-            Back to home
+            <L en="Back to home" id="Kembali ke beranda" />
           </Link>
         </div>
       </div>

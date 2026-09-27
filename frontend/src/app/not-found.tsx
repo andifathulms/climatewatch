@@ -1,3 +1,4 @@
+import { L } from "@/lib/i18n";
 import Link from "next/link";
 import * as d3 from "d3";
 import { RAMPS } from "@/components/fingerprint/color-scale";
@@ -33,19 +34,25 @@ export default function NotFound() {
           ))}
         </div>
 
-        <p className="eyebrow">Error 404 · no data</p>
-        <h1 className="mt-4 text-hero font-semibold">Nothing recorded here</h1>
+        <p className="eyebrow">
+          <L en="Error 404 · no data" id="Galat 404 · tidak ada data" />
+        </p>
+        <h1 className="mt-4 text-hero font-semibold">
+          <L en="Nothing recorded here" id="Tidak ada catatan di sini" />
+        </h1>
         <p className="mx-auto mt-4 max-w-md leading-relaxed text-text-secondary">
-          That city or page doesn&apos;t exist yet. Try searching for an
-          Indonesian city from the homepage.
+          <L
+            en="That city or page doesn't exist yet. Press ⌘K to search for an Indonesian city."
+            id="Kota atau halaman itu belum ada. Tekan ⌘K untuk mencari kota di Indonesia."
+          />
         </p>
 
         <div className="mt-9 flex flex-wrap justify-center gap-3">
           <Link href="/" className="btn-primary px-5 py-2.5 text-sm">
-            Back to home
+            <L en="Back to home" id="Kembali ke beranda" />
           </Link>
           <Link href="/compare" className="btn-ghost px-5 py-2.5 text-sm">
-            Compare cities
+            <L en="Compare cities" id="Bandingkan kota" />
           </Link>
         </div>
       </div>

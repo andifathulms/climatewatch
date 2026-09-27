@@ -1,5 +1,6 @@
 "use client";
 
+import { L } from "@/lib/i18n";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -26,13 +27,17 @@ export default function GlobalError({
   return (
     <div className="relative flex min-h-[70vh] flex-col items-center justify-center text-center">
       <div className="relative">
-        <p className="eyebrow">Error · something broke</p>
+        <p className="eyebrow">
+          <L en="Error · something broke" id="Galat · ada yang rusak" />
+        </p>
         <h1 className="mt-4 text-hero font-semibold">
-          This page hit a snag
+          <L en="This page hit a snag" id="Halaman ini tersandung" />
         </h1>
         <p className="mx-auto mt-4 max-w-md leading-relaxed text-text-secondary">
-          Not missing data this time — something in the page itself failed to
-          render. Reloading usually clears it.
+          <L
+            en="Not missing data this time: something in the page itself failed to render. Reloading usually clears it."
+            id="Kali ini bukan karena data hilang: ada bagian halaman yang gagal ditampilkan. Memuat ulang biasanya menyelesaikannya."
+          />
         </p>
 
         <div className="mt-9 flex flex-wrap justify-center gap-3">
@@ -41,10 +46,10 @@ export default function GlobalError({
             onClick={reset}
             className="btn-primary px-5 py-2.5 text-sm"
           >
-            Try again
+            <L en="Try again" id="Coba lagi" />
           </button>
           <Link href="/" className="btn-ghost px-5 py-2.5 text-sm">
-            Back to home
+            <L en="Back to home" id="Kembali ke beranda" />
           </Link>
         </div>
       </div>
