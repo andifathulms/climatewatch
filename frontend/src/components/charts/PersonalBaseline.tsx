@@ -141,9 +141,10 @@ export default function PersonalBaseline({
 
       {result && since === null ? (
         <p className="mt-6 max-w-prose font-display text-title font-semibold leading-snug text-text-primary">
-          <L en="Enter the year you were born to see how much hotter" id="Masukkan tahun lahirmu untuk melihat seberapa panas" />{" "}
-          {regionName}{" "}
-          <L en="has become in your lifetime." id="kota ini selama hidupmu." />
+          <L
+            en={`Enter the year you were born to see how much hotter ${regionName} has become in your lifetime.`}
+            id={`Masukkan tahun lahirmu untuk melihat seberapa jauh ${regionName} memanas selama hidupmu.`}
+          />
         </p>
       ) : result ? (
         <p className="mt-6 max-w-prose font-display text-title font-semibold leading-snug text-text-primary">

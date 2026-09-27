@@ -329,7 +329,10 @@ export default function FingerprintPanel({
 
       {/* ── Toolbar: variable + zoom on the left, layers on the right ───── */}
       <div className="flex flex-col gap-3 border-y border-border bg-canvas/40 px-5 py-3 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          {/* Five options outgrow a phone row; let the track scroll rather
+              than clip the last option out of reach. */}
+          <div className="-mx-1 max-w-full overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <SegmentedControl
             name="fingerprint-variable"
             label={lang === "en" ? "Climate variable" : "Variabel iklim"}
@@ -340,6 +343,7 @@ export default function FingerprintPanel({
               setVariable(next);
             }}
           />
+          </div>
           <div className="flex items-center gap-2">
             <SegmentedControl
               name="fingerprint-zoom"

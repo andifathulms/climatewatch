@@ -109,7 +109,10 @@ export default function FutureOutlook({
       </p>
 
       <figure className="mt-6">
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={`Observed and projected change in ${name}'s average daily high, ${x0}–${x1}`}>
+        {/* On a phone the labels would shrink below legibility, so the chart
+            keeps a minimum width and scrolls sideways instead. */}
+        <div className="-mx-2 overflow-x-auto px-2">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full min-w-[640px]" role="img" aria-label={`Observed and projected change in ${name}'s average daily high, ${x0}–${x1}`}>
           {ticks.map((v) => (
             <g key={v}>
               <line x1={M.l} x2={W - M.r} y1={sy(v)} y2={sy(v)} stroke={v === 0 ? "var(--axis-line)" : "var(--grid-line)"} />
@@ -135,6 +138,7 @@ export default function FutureOutlook({
           <path d={path(bandMid)} fill="none" stroke="var(--heat-light)" strokeWidth={3} strokeDasharray="8 6" />
           <path d={path(data.observed_anomaly)} fill="none" stroke="var(--text-primary)" strokeWidth={2} />
         </svg>
+        </div>
         <figcaption className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-2xs text-text-muted">
           <span className="flex items-center gap-2">
             <span aria-hidden className="h-0.5 w-5 bg-text-primary" />

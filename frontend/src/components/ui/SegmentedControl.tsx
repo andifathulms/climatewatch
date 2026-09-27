@@ -56,7 +56,7 @@ export default function SegmentedControl<T extends string>({
       <legend className="sr-only">{label}</legend>
       <div className={track}>
         {options.map((o) => (
-          <label key={o.value} className="cursor-pointer">
+          <label key={o.value} className="relative cursor-pointer">
             <input
               type="radio"
               name={name}
