@@ -19,7 +19,7 @@ const SITE =
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const regions = await api.allRegions().catch(() => []);
 
-  const staticRoutes = ["", "/rankings", "/compare", "/about"].map((path) => ({
+  const staticRoutes = ["", "/rankings", "/compare", "/stories", "/about"].map((path) => ({
     url: `${SITE}${path}/`,
     changeFrequency: "monthly" as const,
     priority: path === "" ? 1 : 0.7,
