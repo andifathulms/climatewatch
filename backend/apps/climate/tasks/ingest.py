@@ -11,7 +11,8 @@ from apps.regions.models import IndonesiaRegion
 
 DAILY_VARIABLES = (
     "temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
-    "precipitation_sum,windspeed_10m_max,et0_fao_evapotranspiration"
+    "precipitation_sum,windspeed_10m_max,et0_fao_evapotranspiration,"
+    "apparent_temperature_max"
 )
 
 
@@ -49,6 +50,7 @@ def _retry_after_seconds(resp) -> float | None:
 def fetch_historical(
     lat: float, lng: float, start: str, end: str,
     max_retries: int = 3, max_backoff: float = 900.0,
+    variables: str = DAILY_VARIABLES,
 ) -> dict:
     """
     Fetch ERA5 daily data from Open-Meteo. Returns the parsed JSON dict with a
@@ -65,8 +67,11 @@ def fetch_historical(
         "longitude": lng,
         "start_date": start,
         "end_date": end,
-        "daily": DAILY_VARIABLES,
+        "daily": variables,
         "timezone": "Asia/Jakarta",
+        # See OPENMETEO_ARCHIVE_MODEL in settings: without this the record
+        # silently changes model in 2017.
+        "models": settings.OPENMETEO_ARCHIVE_MODEL,
     }
     for attempt in range(max_retries + 1):
         resp = requests.get(settings.OPENMETEO_ARCHIVE, params=params, timeout=90)
@@ -107,6 +112,7 @@ def _rows_from_daily(region, daily: dict, source=ClimateDaily.Source.ERA5):
     precip = daily.get("precipitation_sum", [])
     wind = daily.get("windspeed_10m_max", [])
     et0 = daily.get("et0_fao_evapotranspiration", [])
+    apparent = daily.get("apparent_temperature_max", [])
 
     def get(seq, i):
         return seq[i] if i < len(seq) else None
@@ -123,6 +129,7 @@ def _rows_from_daily(region, daily: dict, source=ClimateDaily.Source.ERA5):
                 precipitation_mm=get(precip, i),
                 windspeed_max_kmh=get(wind, i),
                 evapotranspiration_mm=get(et0, i),
+                apparent_temp_max=get(apparent, i),
                 source=source,
             )
         )
@@ -145,6 +152,7 @@ def upsert_climate_daily(region, daily: dict) -> int:
             "precipitation_mm",
             "windspeed_max_kmh",
             "evapotranspiration_mm",
+            "apparent_temp_max",
             "source",
         ],
         batch_size=2000,

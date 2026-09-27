@@ -24,6 +24,7 @@ static-mode fetcher needs no response reshaping):
     <out>/rankings.json
     <out>/monthly-records.json
     <out>/leaders-over-time.json
+    <out>/stripes.json
 """
 import json
 from datetime import date
@@ -47,6 +48,7 @@ from ...views import (
     build_compare_profile,
     build_movers,
     build_doy_climatology,
+    build_stripes,
 )
 
 
@@ -138,6 +140,8 @@ class Command(BaseCommand):
             out / "leaders-over-time.json",
             self._response_data(OverTimeView().get(req)),
         )
+
+        self._write(out / "stripes.json", build_stripes())
 
         self.stdout.write(
             self.style.SUCCESS(

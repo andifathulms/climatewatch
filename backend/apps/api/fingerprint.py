@@ -13,6 +13,7 @@ from apps.climate.models import ClimateMonthly
 VARIABLE_FIELDS = {
     "precipitation": "total_precipitation",
     "temp_max": "avg_temp_max",
+    "feels_like": "avg_apparent_temp_max",
     "hot_days": "hot_days",
     "hot_days_local": "hot_days_local",
     "dry_days": "dry_days",

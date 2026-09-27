@@ -27,6 +27,10 @@ class ClimateDaily(models.Model):
     precipitation_mm = models.FloatField(null=True, blank=True)
     windspeed_max_kmh = models.FloatField(null=True, blank=True)
     evapotranspiration_mm = models.FloatField(null=True, blank=True)
+    # "Feels like" daily high (Steadman apparent temperature: air temperature
+    # adjusted for humidity and wind). In a humid tropical city this is the
+    # heat people actually live with — 33°C air can read 38°C here.
+    apparent_temp_max = models.FloatField(null=True, blank=True)
     source = models.CharField(
         max_length=16, choices=Source.choices, default=Source.ERA5
     )
@@ -59,6 +63,7 @@ class ClimateMonthly(BaseModel):
     avg_temp_max = models.FloatField(null=True, blank=True)
     avg_temp_min = models.FloatField(null=True, blank=True)
     avg_temp_mean = models.FloatField(null=True, blank=True)
+    avg_apparent_temp_max = models.FloatField(null=True, blank=True)
     total_precipitation = models.FloatField(null=True, blank=True)
     hot_days = models.IntegerField(
         default=0, help_text="Days with temp_max > 35C (absolute, cross-city comparable)"
@@ -102,6 +107,7 @@ class ClimateAnnual(BaseModel):
 
     avg_temp_max = models.FloatField(null=True, blank=True)
     avg_temp_min = models.FloatField(null=True, blank=True)
+    avg_apparent_temp_max = models.FloatField(null=True, blank=True)
     total_precipitation = models.FloatField(null=True, blank=True)
     rainy_days = models.IntegerField(default=0)
     hot_days = models.IntegerField(default=0)

@@ -129,5 +129,14 @@ CELERY_TASK_TRACK_STARTED = True
 # NOTE: the ERA5 archive lives on `archive-api.open-meteo.com`, not
 # `archive.open-meteo.com` (the latter does not resolve).
 OPENMETEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
+# Pin the archive model. Without `models`, Open-Meteo serves its default
+# "best_match" blend, which is ERA5-Land/ERA5 up to 2016 and then switches to
+# ECMWF IFS from 2017 — a different model on a different grid. For coastal
+# cities that switch alone added ~1.5°C to daily highs overnight (Jakarta:
+# 29.5°C in 2016 → 31.1°C in 2017), which is a source change, not climate.
+# `era5_seamless` (ERA5-Land where it exists, ERA5 for the rest) is exactly what
+# the default blend returned before 2017, verified value-for-value, so the
+# record stays one consistent model from 1950 to present.
+OPENMETEO_ARCHIVE_MODEL = "era5_seamless"
 OPENMETEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
 OPENMETEO_CLIMATE = "https://climate-api.open-meteo.com/v1/climate"

@@ -700,8 +700,8 @@ def build_compare_profile(region):
     annual = list(
         ClimateAnnual.objects.filter(region=region)
         .order_by("year")
-        .values("year", "avg_temp_max", "total_precipitation",
-                "hot_days", "extreme_rain_days")
+        .values("year", "avg_temp_max", "avg_apparent_temp_max",
+                "total_precipitation", "hot_days", "extreme_rain_days")
     )
     climatology = []
     for m in range(1, 13):
@@ -794,6 +794,7 @@ MOVERS_MIN_ABS_Z = 0.15  # below this, call it "no clear movement" and say so
 # field -> (label, unit, direction phrasing when rising / falling)
 MOVER_SIGNALS = {
     "avg_temp_max": ("Average daily high", "°C", "hotter", "cooler"),
+    "avg_apparent_temp_max": ("Feels-like daily high", "°C", "hotter", "cooler"),
     "hot_days_local": ("Unusually hot days", "days/yr", "more", "fewer"),
     "total_precipitation": ("Annual rainfall", "mm", "wetter", "drier"),
     "heavy_rain_days": ("Heavy rain days", "days/yr", "more", "fewer"),
@@ -875,3 +876,78 @@ class MoversView(ClimateEndpoint):
 
     def get(self, request, region_id):
         return Response(build_movers(self.get_region(region_id)))
+
+
+STRIPES_BASELINE = (1951, 1980)
+
+
+def build_stripes() -> dict:
+    """
+    Every loaded region's warming stripes: one value per complete year, the
+    departure of that year's average daily high from the region's own
+    1951-1980 mean. One file for all cities so a page that shows many stripes
+    (home cards, rankings rows, search results) makes one request, not ninety.
+
+    The current year is excluded — a part-year average is biased by season.
+    A year with no data stays null; the client draws it as a null cell, never
+    as zero departure.
+    """
+    current_year = date.today().year
+    rows = (
+        ClimateAnnual.objects.filter(year__lt=current_year)
+        .order_by("region_id", "year")
+        .values("region_id", "year", "avg_temp_max")
+    )
+    by_region: dict[int, dict[int, float | None]] = {}
+    for r in rows:
+        by_region.setdefault(r["region_id"], {})[r["year"]] = r["avg_temp_max"]
+
+    regions = IndonesiaRegion.objects.filter(id__in=by_region.keys())
+    lo, hi = STRIPES_BASELINE
+    results = []
+    per_year: dict[int, list[float]] = {}
+    for region in regions.order_by("name"):
+        series = by_region[region.id]
+        base_vals = [v for y, v in series.items() if lo <= y <= hi and v is not None]
+        if len(base_vals) < 20:
+            continue
+        baseline = sum(base_vals) / len(base_vals)
+        y0, y1 = min(series), max(series)
+        anomalies = []
+        for y in range(y0, y1 + 1):
+            v = series.get(y)
+            a = round(v - baseline, 2) if v is not None else None
+            anomalies.append(a)
+            if a is not None:
+                per_year.setdefault(y, []).append(a)
+        results.append({
+            "slug": region.slug,
+            "name": region.name,
+            "province": region.province,
+            "year_from": y0,
+            "baseline_c": round(baseline, 2),
+            "anomalies": anomalies,
+        })
+
+    def median(vals):
+        s = sorted(vals)
+        n = len(s)
+        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+
+    years = sorted(per_year)
+    return {
+        "variable": "avg_temp_max",
+        "baseline": {"from": lo, "to": hi},
+        "national": {
+            "year_from": years[0] if years else None,
+            "anomalies": [round(median(per_year[y]), 2) for y in years],
+        },
+        "results": results,
+    }
+
+
+class StripesView(APIView):
+    """Warming stripes for every loaded region, in one payload."""
+
+    def get(self, request):
+        return Response(build_stripes())

@@ -37,6 +37,7 @@ def rebuild_climate_monthly(region_id: int, year: int, month: int):
         avg_temp_max=Avg("temp_max"),
         avg_temp_min=Avg("temp_min"),
         avg_temp_mean=Avg("temp_mean"),
+        avg_apparent_temp_max=Avg("apparent_temp_max"),
         total_precipitation=Sum("precipitation_mm"),
         hot_days=Count("id", filter=Q(temp_max__gt=35)),
         heavy_rain_days=Count("id", filter=Q(precipitation_mm__gt=50)),
@@ -151,6 +152,7 @@ def rebuild_climate_annual(region_id: int, year: int):
     result = qs.aggregate(
         avg_temp_max=Avg("temp_max"),
         avg_temp_min=Avg("temp_min"),
+        avg_apparent_temp_max=Avg("apparent_temp_max"),
         total_precipitation=Sum("precipitation_mm"),
         rainy_days=Count("id", filter=Q(precipitation_mm__gte=1)),
         hot_days=Count("id", filter=Q(temp_max__gt=35)),

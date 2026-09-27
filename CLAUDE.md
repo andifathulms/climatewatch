@@ -104,11 +104,13 @@ Add a composite index on `(region_id, date)` — this is the primary query patte
 
 ### Historical API (ERA5) — Primary Data Source
 ```python
-OPENMETEO_ARCHIVE = "https://archive.open-meteo.com/v1/archive"
+OPENMETEO_ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
+OPENMETEO_ARCHIVE_MODEL = "era5_seamless"   # ALWAYS pass as `models=`
 
 DAILY_VARIABLES = (
     "temperature_2m_max,temperature_2m_min,temperature_2m_mean,"
-    "precipitation_sum,windspeed_10m_max,et0_fao_evapotranspiration"
+    "precipitation_sum,windspeed_10m_max,et0_fao_evapotranspiration,"
+    "apparent_temperature_max"
 )
 
 def fetch_historical(lat: float, lng: float,
@@ -128,12 +130,20 @@ def fetch_historical(lat: float, lng: float,
             "end_date": end,
             "daily": DAILY_VARIABLES,
             "timezone": "Asia/Jakarta",
+            "models": OPENMETEO_ARCHIVE_MODEL,
         },
         timeout=30,
     )
     resp.raise_for_status()
     return resp.json()
 ```
+
+### Always pin the model
+Without `models=`, the archive serves its default blend: ERA5-Land/ERA5 up to
+2016, then ECMWF IFS from 2017. That switch alone added ~1.5°C to Jakarta's
+daily highs in a single year. `era5_seamless` is value-for-value identical to
+the default blend before 2017 and stays on the ERA5 family afterwards, so the
+record is one model from 1950 to present. Never drop the parameter.
 
 ### Response Shape
 ```json
@@ -485,6 +495,7 @@ volumes:
 
 ## Key Decisions (Do Not Change)
 
+- **`models=era5_seamless` on every archive request** — see "Always pin the model"
 - **ERA5 for all historical analysis** — not Historical Forecast API (which
   only goes to 2021 and changes with model upgrades — inconsistent for climate trends)
 - **ClimateMonthly and ClimateAnnual are precomputed** — never aggregate from
