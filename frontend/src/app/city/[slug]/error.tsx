@@ -24,7 +24,6 @@ export default function CityError({
 
   return (
     <div className="relative flex min-h-[50vh] flex-col items-center justify-center text-center">
-      <div className="canvas-aurora opacity-50" aria-hidden />
       <div className="relative">
         <p className="eyebrow">Error · something broke</p>
         <h1 className="mt-4 text-title font-semibold">

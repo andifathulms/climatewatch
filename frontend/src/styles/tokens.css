@@ -1,5 +1,14 @@
 /* ============================================================================
-   Musim Nokturnal — ClimateWatch design system
+   Musim Nokturnal 2 — ClimateWatch design system
+   ----------------------------------------------------------------------------
+   v2 (Sep 2026): quieter chrome, louder data. Three working surfaces
+   (canvas / surface / raised), no card gradients, rim light or background
+   glows — every saturated colour on screen now encodes climate. The data
+   colours and ramps below are unchanged from v1 and keep their validation.
+   Type: Fraunces (display + headline numerals), Plus Jakarta Sans (UI/body),
+   JetBrains Mono (axis ticks, tables, readouts — never inside a sentence).
+   ============================================================================
+   v1 notes follow.
    ----------------------------------------------------------------------------
    An editorial dark system on a *warm* volcanic ink canvas (not blue-slate),
    so the earth-toned Musim identity survives the inversion.
@@ -20,7 +29,8 @@
   --canvas-deep: #0c0a07;
   --surface: #1b1813;
   --surface-raised: #221e18;
-  --surface-muted: #24201a;
+  /* v2: folded into --surface-raised. Kept as an alias so no class breaks. */
+  --surface-muted: var(--surface-raised);
   --surface-inset: #100e0a;
   --border: #322c24;
   --border-strong: #4a4237;
@@ -159,8 +169,8 @@
   --shadow: 0 4px 16px -4px rgb(0 0 0 / 0.5);
   --shadow-lg: 0 18px 48px -12px rgb(0 0 0 / 0.7);
 
-  /* Warm rim-light that separates a card from the canvas without a hard line */
-  --rim: inset 0 1px 0 0 rgb(255 246 230 / 0.06);
+  /* v2: cards are flat. Kept defined (as nothing) so old references are inert. */
+  --rim: 0 0 #0000;
 
   /* ── Motion ────────────────────────────────────────────────────────────── */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);

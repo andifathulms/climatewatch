@@ -34,7 +34,7 @@ const config: Config = {
       fontFamily: {
         display: ["var(--font-display)", "Fraunces", "Georgia", "serif"],
         serif: ["var(--font-display)", "Fraunces", "Georgia", "serif"],
-        sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "Plus Jakarta Sans", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
       fontSize: {

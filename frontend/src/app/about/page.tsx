@@ -116,7 +116,6 @@ export default async function AboutPage() {
   return (
     <article>
       <header className="relative -mx-5 overflow-hidden px-5 pb-8 pt-14 sm:-mx-8 sm:px-8">
-        <div className="canvas-aurora opacity-50" aria-hidden />
         <div className="relative max-w-2xl">
           <p className="eyebrow">Methodology</p>
           <h1 className="mt-4 text-hero font-semibold">

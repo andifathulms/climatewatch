@@ -16,7 +16,6 @@ const ROW_SWATCHES: (string | null)[] = [0, 0.2, 0.4, null, null, 0.75, 0.55, 0.
 export default function NotFound() {
   return (
     <div className="relative flex min-h-[70vh] flex-col items-center justify-center text-center">
-      <div className="canvas-aurora opacity-50" aria-hidden />
 
       <div className="relative">
         {/* A fingerprint row with a gap where the page should be. */}

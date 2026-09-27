@@ -173,7 +173,6 @@ export default async function CityPage({
 
       {/* ── City masthead ───────────────────────────────────────────────── */}
       <header className="relative -mx-5 overflow-hidden px-5 pb-10 pt-12 sm:-mx-8 sm:px-8">
-        <div className="canvas-aurora opacity-60" aria-hidden />
 
         <nav aria-label="Breadcrumb" className="relative">
           <Link

@@ -1,5 +1,10 @@
 export type FingerprintVariable =
-  "precipitation" | "temp_max" | "hot_days" | "hot_days_local" | "dry_days";
+  | "precipitation"
+  | "temp_max"
+  | "feels_like"
+  | "hot_days"
+  | "hot_days_local"
+  | "dry_days";
 
 export interface Region {
   id: number;
@@ -198,6 +203,7 @@ export interface CompareProfile {
   annual: {
     year: number;
     avg_temp_max: number | null;
+    avg_apparent_temp_max?: number | null;
     total_precipitation: number | null;
     hot_days: number;
     extreme_rain_days: number;
@@ -283,4 +289,23 @@ export interface OverTimeMetric {
 export interface OverTimeResponse {
   temp: OverTimeMetric;
   rain: OverTimeMetric;
+}
+
+/** One city's warming stripes: yearly departure of the average daily high
+ *  from its own 1951-1980 mean. `null` = a year with no data, never zero. */
+export interface StripeSeries {
+  slug: string;
+  name: string;
+  province: string;
+  year_from: number;
+  baseline_c: number;
+  anomalies: (number | null)[];
+}
+
+export interface StripesResponse {
+  variable: "avg_temp_max";
+  baseline: { from: number; to: number };
+  /** Median departure across every loaded city, per year. */
+  national: { year_from: number; anomalies: number[] };
+  results: StripeSeries[];
 }

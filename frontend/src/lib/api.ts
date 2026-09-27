@@ -14,6 +14,7 @@ import type {
   Region,
   RegionDetail,
   SeasonResponse,
+  StripesResponse,
   WorkedExampleResponse,
 } from "./types";
 import { DATA_MODE, getStatic } from "./data-mode";
@@ -220,6 +221,13 @@ export const api = {
       return getStatic("monthly-records.json");
     }
     return get("/climate/records/");
+  },
+  /** Every city's warming stripes in one payload. */
+  stripes(): Promise<StripesResponse> {
+    if (DATA_MODE === "static") {
+      return getStatic("stripes.json");
+    }
+    return get("/climate/stripes/");
   },
   overTime(): Promise<OverTimeResponse> {
     if (DATA_MODE === "static") {

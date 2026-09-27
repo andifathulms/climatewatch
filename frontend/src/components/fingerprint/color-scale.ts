@@ -71,6 +71,9 @@ export function buildColorScale(
     case "precipitation":
       return d3.scaleSequential(interp).domain([0, p90]);
     case "temp_max":
+    case "feels_like":
+      // Same quantity family as temp_max, same ramp (ramps.json aliases
+      // it) and the same p10–p90 domain: a narrow-range cycle.
       return d3.scaleSequential(interp).domain([p10, p90]);
     case "hot_days":
       return d3.scaleSequential(interp).domain([0, max]);
@@ -79,4 +82,20 @@ export function buildColorScale(
     case "dry_days":
       return d3.scaleSequential(interp).domain([0, max]);
   }
+}
+
+/**
+ * Warming-stripe colour. A fixed ±STRIPE_DOMAIN_C domain on every city (not
+ * per-city min/max) so two cities' stripes can be read side by side — the
+ * same hue always means the same departure. Values past the domain clamp to
+ * the ends. `null` is drawn by the caller as --null-cell, never as zero.
+ */
+export const STRIPE_DOMAIN_C = 2;
+const stripeScale = d3
+  .scaleSequential(d3.interpolateRgbBasis(ANOMALY_RAMP))
+  .domain([-STRIPE_DOMAIN_C, STRIPE_DOMAIN_C])
+  .clamp(true);
+
+export function stripeColor(anomaly: number): string {
+  return stripeScale(anomaly) as string;
 }

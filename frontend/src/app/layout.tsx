@@ -1,12 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/ui/SiteHeader";
 import SiteFooter from "@/components/ui/SiteFooter";
+import MobileTabBar from "@/components/ui/MobileTabBar";
+import { api } from "@/lib/api";
+import { LANG_BOOT_SCRIPT } from "@/lib/i18n";
 
 /* Self-hosted via next/font — no render-blocking request to Google, no layout
-   shift. Fraunces carries the editorial display voice; Inter the UI; JetBrains
-   Mono every climate number (tabular by default). */
+   shift. Fraunces carries the editorial display voice and headline numerals;
+   Plus Jakarta Sans the UI and body (Tokotype, a Jakarta foundry, originally
+   drawn for the city's own identity); JetBrains Mono axis ticks, tables and
+   readouts. */
 const display = Fraunces({
   subsets: ["latin"],
   axes: ["SOFT", "WONK"],
@@ -14,7 +19,7 @@ const display = Fraunces({
   variable: "--font-display",
 });
 
-const sans = Inter({
+const sans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
@@ -43,7 +48,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "ClimateWatch",
-    locale: "en",
+    locale: "id_ID",
     url: "/",
     title: "ClimateWatch — Climate Intelligence for Indonesia",
     description:
@@ -88,38 +93,50 @@ export const viewport: Viewport = {
   themeColor: "#12100c",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // The logo is the national warming stripes; everything else in the header
+  // loads lazily. A missing file (fresh clone, no export yet) degrades to a
+  // flat mark rather than failing every page.
+  const national = await api
+    .stripes()
+    .then((s) => s.national.anomalies)
+    .catch(() => [] as number[]);
+
   return (
     <html
-      // Every string in this product is English. lang="id" told screen
-      // readers to pronounce English text with Indonesian phonetics (WCAG
-      // 3.1.1) and told search engines this was Indonesian-language content.
-      // JUDGEMENT CALL: the audience is Indonesian and Bahasa i18n is PRD
-      // Phase 5 — this line goes back to "id" the day translated content
-      // ships, and per-locale lang belongs on the routes at that point.
-      lang="en"
+      // Bahasa Indonesia by default; English via the ID/EN toggle. Both are
+      // in the HTML (lib/i18n.tsx) and LANG_BOOT_SCRIPT flips these two
+      // attributes before paint for a returning English reader.
+      lang="id"
+      data-lang="id"
+      suppressHydrationWarning
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >
-      <body className="min-h-screen bg-canvas antialiased">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: LANG_BOOT_SCRIPT }} />
+      </head>
+      <body className="min-h-screen bg-canvas pb-16 antialiased lg:pb-0">
         {/* Skip link — the fingerprint is a long scroll target for keyboard users. */}
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-text-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-canvas"
         >
-          Skip to content
+          <span data-l="id" lang="id">Lewati ke konten</span>
+          <span data-l="en" lang="en">Skip to content</span>
         </a>
 
-        <SiteHeader />
+        <SiteHeader national={national} />
 
         <main id="main" className="mx-auto max-w-shell px-5 pb-24 sm:px-8">
           {children}
         </main>
 
         <SiteFooter />
+        <MobileTabBar />
       </body>
     </html>
   );

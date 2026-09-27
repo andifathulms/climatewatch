@@ -63,7 +63,8 @@ export default function MakerSignature() {
   return (
     <div className="flex shrink-0 flex-col gap-3 sm:items-end">
       <p className="text-xs text-text-muted">
-        Designed &amp; built by{" "}
+        <span data-l="id" lang="id">Dirancang &amp; dibuat oleh</span>
+        <span data-l="en" lang="en">Designed &amp; built by</span>{" "}
         <a
           href={PORTFOLIO}
           rel="noopener noreferrer"

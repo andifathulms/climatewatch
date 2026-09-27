@@ -71,6 +71,7 @@ const EMPTY_LAYERS: Set<FingerprintLayer> = new Set();
 export const UNIT: Record<FingerprintVariable, string> = {
   precipitation: " mm",
   temp_max: "°C",
+  feels_like: "°C",
   hot_days: " days",
   hot_days_local: " days",
   dry_days: " days",

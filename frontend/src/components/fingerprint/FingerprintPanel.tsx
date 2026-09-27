@@ -55,6 +55,7 @@ const ZOOMS: { key: FingerprintZoom; label: string }[] = [
 const BLURB: Record<FingerprintVariable, string> = {
   precipitation: "Total monthly rainfall",
   temp_max: "Average monthly maximum temperature",
+  feels_like: "Average monthly feels-like maximum",
   hot_days: "Days above 35°C per month",
   hot_days_local: "Days hotter than 95% of this city's 1951–1980 days",
   dry_days: "Days below 1mm rain per month",
@@ -71,6 +72,7 @@ const ROLLUP: Record<
 > = {
   precipitation: { kind: "sum", label: "Annual total", unit: " mm" },
   temp_max: { kind: "mean", label: "Annual average", unit: "°C" },
+  feels_like: { kind: "mean", label: "Annual average", unit: "°C" },
   hot_days: { kind: "sum", label: "Hot days this year", unit: "" },
   hot_days_local: { kind: "sum", label: "Hot days this year", unit: "" },
   dry_days: { kind: "sum", label: "Dry days this year", unit: "" },

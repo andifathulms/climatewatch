@@ -1,79 +1,82 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-// The ClimateWatch mark (same art as app/icon.png, the browser-tab favicon).
-// A local copy — not app/icon.png — so importing it can't collide with Next's
-// icon file-convention, and next/image resolves the basePath in static export.
-import icon from "./brand-icon.png";
+import { L } from "@/lib/i18n";
+import { useT } from "@/lib/use-lang";
+import StripeMark from "./StripeMark";
+import LangToggle from "./LangToggle";
+import CommandSearch, { openSearch } from "./CommandSearch";
+import { NAV, isActive } from "./nav";
 
-const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/rankings", label: "Rankings" },
-  { href: "/compare", label: "Compare" },
-  { href: "/about", label: "Method" },
-];
-
-/** Sticky, translucent app header with an active-route indicator. */
-export default function SiteHeader() {
+/**
+ * Sticky header: stripe logo, sections, search (⌘K) and the language switch.
+ * On phones the section links move to the bottom tab bar (MobileTabBar); the
+ * header keeps only the logo, search and language.
+ */
+export default function SiteHeader({ national }: { national: number[] }) {
   const pathname = usePathname();
-
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const t = useT();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-canvas/80 backdrop-blur-xl supports-[backdrop-filter]:bg-canvas/60">
-      <div className="mx-auto flex max-w-shell items-center justify-between gap-3 px-4 py-3.5 sm:gap-6 sm:px-8">
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-canvas/85 backdrop-blur-xl supports-[backdrop-filter]:bg-canvas/70">
+      <div className="mx-auto flex max-w-shell items-center gap-3 px-4 py-3 sm:gap-5 sm:px-8">
         <Link
           href="/"
           className="group flex shrink-0 items-center gap-2.5"
           aria-label="ClimateWatch — home"
         >
-          {/* The ClimateWatch app icon — same mark as the browser-tab favicon. */}
-          <Image
-            src={icon}
-            alt=""
-            aria-hidden
-            width={28}
-            height={28}
-            className="rounded-[7px] ring-1 ring-border-strong transition group-hover:ring-rain-blue"
-            priority
+          <StripeMark
+            national={national}
+            size={28}
+            className="ring-1 ring-border-strong transition group-hover:ring-text-muted"
           />
-          {/* Wordmark is hidden on the narrowest screens — "ClimateWatch" plus
-              four nav items can't share one row at 360px, so the mark carries
-              the brand there. */}
-          <span className="hidden font-display text-xl font-semibold tracking-tight min-[420px]:inline">
+          <span className="font-display text-xl font-semibold tracking-tight">
             ClimateWatch
           </span>
         </Link>
 
-        {/* overflow-x-auto is the safety net: if the labels ever exceed the row
-            (long future item, 320px device), the nav scrolls inside the header
-            instead of widening the page. */}
-        <nav className="-mr-1 flex items-center gap-0.5 overflow-x-auto text-2xs [scrollbar-width:none] sm:mr-0 sm:gap-1 sm:text-sm [&::-webkit-scrollbar]:hidden">
+        <nav aria-label={t("Main", "Utama")} className="hidden items-center gap-0.5 text-sm lg:flex">
           {NAV.map((item) => {
-            const active = isActive(item.href);
+            const active = isActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative whitespace-nowrap rounded-full px-2.5 py-1.5 transition-colors duration-150 sm:px-3.5 ${
+                className={`whitespace-nowrap rounded-full px-3 py-1.5 transition-colors duration-150 ${
                   active
-                    ? "text-text-primary"
+                    ? "bg-surface-raised text-text-primary"
                     : "text-text-secondary hover:text-text-primary"
                 }`}
               >
-                {active && (
-                  <span className="absolute inset-0 rounded-full bg-surface-muted ring-1 ring-border" />
-                )}
-                <span className="relative">{item.label}</span>
+                <L en={item.en} id={item.id} />
               </Link>
             );
           })}
         </nav>
+
+        <button
+          type="button"
+          onClick={openSearch}
+          className="ml-auto flex min-w-0 items-center gap-2.5 rounded-full border border-border bg-surface-inset py-1.5 pl-3.5 pr-2 text-sm text-text-muted transition-colors hover:border-border-strong hover:text-text-secondary sm:w-60"
+          aria-label={t("Search cities", "Cari kota")}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden className="shrink-0">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+          <span className="hidden flex-1 truncate text-left sm:block">
+            <L en="Search a city" id="Cari kota" />
+          </span>
+          <kbd className="font-numeric hidden rounded border border-border-strong px-1.5 text-2xs sm:block">
+            ⌘K
+          </kbd>
+        </button>
+
+        <LangToggle />
       </div>
+      <CommandSearch />
     </header>
   );
 }

@@ -93,8 +93,6 @@ export default async function HomePage() {
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
       <section className="relative -mx-5 overflow-hidden px-5 pb-16 pt-16 sm:-mx-8 sm:px-8 sm:pt-24">
-        <div className="canvas-aurora" aria-hidden />
-        <div className="canvas-grid" aria-hidden />
 
         <div className="relative mx-auto max-w-4xl text-center">
           <p className="eyebrow animate-rise">
