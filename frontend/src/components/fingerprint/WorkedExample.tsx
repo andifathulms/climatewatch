@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorkedExampleResponse } from "@/lib/types";
-import { MONTHS } from "@/lib/format";
+import { MONTHS_EN, MONTHS_LONG_EN, MONTHS_LONG_ID } from "@/lib/i18n";
+import { L, formatNumber } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 /**
  * One real month, day by day, and every number derived from it.
@@ -36,6 +38,8 @@ export default function WorkedExample({
 }: {
   data: WorkedExampleResponse;
 }) {
+  const lang = useLang();
+  const f1 = (v: number) => formatNumber(v, lang);
   const official = data.rules.hot_day_threshold_c;
   const [threshold, setThreshold] = useState<number | null>(null);
 
@@ -114,18 +118,23 @@ export default function WorkedExample({
   const hottest = temps.length ? Math.max(...temps) : 0;
   const coolest = temps.length ? Math.min(...temps) : 0;
   const span = Math.max(hottest - coolest, 1);
-  const monthLabel = `${MONTHS[data.month - 1]} ${data.year}`;
+  void MONTHS_EN;
+  const monthLabel = `${(lang === "en" ? MONTHS_LONG_EN : MONTHS_LONG_ID)[data.month - 1]} ${data.year}`;
 
   return (
-    <section className="card p-6">
-      <h3 className="eyebrow">Where the numbers come from</h3>
-      <p className="mt-3 max-w-prose font-display text-title font-semibold text-text-primary">
-        Every square in the grid below is one month. Here is one, day by day.
+    <section className="p-1">
+      <p className="max-w-prose font-display text-title font-semibold text-text-primary">
+        <L
+          en="Every square in the fingerprint is one month. Here is one, day by day."
+          id="Setiap kotak di sidik iklim adalah satu bulan. Ini satu di antaranya, hari demi hari."
+        />
       </p>
 
       <p className="mt-4 max-w-prose leading-relaxed text-text-secondary">
-        {monthLabel} in {data.region.name} — the most recent month with a
-        reading for every single day.
+        <L
+          en={`${monthLabel} in ${data.region.name}: the most recent month with a reading for every day.`}
+          id={`${monthLabel} di ${data.region.name}: bulan terbaru yang datanya lengkap setiap hari.`}
+        />
       </p>
 
       {/* The strip has three rows and they were unlabelled, so the two numbers
@@ -138,15 +147,15 @@ export default function WorkedExample({
             className="inline-block h-3 w-2 rounded-[2px]"
             style={{ background: "var(--border-strong)" }}
           />
-          bar height = that day&rsquo;s highest temperature
+          <L en="bar height = that day's highest temperature" id="tinggi batang = suhu tertinggi hari itu" />
         </li>
         <li>
-          <span className="font-numeric text-text-secondary">30°</span> = the
-          same number, in °C
+          <span className="font-numeric text-text-secondary">30°</span>{" "}
+          <L en="= the same number, in °C" id="= angka yang sama, dalam °C" />
         </li>
         <li>
-          <span className="font-numeric text-rain-light">1mm</span> = that
-          day&rsquo;s rainfall
+          <span className="font-numeric text-rain-light">1mm</span>{" "}
+          <L en="= that day's rainfall" id="= curah hujan hari itu" />
         </li>
       </ul>
 
@@ -222,11 +231,12 @@ export default function WorkedExample({
             htmlFor="worked-threshold"
             className="block text-sm text-text-secondary"
           >
-            A &ldquo;hot day&rdquo; is any day above{" "}
+            <L en="A “hot day” is any day above" id="“Hari panas” adalah hari di atas" />{" "}
             <span className="font-numeric font-medium text-heat-light">
-              {active.toFixed(1)}°C
+              {f1(active)}°C
             </span>
-            . Drag to see the rule change what it counts.
+            .{" "}
+            <L en="Drag to see the rule change what it counts." id="Geser untuk melihat aturan ini mengubah yang dihitung." />
           </label>
           <input
             id="worked-threshold"
@@ -247,21 +257,21 @@ export default function WorkedExample({
             <span className="font-numeric font-medium text-text-primary">
               {derived.count}
             </span>{" "}
-            of {temps.length} days in {monthLabel} qualify.
+            <L en={`of ${temps.length} days in ${monthLabel} qualify.`} id={`dari ${temps.length} hari di ${monthLabel} memenuhi syarat.`} />
           </p>
 
           {moved && (
             <p className="mt-2 text-2xs leading-relaxed text-drought-amber">
-              You have moved the rule off this city&rsquo;s real threshold of{" "}
-              <span className="font-numeric">{official.toFixed(1)}°C</span>.
-              This changes only the example above — every chart on this page is
-              built from the fixed threshold and is unaffected.{" "}
+              <L
+                en={`You moved the rule off this city's real threshold of ${f1(official)}°C. This changes only the example above; every chart on this page uses the fixed threshold.`}
+                id={`Kamu menggeser aturan dari ambang asli kota ini, ${f1(official)}°C. Ini hanya mengubah contoh di atas; semua grafik di halaman ini tetap memakai ambang tetap.`}
+              />{" "}
               <button
                 type="button"
                 onClick={() => apply(official)}
                 className="underline decoration-drought-amber/50 underline-offset-2 hover:decoration-drought-amber"
               >
-                Put it back
+                <L en="Put it back" id="Kembalikan" />
               </button>
               .
             </p>
@@ -271,44 +281,44 @@ export default function WorkedExample({
 
       {/* ── What those days become ───────────────────────────────────── */}
       <p className="mt-7 max-w-prose leading-relaxed text-text-secondary">
-        Those {data.days.length} days collapse into three numbers. That is the
-        whole of what &ldquo;a month&rdquo; means on this site:
+        <L
+          en={`Those ${data.days.length} days collapse into three numbers. That is all “a month” means on this site:`}
+          id={`${data.days.length} hari itu diringkas menjadi tiga angka. Itulah arti “satu bulan” di situs ini:`}
+        />
       </p>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-surface-inset p-4">
           <dt className="text-2xs uppercase tracking-wider text-text-muted">
-            Add them up
+            <L en="Add them up" id="Jumlahkan" />
           </dt>
           <dd className="font-numeric mt-1 text-2xl text-rain-light">
-            {derived.sum.toFixed(1)} mm
+            {f1(derived.sum)} mm
           </dd>
           <dd className="mt-1.5 text-2xs leading-relaxed text-text-muted">
-            Total rainfall. This is the value the Rainfall fingerprint paints
-            for {monthLabel}.
+            <L en={`Total rainfall. This is the value the Rainfall fingerprint paints for ${monthLabel}.`} id={`Total curah hujan. Nilai inilah yang diwarnai sidik iklim Hujan untuk ${monthLabel}.`} />
           </dd>
         </div>
         <div className="rounded-lg border border-border bg-surface-inset p-4">
           <dt className="text-2xs uppercase tracking-wider text-text-muted">
-            Average them
+            <L en="Average them" id="Rata-ratakan" />
           </dt>
           <dd className="font-numeric mt-1 text-2xl text-heat-light">
-            {derived.mean === null ? "—" : `${derived.mean.toFixed(1)}°C`}
+            {derived.mean === null ? "—" : `${f1(derived.mean)}°C`}
           </dd>
           <dd className="mt-1.5 text-2xs leading-relaxed text-text-muted">
-            Mean daily high — not the hottest day, the typical one.
+            <L en="Mean daily high: not the hottest day, the typical one." id="Rata-rata suhu tertinggi harian: bukan hari terpanas, tetapi hari yang biasa." />
           </dd>
         </div>
         <div className="rounded-lg border border-border bg-surface-inset p-4">
           <dt className="text-2xs uppercase tracking-wider text-text-muted">
-            Count them
+            <L en="Count them" id="Hitung" />
           </dt>
           <dd className="font-numeric mt-1 text-2xl text-text-primary">
-            {derived.count ?? "—"} days
+            {derived.count ?? "—"} <L en="days" id="hari" />
           </dd>
           <dd className="mt-1.5 text-2xs leading-relaxed text-text-muted">
-            Days over the threshold. A count, so one very hot day counts the
-            same as any other.
+            <L en="Days over the threshold. A count, so one very hot day counts the same as any other." id="Hari di atas ambang. Ini hitungan, jadi satu hari yang sangat panas dihitung sama dengan hari panas lainnya." />
           </dd>
         </div>
       </dl>
@@ -316,18 +326,10 @@ export default function WorkedExample({
       {/* ── Honesty about the join ───────────────────────────────────── */}
       {data.stored && (
         <p className="mt-5 max-w-prose border-t border-border pt-4 text-2xs leading-relaxed text-text-muted">
-          Checked against the stored record: the grid below holds{" "}
-          <span className="font-numeric text-text-secondary">
-            {data.stored.total_precipitation?.toFixed(1) ?? "—"} mm
-          </span>{" "}
-          and{" "}
-          <span className="font-numeric text-text-secondary">
-            {data.stored.avg_temp_max?.toFixed(1) ?? "—"}°C
-          </span>{" "}
-          for {monthLabel}. Those are the same three operations on the same
-          days, so they match what is shown above exactly — verified for all 90
-          cities, not assumed. Multiply this by 12 months and 77 years and you
-          have the fingerprint.
+          <L
+            en={`Checked against the stored record: the fingerprint holds ${data.stored.total_precipitation != null ? f1(data.stored.total_precipitation) : "—"} mm and ${data.stored.avg_temp_max != null ? f1(data.stored.avg_temp_max) : "—"}°C for ${monthLabel}, the same three operations on the same days. Repeat for 12 months and every year since 1950, and you have the fingerprint.`}
+            id={`Dicocokkan dengan data tersimpan: sidik iklim menyimpan ${data.stored.total_precipitation != null ? f1(data.stored.total_precipitation) : "—"} mm dan ${data.stored.avg_temp_max != null ? f1(data.stored.avg_temp_max) : "—"}°C untuk ${monthLabel}, hasil tiga operasi yang sama pada hari yang sama. Ulangi untuk 12 bulan dan setiap tahun sejak 1950, jadilah sidik iklim.`}
+          />
         </p>
       )}
     </section>

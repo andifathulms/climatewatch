@@ -1,12 +1,10 @@
 "use client";
 
+import { L } from "@/lib/i18n";
+
 /**
- * Controlled year input for the personal baseline.
- *
- * Deliberately dumb — the owning component holds the state and the URL sync.
- * An earlier version read `useSearchParams()` itself, which forced the whole
- * panel to render client-only in the static export: the server HTML contained
- * no baseline figure at all until hydration.
+ * Controlled year input for the personal baseline ("the year you were
+ * born"). Deliberately dumb — the owner holds the state and the URL sync.
  */
 export default function BaselineYearPicker({
   yearFrom,
@@ -22,7 +20,7 @@ export default function BaselineYearPicker({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <label htmlFor="baseline-year" className="text-sm text-text-secondary">
-        Compare against
+        <L en="I was born in" id="Saya lahir tahun" />
       </label>
       <input
         id="baseline-year"
@@ -39,15 +37,13 @@ export default function BaselineYearPicker({
           if (Number.isInteger(n) && n >= yearFrom && n <= latestAllowed) {
             onChange(n);
           } else {
-            // Out of range: snap the field back rather than silently keeping
-            // a number the panel is not actually using.
             e.target.value = value === null ? "" : String(value);
           }
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         }}
-        className="field font-numeric w-24 px-3 py-2 text-sm"
+        className="field font-numeric w-24 px-3 py-2 text-base"
         aria-describedby="baseline-help"
       />
       {value !== null && (
@@ -56,10 +52,10 @@ export default function BaselineYearPicker({
           onClick={() => onChange(null)}
           className="btn-ghost px-3 py-1.5 text-2xs"
         >
-          Reset to {yearFrom}
+          <L en={`Reset to ${yearFrom}`} id={`Kembali ke ${yearFrom}`} />
         </button>
       )}
-      <span id="baseline-help" className="text-2xs text-text-muted">
+      <span id="baseline-help" className="font-numeric text-2xs text-text-muted">
         {yearFrom}–{latestAllowed}
       </span>
     </div>

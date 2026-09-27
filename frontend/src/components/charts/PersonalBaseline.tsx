@@ -5,6 +5,8 @@ import type { YearlyAggregate } from "@/lib/types";
 import BaselineYearPicker from "@/components/ui/BaselineYearPicker";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 import { MIN_YEARS_AFTER_BASELINE } from "@/components/fingerprint/baseline";
+import { L, N } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 
 /**
  * Re-anchors the warming figure to a year the reader chooses.
@@ -71,6 +73,7 @@ export default function PersonalBaseline({
    *  `FingerprintRecordSection`. */
   onChangeSince: (next: number | null) => void;
 }) {
+  const lang = useLang();
   const latestAllowed = yearTo - MIN_YEARS_AFTER_BASELINE;
   // Empty until the reader changes something, so nothing is announced on load.
   const [announcement, setAnnouncement] = useState("");
@@ -84,9 +87,14 @@ export default function PersonalBaseline({
     const d = deltaFor(year);
     setAnnouncement(
       d === null
-        ? `Not enough data around ${year} to compare.`
-        : `Since ${year}, ${regionName}'s average daily high has moved ` +
-          `${d >= 0 ? "up" : "down"} ${Math.abs(d).toFixed(1)} degrees Celsius.`,
+        ? lang === "en"
+          ? `Not enough data around ${year} to compare.`
+          : `Data di sekitar ${year} tidak cukup untuk dibandingkan.`
+        : lang === "en"
+          ? `Since ${year}, ${regionName}'s average daily high has moved ` +
+            `${d >= 0 ? "up" : "down"} ${Math.abs(d).toFixed(1)} degrees Celsius.`
+          : `Sejak ${year}, rata-rata suhu tertinggi harian ${regionName} ` +
+            `${d >= 0 ? "naik" : "turun"} ${Math.abs(d).toFixed(1).replace(".", ",")} derajat Celsius.`,
     );
   }
 
@@ -109,31 +117,18 @@ export default function PersonalBaseline({
     return delta === null ? null : { delta };
   }, [deltaFor, baselineYear]);
 
-  return (
-    <section className="card p-6">
-      <h3 className="eyebrow">Your baseline</h3>
+  const firstDecade = `${baselineYear}–${baselineYear + WINDOW - 1}`;
+  const lastDecade = `${yearTo - WINDOW}–${yearTo - 1}`;
 
-      {result ? (
-        <p className="mt-3 max-w-prose font-display text-title font-semibold text-text-primary">
-          Since {baselineYear}, {regionName}&rsquo;s average daily high
-          has moved{" "}
-          <span
-            className={
-              result.delta >= 0 ? "text-heat-light" : "text-rain-light"
-            }
-          >
-            {result.delta >= 0 ? "+" : "−"}
-            <span className="font-numeric">
-              {Math.abs(result.delta).toFixed(1)} °C
-            </span>
-          </span>
-          .
-        </p>
-      ) : (
-        <p className="mt-3 text-text-secondary">
-          Not enough data around {baselineYear} to compare.
-        </p>
-      )}
+  return (
+    <section id="lifetime" className="card scroll-mt-32 p-6 sm:p-8">
+      <LiveAnnouncement message={announcement} />
+      <p className="eyebrow">
+        <L en="Your lifetime" id="Seumur hidupmu" />
+      </p>
+      <h3 className="mt-2 font-display text-2xl font-semibold">
+        <L en={`Grew up in ${regionName}?`} id={`Besar di ${regionName}?`} />
+      </h3>
 
       <div className="mt-5">
         <BaselineYearPicker
@@ -144,15 +139,42 @@ export default function PersonalBaseline({
         />
       </div>
 
-      <p className="mt-4 border-t border-border pt-3 text-2xs leading-relaxed text-text-muted">
-        An endpoint comparison, not the fitted trend in &ldquo;what moved
-        most&rdquo; above — the two answer different questions and will not
-        agree. This compares the {WINDOW}-year mean starting at your baseline
-        against the last {WINDOW} complete years ({yearTo - WINDOW}–
-        {yearTo - 1}), using monthly average daily maximum. Both ends are decade means so one strong
-        El Niño cannot pass for a trend. Baselines after{" "}
-        <span className="font-numeric">{latestAllowed}</span> are not offered —
-        too few years remain for the comparison to mean anything.
+      {result && since === null ? (
+        <p className="mt-6 max-w-prose font-display text-title font-semibold leading-snug text-text-primary">
+          <L en="Enter the year you were born to see how much hotter" id="Masukkan tahun lahirmu untuk melihat seberapa panas" />{" "}
+          {regionName}{" "}
+          <L en="has become in your lifetime." id="kota ini selama hidupmu." />
+        </p>
+      ) : result ? (
+        <p className="mt-6 max-w-prose font-display text-title font-semibold leading-snug text-text-primary">
+          <L
+            en={<>Days in {regionName} now peak </>}
+            id={<>Siang hari di {regionName} kini </>}
+          />
+          <span
+            className={`num-display ${result.delta >= 0 ? "text-heat-light" : "text-rain-light"}`}
+          >
+            <N value={result.delta} signed unit=" °C" />
+          </span>
+          <L
+            en={<> {result.delta >= 0 ? "hotter" : "cooler"} than in your first ten years ({firstDecade}).</>}
+            id={<> {result.delta >= 0 ? "lebih panas" : "lebih sejuk"} daripada sepuluh tahun pertamamu ({firstDecade}).</>}
+          />
+        </p>
+      ) : (
+        <p className="mt-6 text-text-secondary">
+          <L
+            en={`Not enough data around ${baselineYear} to compare.`}
+            id={`Data di sekitar ${baselineYear} tidak cukup untuk dibandingkan.`}
+          />
+        </p>
+      )}
+
+      <p className="mt-5 max-w-prose border-t border-border pt-3 text-2xs leading-relaxed text-text-muted">
+        <L
+          en={`Average daily high over ${firstDecade} compared with ${lastDecade}. Both ends are ten-year means, so one strong El Niño cannot pass for a trend. This is an endpoint comparison, not the fitted trend in the headline, so the two numbers will differ. Changing the year also moves the fingerprint's “vs 1951–1980” layer to your years.`}
+          id={`Rata-rata suhu tertinggi harian ${firstDecade} dibandingkan dengan ${lastDecade}. Kedua ujung adalah rata-rata sepuluh tahun, jadi satu El Niño kuat tidak bisa terbaca sebagai tren. Ini perbandingan dua ujung, bukan tren garis lurus di judul, jadi angkanya bisa berbeda. Mengganti tahun juga menggeser lapisan “vs 1951–1980” pada sidik iklim ke tahun-tahunmu.`}
+        />
       </p>
     </section>
   );

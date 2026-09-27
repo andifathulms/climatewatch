@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import type {
   AnnualRow,
@@ -21,6 +21,7 @@ import ClimateFingerprint, {
   type FingerprintZoom,
 } from "./ClimateFingerprint";
 import {
+  MAX_LAYERS,
   parseLayersParam,
   serializeLayersParam,
   toggleLayer,
@@ -32,51 +33,116 @@ import {
   monthlyClimatology,
   anomalyDomain,
 } from "./baseline";
+import { ANOMALY_RAMP } from "./color-scale";
 import SegmentedControl from "@/components/ui/SegmentedControl";
 import LiveAnnouncement from "@/components/ui/LiveAnnouncement";
 import SeasonRuleNote from "@/components/charts/SeasonRuleNote";
 import ENSOBadge from "@/components/ui/ENSOBadge";
+import { L, formatNumber } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 import { ensoCaption } from "./enso";
 import { EXTREME_METRICS, extremeMetricValue } from "./extremes";
 
-const VARIABLES: { key: FingerprintVariable; label: string }[] = [
-  { key: "precipitation", label: "Rainfall" },
-  { key: "temp_max", label: "Temperature" },
-  { key: "hot_days_local", label: "Hot Days" },
-  { key: "dry_days", label: "Dry Days" },
+type Bi = { en: string; id: string };
+
+const VARIABLES: ({ key: FingerprintVariable } & Bi)[] = [
+  { key: "precipitation", en: "Rainfall", id: "Hujan" },
+  { key: "temp_max", en: "Max temp", id: "Suhu maks" },
+  { key: "feels_like", en: "Feels like", id: "Terasa" },
+  { key: "hot_days_local", en: "Hot days", id: "Hari panas" },
+  { key: "dry_days", en: "Dry days", id: "Hari kering" },
 ];
 
-const ZOOMS: { key: FingerprintZoom; label: string }[] = [
-  { key: "record", label: "Whole record" },
-  { key: "decade", label: "Decade" },
-  { key: "year", label: "Year" },
+const ZOOMS: ({ key: FingerprintZoom } & Bi)[] = [
+  { key: "record", en: "Whole record", id: "Semua tahun" },
+  { key: "decade", en: "Decade", id: "Dekade" },
+  { key: "year", en: "Year", id: "Tahun" },
 ];
 
-const BLURB: Record<FingerprintVariable, string> = {
-  precipitation: "Total monthly rainfall",
-  temp_max: "Average monthly maximum temperature",
-  feels_like: "Average monthly feels-like maximum",
-  hot_days: "Days above 35°C per month",
-  hot_days_local: "Days hotter than 95% of this city's 1951–1980 days",
-  dry_days: "Days below 1mm rain per month",
+const BLURB: Record<FingerprintVariable, Bi> = {
+  precipitation: { en: "Total monthly rainfall", id: "Total curah hujan bulanan" },
+  temp_max: {
+    en: "Average daily high, per month",
+    id: "Rata-rata suhu tertinggi harian, per bulan",
+  },
+  feels_like: {
+    en: "Average feels-like daily high: air temperature adjusted for humidity and wind",
+    id: "Rata-rata suhu terasa tertinggi harian: suhu udara disesuaikan dengan kelembapan dan angin",
+  },
+  hot_days: { en: "Days above 35°C per month", id: "Hari di atas 35°C per bulan" },
+  hot_days_local: {
+    en: "Days hotter than 95% of this city's 1951–1980 days",
+    id: "Hari yang lebih panas dari 95% hari di kota ini pada 1951–1980",
+  },
+  dry_days: {
+    en: "Days below 1 mm of rain per month",
+    id: "Hari dengan hujan di bawah 1 mm per bulan",
+  },
 };
 
 /**
  * How a year's 12 cells roll up. Rainfall and day-counts are additive; a
  * temperature is not — summing 12 monthly means yields a meaningless ~340°C,
- * so temp_max averages instead.
+ * so temperatures average instead.
  */
 const ROLLUP: Record<
   FingerprintVariable,
-  { kind: "sum" | "mean"; label: string; unit: string }
+  { kind: "sum" | "mean"; unit: string } & Bi
 > = {
-  precipitation: { kind: "sum", label: "Annual total", unit: " mm" },
-  temp_max: { kind: "mean", label: "Annual average", unit: "°C" },
-  feels_like: { kind: "mean", label: "Annual average", unit: "°C" },
-  hot_days: { kind: "sum", label: "Hot days this year", unit: "" },
-  hot_days_local: { kind: "sum", label: "Hot days this year", unit: "" },
-  dry_days: { kind: "sum", label: "Dry days this year", unit: "" },
+  precipitation: { kind: "sum", unit: " mm", en: "Annual total", id: "Total setahun" },
+  temp_max: { kind: "mean", unit: "°C", en: "Annual average", id: "Rata-rata setahun" },
+  feels_like: { kind: "mean", unit: "°C", en: "Annual average", id: "Rata-rata setahun" },
+  hot_days: { kind: "sum", unit: "", en: "Hot days this year", id: "Hari panas tahun ini" },
+  hot_days_local: { kind: "sum", unit: "", en: "Hot days this year", id: "Hari panas tahun ini" },
+  dry_days: { kind: "sum", unit: "", en: "Dry days this year", id: "Hari kering tahun ini" },
 };
+
+/** Each layer chip carries a small picture of what the layer draws. */
+const LAYER_CHIPS: ({ key: FingerprintLayer; icon: ReactNode } & Bi)[] = [
+  {
+    key: "baseline",
+    en: "vs 1951–1980",
+    id: "vs 1951–1980",
+    icon: (
+      <span
+        aria-hidden
+        className="h-4 w-4 rounded-[4px]"
+        style={{ background: `linear-gradient(90deg, ${ANOMALY_RAMP.join(",")})` }}
+      />
+    ),
+  },
+  {
+    key: "season",
+    en: "Wet season",
+    id: "Musim hujan",
+    icon: (
+      <svg aria-hidden width="16" height="16" viewBox="0 0 16 16">
+        <path d="M2 13 C6 11 9 7 14 3" stroke="var(--drought-amber)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    key: "enso",
+    en: "El Niño / La Niña",
+    id: "El Niño / La Niña",
+    icon: (
+      <svg aria-hidden width="16" height="16" viewBox="0 0 16 16">
+        <rect x="3" y="2" width="3.5" height="12" rx="1" fill="var(--enso-nino)" />
+        <line x1="11.25" y1="2.5" x2="11.25" y2="13.5" stroke="var(--enso-nina)" strokeWidth="3.5" strokeDasharray="2.5 2" />
+      </svg>
+    ),
+  },
+  {
+    key: "extremes",
+    en: "Extreme years",
+    id: "Tahun ekstrem",
+    icon: (
+      <svg aria-hidden width="16" height="16" viewBox="0 0 16 16">
+        <rect x="2" y="4" width="12" height="8" rx="2" fill="none" stroke="var(--heat-orange)" strokeWidth="1.8" />
+      </svg>
+    ),
+  },
+];
 
 export default function FingerprintPanel({
   region,
@@ -91,42 +157,37 @@ export default function FingerprintPanel({
   region: Pick<Region, "id" | "slug">;
   initial: FingerprintResponse;
   ensoEvents: ENSOEvent[];
-  /** Powers the Season layer (DESIGN.md §5.2). `null` if the region has no
-   *  wet-season data — the layer's toggle still renders, it just has nothing
-   *  to draw and says so via the sr-only table note. */
+  /** Powers the Season layer (DESIGN.md §5.2). */
   season?: SeasonResponse | null;
-  /** Powers the ENSO layer's caption (DESIGN.md §5.3) — the same phase-delta
-   *  numbers `ENSOImpactCard` used to show in its own section. */
+  /** Powers the ENSO layer's caption (DESIGN.md §5.3). */
   ensoImpact?: EnsoImpactResponse | null;
-  /** Powers the Extremes layer (DESIGN.md §5.5) — the same per-year metrics
-   *  `ExtremeDaysChart` used to plot. */
+  /** Powers the Extremes layer (DESIGN.md §5.5). */
   extremes?: ExtremesResponse | null;
-  /** The Baseline layer's climatology window. Defaults to the stated
-   *  1951-1980 default (DESIGN.md §5.4); `FingerprintRecordSection` passes
-   *  the reader's PersonalBaseline choice once one is picked, per "wire them
-   *  together." */
+  /** The Baseline layer's climatology window; PersonalBaseline can move it. */
   baselineFrom?: number;
   baselineTo?: number;
 }) {
+  const lang = useLang();
+  const tr = (b: Bi) => (lang === "en" ? b.en : b.id);
+
   const [variable, setVariable] = useState<FingerprintVariable>("precipitation");
   const [data, setData] = useState<FingerprintResponse>(initial);
+  const [failed, setFailed] = useState(false);
   const [hoverYear, setHoverYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [zoom, setZoom] = useState<FingerprintZoom>("record");
   // Index into the newest-first year list where the "decade"/"year" window
   // starts. Meaningless at "record" zoom, where every year renders.
   const [windowStart, setWindowStart] = useState(0);
-  // Silent until the reader picks a different variable. A live region that
-  // ships with content in the prerendered HTML risks being read out on load,
-  // which is not what "the result changed" means.
+  // Silent until the reader picks a different variable.
   const [touched, setTouched] = useState(false);
+  // Shown briefly when a fourth layer is refused (DESIGN.md §5.6: "the
+  // fourth toggle should visibly refuse rather than silently degrade").
+  const [refused, setRefused] = useState(false);
 
-  // DESIGN.md §5.6 / §10 step 3: layer state lives in the URL so a finding
-  // is shareable. No layer has a visual yet (§10 steps 4-7) — this hydrates
-  // and stays in sync regardless, so the URL contract is already correct
-  // once the first real layer lands. Server HTML always renders zero layers
-  // active, the same deferred-hydration shape `?since=`/`?t=` use elsewhere
-  // on this page, so a static export never ships a client-only-looking gap.
+  // DESIGN.md §5.6: layer state lives in the URL so a finding is shareable.
+  // Server HTML always renders zero layers active; the URL is read after
+  // hydration, the same deferred shape `?since=` uses.
   const [layers, setLayers] = useState<Set<FingerprintLayer>>(new Set());
 
   useEffect(() => {
@@ -135,29 +196,22 @@ export default function FingerprintPanel({
     if (parsed.size > 0) setLayers(parsed);
   }, []);
 
-  // Not called from anywhere yet — the first layer's toggle button (DESIGN.md
-  // §10 step 4) is what wires this to the UI. Kept here rather than added
-  // alongside that button so the cap/URL-sync behaviour is exercised by
-  // steps 4-7 as pure addition, not written and debugged four times.
   function handleToggleLayer(key: FingerprintLayer) {
-    setLayers((prev) => {
-      const next = toggleLayer(prev, key);
-      if (next === prev) return prev; // refused: at the cap, nothing to sync
-      const url = new URL(window.location.href);
-      const encoded = serializeLayersParam(next);
-      if (encoded) url.searchParams.set("layers", encoded);
-      else url.searchParams.delete("layers");
-      window.history.replaceState(null, "", url);
-      return next;
-    });
+    const next = toggleLayer(layers, key);
+    if (next === layers) {
+      setRefused(true);
+      window.setTimeout(() => setRefused(false), 2600);
+      return;
+    }
+    setRefused(false);
+    setLayers(next);
+    const url = new URL(window.location.href);
+    const encoded = serializeLayersParam(next);
+    if (encoded) url.searchParams.set("layers", encoded);
+    else url.searchParams.delete("layers");
+    window.history.replaceState(null, "", url);
   }
 
-  // For the legend swap below only — ClimateFingerprint computes this same
-  // thing again internally for the cell fills themselves (see its own
-  // `climatology`/`anomalyMax`). Recomputing here from the same `data` state
-  // rather than plumbing a callback up keeps the two components' props
-  // one-directional (data down), at the cost of the pure-function call
-  // running twice; both are O(cells), not worth a ref/callback to avoid.
   const baselineActive = layers.has("baseline");
   const climatology = useMemo(
     () =>
@@ -172,14 +226,11 @@ export default function FingerprintPanel({
   );
   const seasonActive = layers.has("season");
   const ensoActive = layers.has("enso");
-  // DESIGN.md §5.3: "ENSOImpactCard's prose finding ... survives as a
-  // caption beneath the fingerprint when this layer is on."
   const ensoNote = useMemo(
-    () => (ensoActive && ensoImpact ? ensoCaption(ensoImpact) : null),
-    [ensoActive, ensoImpact],
+    () => (ensoActive && ensoImpact ? ensoCaption(ensoImpact, lang) : null),
+    [ensoActive, ensoImpact, lang],
   );
   const extremesActive = layers.has("extremes");
-  // Same default ExtremeDaysChart used to open on — see extremes.ts.
   const [extremeMetric, setExtremeMetric] = useState<keyof AnnualRow>(
     "hot_days_local",
   );
@@ -190,9 +241,13 @@ export default function FingerprintPanel({
     if (variable === initial.variable && data.variable === variable) return;
     let cancelled = false;
     setLoading(true);
+    setFailed(false);
     api
       .fingerprint(region, variable)
       .then((d) => !cancelled && setData(d))
+      // A variable whose file is missing keeps the previous grid and says
+      // so, instead of an unhandled rejection and a silently stale picture.
+      .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -201,7 +256,7 @@ export default function FingerprintPanel({
   }, [variable, region.id, region.slug]);
 
   const years = useMemo(() => fingerprintYears(data), [data]);
-  const windowSize = ZOOM_WINDOW[zoom]; // null at "record" — every year renders
+  const windowSize = ZOOM_WINDOW[zoom];
   const maxWindowStart = Math.max(0, years.length - (windowSize ?? years.length));
   const clampedWindowStart = Math.min(windowStart, maxWindowStart);
   const windowLabel =
@@ -230,78 +285,67 @@ export default function FingerprintPanel({
         : yearCells.reduce((s, d) => s + (d.value ?? 0), 0) / yearCells.length
       : null;
 
+  const threshold = data.hot_day_threshold_c;
+
   return (
     <section className="card overflow-hidden">
-      {/* ── Panel header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 border-b border-border p-6 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="eyebrow">The signature view</p>
-          <h3 className="mt-2 font-display text-2xl font-semibold">
-            Climate Fingerprint
-          </h3>
-          <p className="mt-1.5 text-sm text-text-secondary">
-            {BLURB[data.variable]}
-            {/* Name the actual threshold. A relative rule the reader cannot
-                see the value of is not a citable rule. */}
-            {data.variable === "hot_days_local" &&
-              data.hot_day_threshold_c !== null && (
-                <>
-                  {" — above "}
-                  <span className="font-numeric text-text-primary">
-                    {data.hot_day_threshold_c.toFixed(1)}°C
-                  </span>
-                </>
-              )}{" "}
-            ·{" "}
-            <span className="font-numeric">
-              {data.year_from}–{data.year_to}
-            </span>
-          </p>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="px-5 pb-4 pt-6 sm:px-6">
+        <p className="eyebrow">
+          <L en="The signature view" id="Tampilan utama" />
+        </p>
+        <h3 className="mt-2 font-display text-2xl font-semibold">
+          <L en="Climate Fingerprint" id="Sidik Iklim" />
+        </h3>
+        <p className="mt-1.5 max-w-prose text-sm text-text-secondary">
+          <L en={BLURB[data.variable].en} id={BLURB[data.variable].id} />
+          {data.variable === "hot_days_local" && threshold !== null && (
+            <>
+              {" "}
+              <L en="— above" id="— di atas" />{" "}
+              <span className="font-numeric text-text-primary">
+                {formatNumber(threshold, lang)}°C
+              </span>
+            </>
+          )}{" "}
+          · <span className="font-numeric">{data.year_from}–{data.year_to}</span>
+        </p>
+        <p className="mt-2 max-w-prose text-2xs leading-relaxed text-text-muted">
+          <L
+            en="One square is one month: an average (or a count) over its 28–31 days. Newest year at the top."
+            id="Satu kotak adalah satu bulan: rata-rata (atau jumlah) dari 28–31 harinya. Tahun terbaru di atas."
+          />
+          {data.variable === "hot_days_local" && threshold !== null && (
+            <>
+              {" "}
+              <L
+                en={`“Hotter than 95%”: line up every daily high from 1951–1980 from coolest to hottest; the value 95% of the way along is ${formatNumber(threshold, "en")}°C. Days above it were roughly the hottest 1 in 20 back then.`}
+                id={`“Lebih panas dari 95%”: urutkan semua suhu tertinggi harian 1951–1980 dari yang terdingin ke terpanas; nilai di posisi 95% adalah ${formatNumber(threshold, "id")}°C. Hari di atasnya dulu kira-kira 1 dari 20 hari terpanas.`}
+              />
+            </>
+          )}
+        </p>
+      </div>
 
-          {/* Vocabulary where it is used, not on a page the reader has to go
-              find. Both terms are load-bearing: every cell is an aggregate,
-              and the hot-day rule is a percentile. */}
-          <p className="mt-3 max-w-prose text-2xs leading-relaxed text-text-muted">
-            One cell is one month — an average (or a count) over its 28–31
-            days, not a single reading.
-            {data.variable === "hot_days_local" &&
-              data.hot_day_threshold_c !== null && (
-                <>
-                  {" "}
-                  &ldquo;Hotter than 95%&rdquo; means: line up every daily high
-                  from 1951–1980 coldest to hottest, and the value 95% of the
-                  way along is{" "}
-                  <span className="font-numeric text-text-secondary">
-                    {data.hot_day_threshold_c.toFixed(1)}°C
-                  </span>
-                  . Days above it were roughly the hottest 1 in 20 back then.
-                </>
-              )}
-          </p>
-        </div>
-
-        <div className="flex flex-col items-start gap-3 lg:items-end">
-          {/* Segmented control */}
+      {/* ── Toolbar: variable + zoom on the left, layers on the right ───── */}
+      <div className="flex flex-col gap-3 border-y border-border bg-canvas/40 px-5 py-3 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
           <SegmentedControl
             name="fingerprint-variable"
-            label="Climate variable"
-            options={VARIABLES.map((v) => ({ value: v.key, label: v.label }))}
+            label={lang === "en" ? "Climate variable" : "Variabel iklim"}
+            options={VARIABLES.map((v) => ({ value: v.key, label: tr(v) }))}
             value={variable}
             onChange={(next) => {
               setTouched(true);
               setVariable(next);
             }}
           />
-
-          {/* Zoom. "Whole record" is the default and the product's central
-              claim — DESIGN.md §5.1 — so it always resets the window rather
-              than leaving it mid-decade when a reader zooms back out. */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <SegmentedControl
               name="fingerprint-zoom"
               label="Zoom"
               variant="ghost"
-              options={ZOOMS.map((z) => ({ value: z.key, label: z.label }))}
+              options={ZOOMS.map((z) => ({ value: z.key, label: tr(z) }))}
               value={zoom}
               onChange={(next) => {
                 setZoom(next);
@@ -314,8 +358,8 @@ export default function FingerprintPanel({
                   type="button"
                   onClick={() => stepWindow(1)}
                   disabled={clampedWindowStart >= maxWindowStart}
-                  aria-label="Earlier"
-                  className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30 disabled:hover:text-text-secondary"
+                  aria-label={lang === "en" ? "Earlier" : "Lebih awal"}
+                  className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30"
                 >
                   ←
                 </button>
@@ -326,163 +370,95 @@ export default function FingerprintPanel({
                   type="button"
                   onClick={() => stepWindow(-1)}
                   disabled={clampedWindowStart <= 0}
-                  aria-label="Later"
-                  className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30 disabled:hover:text-text-secondary"
+                  aria-label={lang === "en" ? "Later" : "Lebih baru"}
+                  className="rounded-full border border-border p-1 text-text-secondary transition-colors hover:text-text-primary disabled:opacity-30"
                 >
                   →
                 </button>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Layers. All four exist now (DESIGN.md §10 steps 4-7). */}
-          <div className="flex flex-col items-start gap-1.5 lg:items-end">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={baselineActive}
-              onClick={() => handleToggleLayer("baseline")}
-              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
-            >
-              <span
-                aria-hidden
-                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
-                  baselineActive ? "bg-heat-orange" : "bg-border-strong"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
-                    baselineActive ? "translate-x-3.5" : "translate-x-0.5"
-                  }`}
-                />
-              </span>
-              Baseline layer
-            </button>
-            {/* DESIGN.md §5.4: "the baseline window is ... stated in the UI,
-                not buried." */}
-            {baselineActive && (
-              <span className="font-numeric text-2xs text-text-muted">
-                vs {baselineFrom}–{baselineTo} average
-              </span>
-            )}
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={seasonActive}
-              onClick={() => handleToggleLayer("season")}
-              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
-            >
-              <span
-                aria-hidden
-                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
-                  seasonActive ? "bg-drought-amber" : "bg-border-strong"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
-                    seasonActive ? "translate-x-3.5" : "translate-x-0.5"
-                  }`}
-                />
-              </span>
-              Season layer
-            </button>
-            {seasonActive && season?.onset_saturated && (
-              <span className="max-w-[14rem] text-right text-2xs text-text-muted">
-                No detectable dry season here — nothing to draw.
-              </span>
-            )}
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={ensoActive}
-              onClick={() => handleToggleLayer("enso")}
-              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
-            >
-              <span
-                aria-hidden
-                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
-                  ensoActive ? "bg-rain-blue" : "bg-border-strong"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
-                    ensoActive ? "translate-x-3.5" : "translate-x-0.5"
-                  }`}
-                />
-              </span>
-              ENSO layer
-            </button>
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={extremesActive}
-              onClick={() => handleToggleLayer("extremes")}
-              className="group flex items-center gap-2.5 text-xs text-text-secondary transition-colors hover:text-text-primary"
-            >
-              <span
-                aria-hidden
-                className={`relative h-4 w-7 rounded-full transition-colors duration-200 ${
-                  extremesActive ? "bg-heat-orange" : "bg-border-strong"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 ${
-                    extremesActive ? "translate-x-3.5" : "translate-x-0.5"
-                  }`}
-                />
-              </span>
-              Extremes layer
-            </button>
-            {/* DESIGN.md §5.5: "The metric dropdown from ExtremeDaysChart
-                becomes this layer's sub-control." */}
-            {extremesActive && (
-              <label className="flex flex-col items-end gap-1">
-                <span className="sr-only">Extremes metric</span>
-                <select
-                  value={extremeMetric}
-                  onChange={(e) =>
-                    setExtremeMetric(e.target.value as keyof AnnualRow)
-                  }
-                  className="field px-2.5 py-1 text-2xs"
+        <div className="flex flex-col gap-1.5 xl:items-end">
+          <div
+            role="group"
+            aria-label={lang === "en" ? "Layers" : "Lapisan"}
+            className="flex flex-wrap gap-2"
+          >
+            {LAYER_CHIPS.map((c) => {
+              const on = layers.has(c.key);
+              const atCap = !on && layers.size >= MAX_LAYERS;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  className="chip"
+                  aria-pressed={on}
+                  aria-disabled={atCap || undefined}
+                  onClick={() => handleToggleLayer(c.key)}
                 >
-                  {EXTREME_METRICS.map((m) => (
-                    <option key={m.key as string} value={m.key as string}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+                  {c.icon}
+                  <L en={c.en} id={c.id} />
+                </button>
+              );
+            })}
           </div>
+          {refused && (
+            <p role="status" className="text-2xs text-drought-amber">
+              <L
+                en={`Up to ${MAX_LAYERS} layers at once. Turn one off first.`}
+                id={`Maksimal ${MAX_LAYERS} lapisan sekaligus. Matikan satu dulu.`}
+              />
+            </p>
+          )}
+          {baselineActive && (
+            <span className="font-numeric text-2xs text-text-muted">
+              <L
+                en={`Colour = departure from the ${baselineFrom}–${baselineTo} average`}
+                id={`Warna = selisih dari rata-rata ${baselineFrom}–${baselineTo}`}
+              />
+            </span>
+          )}
+          {extremesActive && (
+            <label className="flex items-center gap-2 text-2xs text-text-muted">
+              <L en="Outline years with the most" id="Tandai tahun dengan" />
+              <select
+                value={extremeMetric}
+                onChange={(e) => setExtremeMetric(e.target.value as keyof AnnualRow)}
+                className="field px-2.5 py-1 text-2xs"
+              >
+                {EXTREME_METRICS.map((m) => (
+                  <option key={m.key as string} value={m.key as string}>
+                    {lang === "en" ? m.label : m.label_id}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       </div>
 
-      {/* ── Grid + sidebar ────────────────────────────────────────────── */}
-      {/* Grid first in the DOM, sidebar second — matching the reading order,
-          which is what a reversed row previously broke. The <aside> was the
-          first DOM child of a flex-row-reverse container, so it rendered on
-          the right but was announced *before* the figure it describes: a
-          screen reader met an empty "—" readout, then the grid. (WCAG 1.3.2)
-          The old comment claimed the opposite of what the code did.
-
-          The sidebar sticks because the grid is ~1,900px tall for a 77-year
-          record, so a static readout would scroll out of sight before you
-          finish reading the rows it describes. Plain flex-row with the grid
-          first gives the same visual placement the reversed row did. */}
-      {/* Announced only once the swap has landed — saying "showing rainfall"
-          while the old grid is still on screen would be a lie. */}
       <LiveAnnouncement
         message={
           touched && !loading
-            ? `Showing ${BLURB[data.variable].toLowerCase()}.`
+            ? `${lang === "en" ? "Showing" : "Menampilkan"}: ${tr(BLURB[data.variable])}.`
             : ""
         }
       />
 
-      <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-start">
+      {failed && (
+        <p className="mx-5 mt-4 rounded-lg border border-drought-amber/40 bg-drought-amber/[0.08] px-4 py-2.5 text-xs text-text-secondary sm:mx-6">
+          <L
+            en="This variable isn't available for this city yet. Still showing the previous one."
+            id="Variabel ini belum tersedia untuk kota ini. Masih menampilkan yang sebelumnya."
+          />
+        </p>
+      )}
+
+      {/* ── Grid + sidebar ────────────────────────────────────────────── */}
+      {/* Grid first in the DOM, sidebar second, matching the reading order. */}
+      <div className="flex flex-col gap-6 p-5 sm:p-6 lg:flex-row lg:items-start">
         <div
           className="min-w-0 flex-1 transition-opacity duration-200"
           style={{ opacity: loading ? 0.4 : 1 }}
@@ -503,39 +479,31 @@ export default function FingerprintPanel({
           />
         </div>
 
-        <aside className="flex w-full min-w-0 flex-col gap-5 lg:sticky lg:top-20 lg:w-[15rem] lg:shrink-0">
-          {/* Hovered-year readout. Reserves its own height so the panel does
-              not reflow as the pointer moves across the grid. */}
+        <aside className="flex w-full min-w-0 flex-col gap-5 lg:sticky lg:top-32 lg:w-[15rem] lg:shrink-0">
+          {/* Hovered-year readout. Reserves its height so nothing reflows. */}
           <div className="min-h-[7.5rem] rounded-lg border border-border bg-surface-inset p-4">
             {hoverYear !== null ? (
               <>
-                <div className="font-numeric text-3xl font-medium leading-none text-text-primary">
+                <div className="num-display text-3xl font-semibold leading-none text-text-primary">
                   {hoverYear}
                 </div>
                 <div className="mt-3 text-xs text-text-muted">
-                  {rollup.label}
+                  <L en={rollup.en} id={rollup.id} />
                 </div>
                 <div className="font-numeric mt-0.5 text-lg text-text-primary">
                   {yearValue !== null
-                    ? `${yearValue.toFixed(1)}${rollup.unit}`
+                    ? `${formatNumber(yearValue, lang, rollup.kind === "sum" && !rollup.unit ? 0 : 1)}${rollup.unit}`
                     : "—"}
                 </div>
-                {/* DESIGN.md §5.5: "The annual counts that chart plotted stay
-                    recoverable by hovering a year row, which already drives
-                    an annual readout in the sidebar." */}
                 {extremesActive && extremes && (
                   <>
                     <div className="mt-2 text-xs text-text-muted">
-                      {extremeMetricInfo.short}
+                      {lang === "en" ? extremeMetricInfo.short : extremeMetricInfo.short_id}
                     </div>
                     <div className="font-numeric mt-0.5 text-lg text-heat-light">
                       {(() => {
-                        const row = extremes.results.find(
-                          (r) => r.year === hoverYear,
-                        );
-                        const v = row
-                          ? extremeMetricValue(row, extremeMetric)
-                          : null;
+                        const row = extremes.results.find((r) => r.year === hoverYear);
+                        const v = row ? extremeMetricValue(row, extremeMetric) : null;
                         return v !== null ? v : "—";
                       })()}
                     </div>
@@ -544,18 +512,15 @@ export default function FingerprintPanel({
               </>
             ) : (
               <p className="text-xs leading-relaxed text-text-muted">
-                Hover a cell for the month, or a row for the whole year.
-                <br />
-                <span className="mt-2 inline-block opacity-70">
-                  Newest year sits at the top.
-                </span>
+                <L
+                  en="Hover a square for its month, or a row for the whole year. Read down a column to watch one month change across the decades."
+                  id="Arahkan kursor ke kotak untuk melihat bulannya, atau ke baris untuk setahun penuh. Baca satu kolom ke bawah untuk melihat satu bulan berubah dari dekade ke dekade."
+                />
               </p>
             )}
           </div>
 
-          {/* DESIGN.md §5.4: "When this layer is on, the sequential legend is
-              replaced by the diverging one with its zero marked. Two ramps
-              must never be on screen at once." */}
+          {/* DESIGN.md §5.4: two ramps are never on screen at once. */}
           {baselineActive ? (
             <AnomalyLegend
               domainMax={anomalyMax}
@@ -569,34 +534,19 @@ export default function FingerprintPanel({
 
           {seasonActive && season && (
             <div className="space-y-2 border-t border-border pt-4">
-              <p className="eyebrow">Season</p>
+              <p className="eyebrow">
+                <L en="Wet season" id="Musim hujan" />
+              </p>
               {!season.onset_saturated && (
                 <>
-                  <div className="flex items-center gap-2.5 text-xs text-text-secondary">
-                    <svg width="16" height="2" aria-hidden className="shrink-0">
-                      <line x1="0" y1="1" x2="16" y2="1" stroke="var(--drought-amber)" strokeWidth="2" />
-                    </svg>
-                    Onset, year to year
-                  </div>
-                  <div className="flex items-center gap-2.5 text-xs text-text-secondary">
-                    <svg width="16" height="2" aria-hidden className="shrink-0">
-                      <line x1="0" y1="1" x2="16" y2="1" stroke="var(--drought-amber)" strokeWidth="2" strokeDasharray="1 2.5" />
-                    </svg>
-                    End, year to year
-                  </div>
-                  <div className="flex items-center gap-2.5 text-xs text-text-secondary">
-                    <svg width="16" height="2" aria-hidden className="shrink-0">
-                      <line x1="0" y1="1" x2="16" y2="1" stroke="var(--drought-amber)" strokeWidth="2" strokeDasharray="5 4" opacity={0.7} />
-                    </svg>
-                    Smoothed onset trend
-                  </div>
+                  <LegendLine en="Onset, year by year" id="Awal musim, per tahun" />
+                  <LegendLine dash="1 2.5" en="End, year by year" id="Akhir musim, per tahun" />
+                  <LegendLine dash="5 4" faded en="Onset trend" id="Tren awal musim" />
                 </>
               )}
               <SeasonRuleNote
                 bordered={false}
-                saturatedShare={
-                  season.onset_saturated ? season.onset_saturated_share : undefined
-                }
+                saturatedShare={season.onset_saturated ? season.onset_saturated_share : undefined}
               />
             </div>
           )}
@@ -604,36 +554,67 @@ export default function FingerprintPanel({
           {ensoActive && (
             <div className="space-y-2.5 border-t border-border pt-4">
               <p className="eyebrow">ENSO</p>
-              {/* DESIGN.md §5.3: "ENSOBadge is reused in the legend." Each
-                  row still pairs a gutter-matching swatch (solid vs dashed)
-                  with the badge's own dot — three cues on a two-hue pair. */}
               <div className="flex items-center gap-2.5 text-xs text-text-secondary">
                 <svg width="14" height="3" aria-hidden className="shrink-0">
                   <line x1="0" y1="1.5" x2="14" y2="1.5" stroke="var(--enso-nino)" strokeWidth="3" strokeLinecap="round" />
                 </svg>
                 <ENSOBadge phase="EL_NINO" />
-                <span>tends drier</span>
+                <span>
+                  <L en="tends drier" id="cenderung kering" />
+                </span>
               </div>
               <div className="flex items-center gap-2.5 text-xs text-text-secondary">
                 <svg width="14" height="3" aria-hidden className="shrink-0">
                   <line x1="0" y1="1.5" x2="14" y2="1.5" stroke="var(--enso-nina)" strokeWidth="3" strokeDasharray="3 2.5" strokeLinecap="round" />
                 </svg>
                 <ENSOBadge phase="LA_NINA" />
-                <span>tends wetter</span>
+                <span>
+                  <L en="tends wetter" id="cenderung basah" />
+                </span>
               </div>
             </div>
           )}
         </aside>
       </div>
 
-      {/* DESIGN.md §5.3: the caption ENSOImpactCard used to run 800px away
-          in its own section, now directly under the grid it describes. */}
       {ensoNote && (
         <p className="border-t border-border px-6 py-4 text-sm leading-relaxed text-text-secondary">
-          <span className="eyebrow mb-1.5 block">ENSO impact here</span>
+          <span className="eyebrow mb-1.5 block">
+            <L en="El Niño & La Niña here" id="El Niño & La Niña di sini" />
+          </span>
           {ensoNote}
         </p>
       )}
     </section>
+  );
+}
+
+function LegendLine({
+  dash,
+  faded,
+  en,
+  id,
+}: {
+  dash?: string;
+  faded?: boolean;
+  en: string;
+  id: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 text-xs text-text-secondary">
+      <svg width="16" height="2" aria-hidden className="shrink-0">
+        <line
+          x1="0"
+          y1="1"
+          x2="16"
+          y2="1"
+          stroke="var(--drought-amber)"
+          strokeWidth="2"
+          strokeDasharray={dash}
+          opacity={faded ? 0.7 : 1}
+        />
+      </svg>
+      <L en={en} id={id} />
+    </div>
   );
 }

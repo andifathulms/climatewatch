@@ -3,13 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { api } from "@/lib/api";
 import { routeMetadata } from "@/lib/metadata";
+import { L } from "@/lib/i18n";
 import { CityStructuredData } from "@/components/ui/StructuredData";
 import FingerprintPanel from "@/components/fingerprint/FingerprintPanel";
 import FingerprintRecordSection from "@/components/fingerprint/FingerprintRecordSection";
 import ForecastContextLoader from "@/components/charts/ForecastContextLoader";
-import WhatMovedMost from "@/components/charts/WhatMovedMost";
 import WorkedExample from "@/components/fingerprint/WorkedExample";
 import NullDataWarning from "@/components/ui/NullDataWarning";
+import Stripes from "@/components/ui/Stripes";
+import CityHeadline from "@/components/city/CityHeadline";
+import SectionTabs from "@/components/city/SectionTabs";
+import ShareMenu from "@/components/city/ShareMenu";
+import NearbyCities from "@/components/city/NearbyCities";
 
 // Required for `output: 'export'` (static mode) — every dynamic segment must
 // be enumerated at build time since there's no server to resolve one on
@@ -48,32 +53,6 @@ export async function generateMetadata({
   }
 }
 
-/**
- * One band of related panels.
- *
- * The group label is the <h2>; the panels inside carry <h3>. That is what
- * makes this page's outline two levels deep — it was nine sibling <h2>s with
- * no indication of which belonged together.
- */
-function PageGroup({
-  id,
-  label,
-  children,
-}: {
-  id: string;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section aria-labelledby={id} className="pt-6">
-      <h2 id={id} className="eyebrow mb-4">
-        {label}
-      </h2>
-      <div className="space-y-5">{children}</div>
-    </section>
-  );
-}
-
 export default async function CityPage({
   params,
 }: {
@@ -85,17 +64,18 @@ export default async function CityPage({
   if (!region.data_availability.has_data) {
     return (
       <div className="mx-auto max-w-lg py-24 text-center">
-        <p className="eyebrow">No data yet</p>
+        <p className="eyebrow">
+          <L en="No data yet" id="Belum ada data" />
+        </p>
         <h1 className="mt-4 text-hero font-semibold">{region.name}</h1>
         <p className="mt-4 leading-relaxed text-text-secondary">
-          Climate data for {region.name} hasn&apos;t been loaded yet. Run this
-          on the backend to fetch it:
+          <L
+            en={`Climate data for ${region.name} hasn't been loaded yet. It will appear here once it is.`}
+            id={`Data iklim untuk ${region.name} belum dimuat. Data akan muncul di sini setelah dimuat.`}
+          />
         </p>
-        <code className="font-numeric mt-5 block overflow-x-auto rounded-lg border border-border bg-surface-inset px-4 py-3 text-left text-xs text-heat-light">
-          manage.py climate_bootstrap --slug {region.slug}
-        </code>
         <Link href="/" className="btn-ghost mt-8 px-5 py-2.5 text-sm">
-          ← Back to cities
+          <L en="← Back to cities" id="← Kembali ke daftar kota" />
         </Link>
       </div>
     );
@@ -110,6 +90,8 @@ export default async function CityPage({
     movers,
     workedExample,
     ensoEvents,
+    stripes,
+    regions,
   ] =
     await Promise.all([
       api.fingerprint(region, "precipitation"),
@@ -123,7 +105,11 @@ export default async function CityPage({
       api.movers(region).catch(() => null),
       api.workedExample(region).catch(() => null),
       api.ensoEvents().catch(() => []),
+      api.stripes().catch(() => null),
+      api.allRegions().catch(() => []),
     ]);
+  const stripeMap = new Map((stripes?.results ?? []).map((r) => [r.slug, r]));
+  const ownStripes = stripeMap.get(region.slug) ?? null;
 
   // Collapse 924 monthly cells to 77 {year, sum, n} rows before they cross
   // into a client component. PersonalBaseline only ever averages over year
@@ -159,8 +145,7 @@ export default async function CityPage({
       : 1;
 
   return (
-    <div className="space-y-6">
-      {/* Same region + data_availability values the masthead renders below. */}
+    <div className="space-y-8">
       <CityStructuredData
         name={region.name}
         province={region.province}
@@ -171,78 +156,63 @@ export default async function CityPage({
         longitude={region.longitude}
       />
 
-      {/* ── City masthead ───────────────────────────────────────────────── */}
-      <header className="relative -mx-5 overflow-hidden px-5 pb-10 pt-12 sm:-mx-8 sm:px-8">
-
-        <nav aria-label="Breadcrumb" className="relative">
-          <Link
-            href="/"
-            className="text-xs text-text-muted transition-colors hover:text-text-primary"
-          >
-            Cities
+      {/* ── Masthead ────────────────────────────────────────────────────── */}
+      <header className="pt-10 sm:pt-14">
+        <nav aria-label="Breadcrumb" className="text-xs text-text-muted">
+          <Link href="/" className="transition-colors hover:text-text-primary">
+            <L en="Explore" id="Jelajah" />
           </Link>
-          <span aria-hidden className="mx-2 text-border-strong">
-            /
-          </span>
-          <span className="text-xs text-text-secondary">{region.province}</span>
+          <span aria-hidden className="mx-2 text-border-strong">/</span>
+          <span className="text-text-secondary">{region.province}</span>
         </nav>
-
-        <div className="relative mt-4 flex flex-wrap items-end justify-between gap-6">
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-5">
           <div>
-            <h1 className="text-hero font-semibold">{region.name}</h1>
-            {/* Province leads, coordinates follow. This matched the home cards'
-                old ordering, which put a decimal lat/long where the
-                identifying fact belongs — nobody recognises a city from
-                106.846°, and the province was buried in the breadcrumb. */}
-            <p className="mt-2 text-base text-text-secondary">
-              {region.province}
-            </p>
-            <p className="font-numeric mt-1 text-2xs uppercase tracking-wider text-text-muted">
-              {region.latitude.toFixed(3)}°, {region.longitude.toFixed(3)}°
+            <h1 className="font-display text-display font-semibold">{region.name}</h1>
+            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-text-secondary">
+              <span>{region.province}</span>
+              <span className="font-numeric text-2xs text-text-muted">
+                {region.latitude.toFixed(3)}°, {region.longitude.toFixed(3)}° · {year_from}–{year_to}
+              </span>
             </p>
           </div>
-
-          <dl className="flex divide-x divide-border rounded-lg border border-border bg-surface/60 backdrop-blur-sm">
-            <div className="px-5 py-3">
-              <dt className="text-2xs uppercase tracking-wider text-text-muted">
-                Record
-              </dt>
-              <dd className="font-numeric mt-0.5 text-sm font-medium">
-                {year_from}–{year_to}
-              </dd>
-            </div>
-            <div className="px-5 py-3">
-              <dt className="text-2xs uppercase tracking-wider text-text-muted">
-                Years
-              </dt>
-              <dd className="font-numeric mt-0.5 text-sm font-medium">
-                {years_loaded}
-              </dd>
-            </div>
-          </dl>
+          <div className="flex items-center gap-2">
+            <ShareMenu slug={region.slug} title={`${region.name} — ClimateWatch`} />
+            <Link href={`/compare?a=${region.slug}`} className="btn-ghost px-4 py-2 text-sm">
+              <L en="Compare" id="Bandingkan" />
+            </Link>
+          </div>
         </div>
       </header>
 
+      {/* Identity bar: this city's warming stripes, edge to edge. */}
+      {ownStripes && (
+        <div className="-mx-5 sm:-mx-8">
+          <Stripes
+            anomalies={ownStripes.anomalies}
+            rounded={false}
+            className="h-4 w-full"
+            label={`Warming stripes for ${region.name}, ${ownStripes.year_from}–${ownStripes.year_from + ownStripes.anomalies.length - 1}`}
+          />
+          <div className="font-numeric mt-1.5 flex justify-between px-5 text-2xs text-text-muted sm:px-8">
+            <span>{ownStripes.year_from}</span>
+            <span className="hidden sm:inline">
+              <L
+                en="each stripe = one year's average daily high vs 1951–1980 · blue cooler, orange hotter"
+                id="tiap garis = suhu tertinggi harian rata-rata setahun vs 1951–1980 · biru lebih sejuk, oranye lebih panas"
+              />
+            </span>
+            <span>{ownStripes.year_from + ownStripes.anomalies.length - 1}</span>
+          </div>
+        </div>
+      )}
+
       <NullDataWarning coverage={coverage} unit="months" />
 
-      {/* The page's opening claim — DESIGN.md §3.3. Directly under the
-          masthead, ahead of the forecast strip: "is today unusual" is a
-          smaller, different question than "has the climate changed," and it
-          should not sit between the headline and the evidence for it. */}
-      {movers && <WhatMovedMost data={movers} />}
+      <CityHeadline name={region.name} stripes={ownStripes} movers={movers} />
 
-      <ForecastContextLoader region={region} />
+      <SectionTabs />
 
-      {/* Three groups, not eight identical slabs. Every panel used to be a
-          `.card p-6` at the same width and weight in one flat space-y-6, so
-          nothing signalled that some are findings, some are trends and one is
-          a driver. Spacing carries the grouping — tighter within a group than
-          between — with no new chrome and no new colour. */}
-      <PageGroup id="g-record" label="What the record shows">
-        {/* Before the grid, not after: learn to read one square before
-            meeting 924 of them. */}
-        {workedExample && <WorkedExample data={workedExample} />}
-
+      <div id="fingerprint" className="scroll-mt-32 space-y-8">
         {year_from !== null && year_to !== null ? (
           <FingerprintRecordSection
             region={region}
@@ -257,9 +227,6 @@ export default async function CityPage({
             yearTo={year_to}
           />
         ) : (
-          // No PersonalBaseline sharing to wire up without a year range —
-          // the fingerprint alone still works fine at the stated 1951-1980
-          // default, it just can't offer a reader-chosen one.
           <FingerprintPanel
             region={region}
             initial={fingerprint}
@@ -269,30 +236,32 @@ export default async function CityPage({
             extremes={extremes}
           />
         )}
-      </PageGroup>
+      </div>
 
-      {/* Season shift/length, the ENSO impact card and extreme-day counts
-          used to each have their own section here — all four (with Baseline)
-          are now fingerprint layers (DESIGN.md §5.2-§5.5, §10 steps 4-7), so
-          "Trends over time" and "What drives the swings" are both gone. */}
+      <ForecastContextLoader region={region} />
 
-      {/* Compare CTA — the natural next step from a single city. */}
-      <section className="card flex flex-wrap items-center justify-between gap-4 p-6">
-        <div>
-          <h2 className="font-display text-lg font-semibold">
-            How does {region.name} compare?
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            Put it side by side with another Indonesian city.
-          </p>
-        </div>
-        <Link
-          href={`/compare?a=${region.slug}`}
-          className="btn-primary px-5 py-2.5 text-sm"
-        >
-          Compare cities →
-        </Link>
-      </section>
+      {workedExample && (
+        <details id="how" className="card group scroll-mt-32">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6 sm:px-8 [&::-webkit-details-marker]:hidden">
+            <span>
+              <span className="eyebrow block">
+                <L en="How to read it" id="Cara membaca" />
+              </span>
+              <span className="mt-2 block font-display text-2xl font-semibold">
+                <L en="Where one square comes from" id="Dari mana satu kotak berasal" />
+              </span>
+            </span>
+            <span aria-hidden className="font-numeric text-2xl text-text-muted transition-transform group-open:rotate-45">
+              +
+            </span>
+          </summary>
+          <div className="border-t border-border p-6 sm:p-8">
+            <WorkedExample data={workedExample} />
+          </div>
+        </details>
+      )}
+
+      <NearbyCities region={region} regions={regions} stripes={stripeMap} />
     </div>
   );
 }

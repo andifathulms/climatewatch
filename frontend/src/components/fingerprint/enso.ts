@@ -8,35 +8,45 @@ import type { EnsoImpactResponse } from "@/lib/types";
  * described. This condenses the same numbers to the sentence DESIGN.md asks
  * for, meant to run as a caption directly beneath the fingerprint instead.
  */
-export function ensoCaption(data: EnsoImpactResponse): string | null {
+export function ensoCaption(
+  data: EnsoImpactResponse,
+  lang: "en" | "id" = "en",
+): string | null {
+  const en = lang === "en";
+  const dec = (v: number, d: number) =>
+    en ? v.toFixed(d) : v.toFixed(d).replace(".", ",");
   const clauses: string[] = [];
 
-  for (const [phase, label, subject] of [
-    ["EL_NINO", "El Niño months here average", "than Neutral months"],
-    ["LA_NINA", "La Niña months here average", "than Neutral months"],
-  ] as const) {
+  for (const phase of ["EL_NINO", "LA_NINA"] as const) {
     const months = data.phases[phase].months;
     const delta = data.deltas[phase];
     if (months === 0) continue;
+    const name = phase === "EL_NINO" ? "El Niño" : "La Niña";
 
     const bits: string[] = [];
     if (delta.precipitation_delta_pct !== null) {
+      const wet = delta.precipitation_delta_pct >= 0;
       bits.push(
-        `${Math.abs(delta.precipitation_delta_pct).toFixed(0)}% ${
-          delta.precipitation_delta_pct >= 0 ? "wetter" : "drier"
+        `${dec(Math.abs(delta.precipitation_delta_pct), 0)}% ${
+          en ? (wet ? "wetter" : "drier") : wet ? "lebih basah" : "lebih kering"
         }`,
       );
     }
     if (delta.temp_delta_c !== null) {
+      const warm = delta.temp_delta_c >= 0;
       bits.push(
-        `${Math.abs(delta.temp_delta_c).toFixed(1)}°C ${
-          delta.temp_delta_c >= 0 ? "warmer" : "cooler"
+        `${dec(Math.abs(delta.temp_delta_c), 1)}°C ${
+          en ? (warm ? "warmer" : "cooler") : warm ? "lebih hangat" : "lebih sejuk"
         }`,
       );
     }
     if (bits.length === 0) continue;
 
-    clauses.push(`${label} ${bits.join(" and ")} ${subject}`);
+    clauses.push(
+      en
+        ? `${name} months here average ${bits.join(" and ")} than neutral months`
+        : `Bulan-bulan ${name} di sini rata-rata ${bits.join(" dan ")} daripada bulan netral`,
+    );
   }
 
   return clauses.length > 0 ? `${clauses.join("; ")}.` : null;

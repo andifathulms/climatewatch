@@ -26,28 +26,19 @@ export interface ExtremeMetric {
   key: keyof AnnualRow;
   label: string;
   short: string;
+  label_id: string;
+  short_id: string;
 }
 
 export const EXTREME_METRICS: ExtremeMetric[] = [
-  // Local threshold first, and the default — matches ExtremeDaysChart's old
-  // default and its reasoning: a fixed 35°C is zero for a quarter of the
-  // country's cities across the whole record.
-  { key: "hot_days_local", label: "Hot days (local)", short: "Hot days" },
-  { key: "heavy_rain_days", label: "Heavy rain (>50mm)", short: "Heavy rain days" },
-  { key: "extreme_rain_days", label: "Extreme rain (>100mm)", short: "Extreme rain days" },
-  { key: "max_consecutive_dry_days", label: "Longest dry spell", short: "Dry spell (days)" },
-  {
-    key: "max_consecutive_hot_days_local",
-    label: "Longest hot spell",
-    short: "Hot spell (days)",
-  },
-  { key: "cool_days", label: "Cool days (<20°C)", short: "Cool days" },
-  { key: "hot_days", label: "Hot days (>35°C)", short: "Hot days >35°C" },
-  {
-    key: "max_consecutive_hot_days",
-    label: "Longest heatwave (>35°C)",
-    short: "Heatwave (days)",
-  },
+  { key: "hot_days_local", label: "Hot days (local)", short: "Hot days", label_id: "Hari panas (lokal)", short_id: "Hari panas" },
+  { key: "heavy_rain_days", label: "Heavy rain (>50mm)", short: "Heavy rain days", label_id: "Hujan lebat (>50mm)", short_id: "Hari hujan lebat" },
+  { key: "extreme_rain_days", label: "Extreme rain (>100mm)", short: "Extreme rain days", label_id: "Hujan ekstrem (>100mm)", short_id: "Hari hujan ekstrem" },
+  { key: "max_consecutive_dry_days", label: "Longest dry spell", short: "Dry spell (days)", label_id: "Kemarau terpanjang", short_id: "Kemarau (hari)" },
+  { key: "max_consecutive_hot_days_local", label: "Longest hot spell", short: "Hot spell (days)", label_id: "Gelombang panas terpanjang", short_id: "Gelombang panas (hari)" },
+  { key: "cool_days", label: "Cool days (<20°C)", short: "Cool days", label_id: "Hari sejuk (<20°C)", short_id: "Hari sejuk" },
+  { key: "hot_days", label: "Hot days (>35°C)", short: "Hot days >35°C", label_id: "Hari panas (>35°C)", short_id: "Hari >35°C" },
+  { key: "max_consecutive_hot_days", label: "Longest heatwave (>35°C)", short: "Heatwave (days)", label_id: "Gelombang panas terpanjang (>35°C)", short_id: "Gelombang panas (hari)" },
 ];
 
 /** 90th percentile (nearest-rank) of a metric's values across every year on

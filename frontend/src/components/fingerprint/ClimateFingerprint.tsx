@@ -11,6 +11,8 @@ import type {
   SeasonResponse,
 } from "@/lib/types";
 import { MONTHS } from "@/lib/format";
+import { L, MONTHS_EN, MONTHS_ID, formatNumber } from "@/lib/i18n";
+import { useLang } from "@/lib/use-lang";
 import { RAMPS, buildColorScale, buildAnomalyColorScale, ANOMALY_RAMP } from "./color-scale";
 import {
   BASELINE_FROM,
@@ -34,7 +36,12 @@ const CELL_H_MAX = 22; // row height ceiling — legible even at a handful of ro
 const CELL_H_MIN = 4; // row height floor — a coloured hairline, still a mark
 const CELL_W_MIN = 26; // narrowest a month column may get before we scroll
 const CELL_W_MAX = 64;
-const PAD = 3; // >=2px surface gap between fills, per the dataviz mark spec
+const PAD = 3; // >=2px surface gap between month columns, per the dataviz mark spec
+// Gap between year rows. At whole-record zoom rows are ~6-8px tall, and a
+// 3px gap between them turned the grid into venetian blinds: the gaps, not
+// the data, set the texture. One pixel still separates rows; decade and year
+// zoom keep the full gap because their rows are tall enough to carry it.
+const ROW_GAP_RECORD = 1;
 const LEFT = 54; // year labels
 const TOP = 24; // month labels
 const BORDER = 3; // ENSO left border width
@@ -68,13 +75,15 @@ export function fingerprintYears(data: FingerprintResponse): number[] {
 // every render the way a fresh `new Set()` default literal would.
 const EMPTY_LAYERS: Set<FingerprintLayer> = new Set();
 
+/** Units appended after a number. Day counts carry no unit word — the
+ *  surrounding label says what is counted, in either language. */
 export const UNIT: Record<FingerprintVariable, string> = {
   precipitation: " mm",
   temp_max: "°C",
   feels_like: "°C",
-  hot_days: " days",
-  hot_days_local: " days",
-  dry_days: " days",
+  hot_days: "",
+  hot_days_local: "",
+  dry_days: "",
 };
 
 /** Reduce ENSO monthly events to a dominant phase per year. */
@@ -150,42 +159,18 @@ export function FingerprintLegend({
             className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
             style={{ background: "var(--null-cell)" }}
           />
-          <span className="text-2xs text-text-muted">no data</span>
+          <span className="text-2xs text-text-muted">
+            <L en="no data" id="tidak ada data" />
+          </span>
         </div>
       </div>
 
       {(cappedTop || cappedBottom) && (
         <p className="max-w-prose text-2xs leading-relaxed text-text-muted">
-          The scale stops at the 90th percentile —{" "}
-          <span className="font-numeric">
-            {hi.toFixed(0)}
-            {UNIT[variable]}
-          </span>
-          , the value nine months in ten fall below — so every month above it is
-          drawn the same brightest colour. The record maximum is actually{" "}
-          <span className="font-numeric text-text-secondary">
-            {stats.max?.toFixed(0)}
-            {UNIT[variable]}
-          </span>
-          .
-          {cappedBottom && (
-            <>
-              {" "}
-              The dark end is clipped the same way at the 10th percentile (
-              <span className="font-numeric">
-                {lo.toFixed(0)}
-                {UNIT[variable]}
-              </span>
-              ; lowest on record{" "}
-              <span className="font-numeric text-text-secondary">
-                {stats.min?.toFixed(0)}
-                {UNIT[variable]}
-              </span>
-              ).
-            </>
-          )}{" "}
-          The extremes are flattened on purpose — it keeps the middle 80% legible
-          — but it means this grid understates the outliers.
+          <L
+            en={<>The scale tops out at the 90th percentile ({hi.toFixed(0)}{UNIT[variable]}), so the wettest or hottest one month in ten all share the brightest colour. The record is actually {stats.max?.toFixed(0)}{UNIT[variable]}.{cappedBottom && <> The dark end is clipped the same way at the 10th percentile ({lo.toFixed(0)}{UNIT[variable]}; lowest on record {stats.min?.toFixed(0)}{UNIT[variable]}).</>} This keeps the middle 80% legible, at the cost of understating outliers.</>}
+            id={<>Skala berhenti di persentil ke-90 ({hi.toFixed(0)}{UNIT[variable]}), jadi satu dari sepuluh bulan terbasah atau terpanas memakai warna paling terang yang sama. Rekor sebenarnya {stats.max?.toFixed(0)}{UNIT[variable]}.{cappedBottom && <> Ujung gelap dipotong dengan cara yang sama di persentil ke-10 ({lo.toFixed(0)}{UNIT[variable]}; terendah {stats.min?.toFixed(0)}{UNIT[variable]}).</>} Cara ini menjaga 80% nilai tengah tetap terbaca, dengan konsekuensi nilai ekstrem tampak lebih kecil.</>}
+          />
         </p>
       )}
     </div>
@@ -216,8 +201,10 @@ export function AnomalyLegend({
   if (domainMax === null) {
     return (
       <p className="max-w-prose text-2xs leading-relaxed text-text-muted">
-        No {from}–{to} reference average is available to compare against for
-        this variable.
+        <L
+          en={`No ${from}–${to} reference average is available for this variable.`}
+          id={`Tidak ada rata-rata acuan ${from}–${to} untuk variabel ini.`}
+        />
       </p>
     );
   }
@@ -257,7 +244,7 @@ export function AnomalyLegend({
             style={{ background: "var(--anomaly-zero)" }}
           />
           <span className="text-2xs text-text-muted">
-            {from}–{to} average
+            <L en={`${from}–${to} average`} id={`rata-rata ${from}–${to}`} />
           </span>
         </div>
 
@@ -267,14 +254,17 @@ export function AnomalyLegend({
             className="h-2.5 w-2.5 rounded-[2px] ring-1 ring-inset ring-border-strong"
             style={{ background: "var(--null-cell)" }}
           />
-          <span className="text-2xs text-text-muted">no data</span>
+          <span className="text-2xs text-text-muted">
+            <L en="no data" id="tidak ada data" />
+          </span>
         </div>
       </div>
 
       <p className="max-w-prose text-2xs leading-relaxed text-text-muted">
-        Departure from that calendar month&rsquo;s {from}–{to} average, not
-        the raw value — a cell can be the same colour in two different cities
-        for entirely different absolute numbers.
+        <L
+          en={`Each cell shows how far that month was from its own ${from}–${to} average, not the raw value. The same colour in two cities can mean very different absolute numbers.`}
+          id={`Tiap sel menunjukkan selisih bulan itu dari rata-rata ${from}–${to} bulan yang sama, bukan nilai mentahnya. Warna yang sama di dua kota bisa berarti angka mutlak yang sangat berbeda.`}
+        />
       </p>
     </div>
   );
@@ -383,9 +373,16 @@ export default function ClimateFingerprint({
     // rendered height in `height` below actually lands inside `budget`
     // instead of overshooting it by one PAD per row — the entire point of
     // this computation is that the grid stops needing to scroll to be seen.
-    const perRow = Math.floor((budget - TOP) / years.length) - PAD;
+    const perRow = Math.floor((budget - TOP) / years.length) - ROW_GAP_RECORD;
     return Math.max(CELL_H_MIN, Math.min(CELL_H_MAX, perRow));
   }, [zoom, years.length, viewportH]);
+
+  const rowGap = zoom === "record" ? ROW_GAP_RECORD : PAD;
+  const rowStep = rowHeight + rowGap;
+  // Rounded corners on a 6px-tall cell read as beads, not a grid.
+  const cellRadius = rowHeight < 10 ? 1 : 3;
+  const lang = useLang();
+  const monthNames = lang === "en" ? MONTHS_EN : MONTHS_ID;
 
   const color = useMemo(
     () => buildColorScale(data.variable, data.stats),
@@ -482,7 +479,7 @@ export default function ClimateFingerprint({
     const frac = (p.day - 0.5) / daysInMonth;
     return {
       x: LEFT + (p.month - 1) * (cellW + PAD) + frac * cellW,
-      y: TOP + row * (rowHeight + PAD) + rowHeight / 2,
+      y: TOP + row * rowStep + rowHeight / 2,
     };
   }
 
@@ -601,7 +598,7 @@ export default function ClimateFingerprint({
   }, [data]);
 
   const width = LEFT + 12 * (cellW + PAD);
-  const height = TOP + years.length * (rowHeight + PAD);
+  const height = TOP + years.length * rowStep;
 
   function clearHover() {
     setTip(null);
@@ -691,7 +688,7 @@ export default function ClimateFingerprint({
         onMouseLeave={clearHover}
       >
         {/* Month labels */}
-        {MONTHS.map((m, i) => (
+        {monthNames.map((m, i) => (
           <text
             key={m}
             x={LEFT + i * (cellW + PAD) + cellW / 2}
@@ -706,11 +703,21 @@ export default function ClimateFingerprint({
         ))}
 
         {years.map((year, row) => {
-          const y = TOP + row * (rowHeight + PAD);
+          const y = TOP + row * rowStep;
           const phase = enso.get(year);
           const rowActive = hoverRow === row;
           // Decade anchors stay legible while intermediate years recede.
           const isDecade = year % 10 === 0;
+          // At whole-record zoom 77 labels on ~8px rows overlap into an
+          // unreadable column. Label decades, the newest and oldest year, and
+          // whichever row is hovered; every year is still in the sr-only
+          // table and the hover readout.
+          const showLabel =
+            zoom !== "record" ||
+            isDecade ||
+            rowActive ||
+            row === 0 ||
+            row === years.length - 1;
           return (
             <g
               key={year}
@@ -751,6 +758,7 @@ export default function ClimateFingerprint({
               )}
 
               {/* Year label */}
+              {showLabel && (
               <text
                 x={LEFT - GUTTER - BORDER - 4}
                 y={y + rowHeight / 2 + 3.5}
@@ -767,6 +775,7 @@ export default function ClimateFingerprint({
               >
                 {year}
               </text>
+              )}
 
               {/* ENSO left border. Both phases share the amber-adjacent
                   --enso-nino/--enso-nina hues, so El Niño is a solid fill and
@@ -826,7 +835,7 @@ export default function ClimateFingerprint({
                     y={y}
                     width={cellW}
                     height={rowHeight}
-                    rx={3}
+                    rx={cellRadius}
                     fill={fill}
                     stroke={focused ? "var(--text-primary)" : "none"}
                     strokeWidth={focused ? 1.5 : 0}
@@ -918,12 +927,12 @@ export default function ClimateFingerprint({
           }}
         >
           <div className="font-numeric text-2xs uppercase tracking-wider text-text-muted">
-            {MONTHS[tip.month - 1]} {tip.year}
+            {monthNames[tip.month - 1]} {tip.year}
           </div>
           <div className="font-numeric mt-0.5 text-sm font-medium text-text-primary">
             {tip.value === null
-              ? "no data"
-              : `${tip.value.toFixed(1)}${UNIT[data.variable]}`}
+              ? lang === "en" ? "no data" : "tidak ada data"
+              : `${formatNumber(tip.value, lang)}${UNIT[data.variable]}`}
           </div>
           {baselineActive &&
             (() => {
@@ -938,8 +947,10 @@ export default function ClimateFingerprint({
               return (
                 <div className="font-numeric mt-1 border-t border-border pt-1.5 text-2xs text-text-secondary">
                   {a === null
-                    ? `no ${baselineFrom}–${baselineTo} average to compare`
-                    : `${a >= 0 ? "+" : "−"}${Math.abs(a).toFixed(1)}${UNIT[data.variable]} vs ${baselineFrom}–${baselineTo} avg`}
+                    ? lang === "en"
+                      ? `no ${baselineFrom}–${baselineTo} average to compare`
+                      : `tidak ada rata-rata ${baselineFrom}–${baselineTo}`
+                    : `${formatNumber(a, lang, 1, true)}${UNIT[data.variable]} ${lang === "en" ? "vs" : "vs rata-rata"} ${baselineFrom}–${baselineTo}${lang === "en" ? " avg" : ""}`}
                 </div>
               );
             })()}
@@ -955,7 +966,9 @@ export default function ClimateFingerprint({
                       : "var(--enso-nina)",
                 }}
               />
-              {tip.enso === "EL_NINO" ? "El Niño year" : "La Niña year"}
+              {tip.enso === "EL_NINO"
+                ? lang === "en" ? "El Niño year" : "Tahun El Niño"
+                : lang === "en" ? "La Niña year" : "Tahun La Niña"}
             </div>
           )}
         </div>
