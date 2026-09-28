@@ -33,7 +33,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
-from apps.climate.models import ClimateAnnual, ENSOEvent
+from apps.climate.models import ClimateAnnual, ClimateMonthly, ENSOEvent
 from apps.regions.models import IndonesiaRegion
 
 from ...fingerprint import VARIABLE_FIELDS, build_fingerprint
@@ -90,6 +90,12 @@ class Command(BaseCommand):
             )
 
             for variable in VARIABLE_FIELDS:
+                # feels_like arrives by a separate backfill; exporting it for
+                # a city with a partial record would draw decades of empty
+                # cells. Skip until it covers the record like temp_max does —
+                # the client says "not available yet" for a missing file.
+                if variable == "feels_like" and not self._feels_like_ready(region):
+                    continue
                 payload = build_fingerprint(region, variable, 1950, date.today().year)
                 # enso_events used to be embedded here, in all five variants of
                 # all 90 cities: 43.9 kB x 450 copies of one global array, 45%
@@ -153,6 +159,13 @@ class Command(BaseCommand):
                 f"Exported {len(loaded)}/{len(regions)} regions (skipped: no climate data) to {out}"
             )
         )
+
+    @staticmethod
+    def _feels_like_ready(region, min_share=0.9) -> bool:
+        months = ClimateMonthly.objects.filter(region=region, avg_temp_max__isnull=False)
+        total = months.count()
+        have = months.filter(avg_apparent_temp_max__isnull=False).count()
+        return total > 0 and have / total >= min_share
 
     @staticmethod
     def _enso_overlay(year_from, year_to):
